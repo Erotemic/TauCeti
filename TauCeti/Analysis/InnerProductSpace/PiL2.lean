@@ -31,7 +31,7 @@ from entrywise bounds.
 
 ## Additional result
 
-* `TauCeti.sum_norm_le_sqrt_card_mul_norm`: the sum of coordinate norms is at most the
+* `EuclideanSpace.sum_norm_le_sqrt_card_mul_norm`: the sum of coordinate norms is at most the
   square root of the coordinate count times the Euclidean norm.
 
 ## Source
@@ -48,9 +48,9 @@ noncomputable section
 
 open scoped BigOperators
 
-namespace TauCeti
+namespace EuclideanSpace
 
-variable {𝕜 : Type*} [RCLike 𝕜] {ι κ : Type*} [Fintype ι] [Fintype κ]
+variable {𝕜 : Type*} [RCLike 𝕜] {ι : Type*} [Fintype ι]
 
 /--
 **`ℓ¹ ≤ √card · ℓ²` on Euclidean space.** For `x : EuclideanSpace 𝕜 ι`,
@@ -71,6 +71,12 @@ theorem sum_norm_le_sqrt_card_mul_norm
       rw [mul_pow, Real.sq_sqrt (by positivity : (0 : ℝ) ≤ (Fintype.card ι : ℝ))]
     rw [hrw, hnorm]; exact hcs
   exact (abs_le_of_sq_le_sq' hsq hrhs_nonneg).2
+
+end EuclideanSpace
+
+namespace TauCeti
+
+variable {𝕜 : Type*} [RCLike 𝕜] {ι κ : Type*} [Fintype ι] [Fintype κ]
 
 /-- Sum the coordinates of a Euclidean vector over each fibre of `f`.
 
