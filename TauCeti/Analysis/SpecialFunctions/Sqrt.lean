@@ -10,51 +10,50 @@ public import Mathlib.Analysis.SpecialFunctions.Sqrt
 /-!
 # Square-root displacement estimates
 
-Two scalar estimates used to control the positive square root and inverse square
-root of operators near the identity. These are the `PolarDecomposition` roadmap
-targets `PD-A08` and `PD-A09`.
+Two estimates comparing the real square-root and inverse-square-root functions
+with the identity near `1`. These bounds control scalar spectral factors of
+positive operators close to the identity.
 
 ## Main results
 
-* `TauCeti.Real.abs_sqrt_sub_one_le_abs_sub_one`: for `μ ≥ 0`,
+* `Real.abs_sqrt_sub_one_le_abs_sub_one`: for every real `μ`,
   `|√μ - 1| ≤ |μ - 1|`.
-* `TauCeti.Real.abs_one_sub_inv_sqrt_le`: for `|μ - 1| ≤ δ ≤ 1/2`,
+* `Real.abs_one_sub_inv_sqrt_le`: if `|μ - 1| ≤ δ ≤ 1/2`,
   `|1 - (√μ)⁻¹| ≤ δ`.
 
-## Provenance
+## References
 
-Ported from `ForTauCeti/Analysis/SpecialFunctions/Sqrt.lean` in the
-[AIQ DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
-(Kitware, Inc.; Apache-2.0). Proofs are unchanged from the donor module.
+[AIQ DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization),
+`ForTauCeti/Analysis/SpecialFunctions/Sqrt.lean`.
 -/
 
 public section
 
-namespace TauCeti.Real
+namespace Real
 
-/-- The square root contracts the distance to `1`: `|√μ - 1| ≤ |μ - 1|`.
-
-The identity `(√μ - 1) (√μ + 1) = μ - 1` exhibits `√μ - 1` as `μ - 1` divided by
-`√μ + 1 ≥ 1`.  No hypothesis beyond `0 ≤ μ` is needed, and the estimate is sharp
-at `μ = 1`. -/
-theorem abs_sqrt_sub_one_le_abs_sub_one {μ : ℝ} (hμ : 0 ≤ μ) :
+/-- For every real `μ`, the square root is no farther from `1` than `μ` is:
+`|√μ - 1| ≤ |μ - 1|`. -/
+theorem abs_sqrt_sub_one_le_abs_sub_one {μ : ℝ} :
     |Real.sqrt μ - 1| ≤ |μ - 1| := by
-  have hs : 0 ≤ Real.sqrt μ := Real.sqrt_nonneg μ
-  have hsq : Real.sqrt μ * Real.sqrt μ = μ := Real.mul_self_sqrt hμ
-  have key : |Real.sqrt μ - 1| * (Real.sqrt μ + 1) = |μ - 1| := by
-    rw [← abs_of_nonneg (by linarith : (0 : ℝ) ≤ Real.sqrt μ + 1), ← abs_mul]
-    congr 1
-    nlinarith [hsq]
-  nlinarith [key, mul_nonneg (abs_nonneg (Real.sqrt μ - 1)) hs]
+  rcases le_total 0 μ with hμ | hμ
+  · have hs : 0 ≤ Real.sqrt μ := Real.sqrt_nonneg μ
+    have hsq : Real.sqrt μ * Real.sqrt μ = μ := Real.mul_self_sqrt hμ
+    have key : |Real.sqrt μ - 1| * (Real.sqrt μ + 1) = |μ - 1| := by
+      rw [← abs_of_nonneg (by linarith : (0 : ℝ) ≤ Real.sqrt μ + 1), ← abs_mul]
+      congr 1
+      nlinarith [hsq]
+    nlinarith [key, mul_nonneg (abs_nonneg (Real.sqrt μ - 1)) hs]
+  · have hsqrt : Real.sqrt μ = 0 := Real.sqrt_eq_zero_of_nonpos hμ
+    calc
+      |Real.sqrt μ - 1| = 1 := by rw [hsqrt]; norm_num
+      _ ≤ |μ - 1| := by
+        rw [abs_of_nonpos (by linarith : μ - 1 ≤ 0)]
+        linarith
 
 /-- If `|μ - 1| ≤ δ ≤ 1 / 2`, then `|1 - (√μ)⁻¹| ≤ δ`.
 
-The point: `1 - (√μ)⁻¹ = (μ - 1) / (μ + √μ)` and the denominator `μ + √μ ≥ 1`
-when `μ ≥ 1 / 2`.
-
-Unlike `TauCeti.Real.abs_sqrt_sub_one_le_abs_sub_one`, a smallness hypothesis on
-`δ` is unavoidable here: `(√μ)⁻¹ → ∞` as `μ ↓ 0`.  Nonnegativity of `δ` is not
-assumed separately — it is forced by `hμ`, since `0 ≤ |μ - 1| ≤ δ`. -/
+The hypotheses force `μ` to be positive and keep the inverse square root
+bounded near `1`. -/
 theorem abs_one_sub_inv_sqrt_le {μ δ : ℝ} (hδ : δ ≤ 1 / 2) (hμ : |μ - 1| ≤ δ) :
     |1 - (Real.sqrt μ)⁻¹| ≤ δ := by
   have hμlb : 1 - δ ≤ μ := by rw [abs_le] at hμ; linarith
@@ -86,6 +85,6 @@ theorem abs_one_sub_inv_sqrt_le {μ δ : ℝ} (hδ : δ ≤ 1 / 2) (hμ : |μ - 
     rw [inv_eq_one_div, le_div_iff₀ hs0]; linarith [hhigh]
   exact ⟨by linarith [hinv_le], by linarith [hle_inv]⟩
 
-end TauCeti.Real
+end Real
 
 end
