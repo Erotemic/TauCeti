@@ -11,26 +11,26 @@ public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
 /-!
 # Spans of orthonormal subfamilies
 
-For an orthonormal basis `b : OrthonormalBasis ι 𝕜 E` and a set `s : Set ι`,
-`b.spanIndices s` is the subspace spanned by the basis vectors indexed by `s`.
+For a finite-index orthonormal basis and a set of indices, `spanIndices` is the
+subspace spanned by the corresponding basis vectors.
 
 ## Main results
 
-* `OrthonormalBasis.spanIndices`: the selected subspace.
-* `OrthonormalBasis.spanIndices_mono`: enlarging the index set enlarges the span.
-* `OrthonormalBasis.mem_spanIndices_iff`: membership is equivalent to vanishing
-  of all basis coordinates outside `s`.
-* `OrthonormalBasis.finrank_spanIndices`: the span's dimension is the number of
-  selected indices.
-* `OrthonormalBasis.orthogonal_spanIndices`: its orthogonal complement is the
-  span of the complementary subfamily.
+* `OrthonormalBasis.spanIndices_eq_span`: the explicit span characterization.
+* `OrthonormalBasis.spanIndices_mono`: monotonicity under index-set inclusion.
+* `OrthonormalBasis.mem_spanIndices_of_mem`: selected basis vectors belong to the span.
+* `OrthonormalBasis.mem_spanIndices_iff`: membership means coordinates vanish
+  outside the selected indices.
+* `OrthonormalBasis.finrank_spanIndices`: the dimension of a selected finite span.
+* `OrthonormalBasis.finrank_spanIndices_set`: dimension as set cardinality.
+* `OrthonormalBasis.orthogonal_spanIndices`: orthogonal complement by index complement.
 
 ## Source
 
-Ported from `ForTauCeti/Analysis/InnerProductSpace/BasisSpan.lean` in the
+Adapted from `ForTauCeti/Analysis/InnerProductSpace/BasisSpan.lean` in the
 [AIQ-Kitware DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
-(Kitware, Inc.; Apache-2.0). Its selected-span construction originates in the
-donor's Courant--Fischer development. The definitions and proofs are unchanged.
+(Kitware, Inc.; Apache-2.0). The selected-span construction originates in the
+Courant--Fischer development.
 -/
 
 public section
@@ -45,30 +45,33 @@ variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductS
 
 /-- The subspace spanned by the orthonormal basis vectors `b i` for indices
 `i ∈ s`. -/
-@[expose]
 noncomputable def spanIndices (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
     Submodule 𝕜 E :=
   Submodule.span 𝕜 (b '' s)
 
-/-- A selected basis span equals the submodule span of the corresponding vectors. -/
+/-- The selected subspace is the span of its basis vectors.
+Use this identity to apply `Submodule.span`'s induction or universal property. -/
 theorem spanIndices_eq_span (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
     b.spanIndices s = Submodule.span 𝕜 (b '' s) := (rfl)
 
 /-- Selecting more indices spans more. -/
 theorem spanIndices_mono (b : OrthonormalBasis ι 𝕜 E) {s t : Set ι} (h : s ⊆ t) :
-    b.spanIndices s ≤ b.spanIndices t :=
-  Submodule.span_mono (Set.image_mono h)
+    b.spanIndices s ≤ b.spanIndices t := by
+  rw [b.spanIndices_eq_span s, b.spanIndices_eq_span t]
+  exact Submodule.span_mono (Set.image_mono h)
 
 /-- A selected basis vector lies in the span of its index set. -/
 theorem mem_spanIndices_of_mem (b : OrthonormalBasis ι 𝕜 E) {s : Set ι} {i : ι}
-    (hi : i ∈ s) : b i ∈ b.spanIndices s :=
-  Submodule.subset_span ⟨i, hi, rfl⟩
+    (hi : i ∈ s) : b i ∈ b.spanIndices s := by
+  rw [b.spanIndices_eq_span]
+  exact Submodule.subset_span ⟨i, hi, rfl⟩
 
 /-- A vector in the span of a selected subfamily has zero coordinate at any
 index outside the selection. -/
 theorem repr_eq_zero_of_mem_spanIndices (b : OrthonormalBasis ι 𝕜 E)
     {s : Set ι} {x : E} (hx : x ∈ b.spanIndices s) {i : ι} (hi : i ∉ s) :
     b.repr x i = 0 := by
+  rw [b.spanIndices_eq_span] at hx
   rw [b.repr_apply_apply]
   -- `⟪b i, ·⟫` vanishes on the spanning set, hence on the whole span.
   refine Submodule.span_induction ?_ ?_ ?_ ?_ hx
@@ -84,7 +87,9 @@ theorem repr_eq_zero_of_mem_spanIndices (b : OrthonormalBasis ι 𝕜 E)
 
 /-- Membership in the span of a selected subfamily is exactly the vanishing of
 the coordinates outside the selection. -/
-theorem mem_spanIndices_iff (b : OrthonormalBasis ι 𝕜 E) {s : Set ι} {x : E} :
+@[simp]
+theorem mem_spanIndices_iff (b : OrthonormalBasis ι 𝕜 E)
+    {s : Set ι} {x : E} :
     x ∈ b.spanIndices s ↔ ∀ i ∉ s, b.repr x i = 0 := by
   classical
   refine ⟨fun hx i hi => b.repr_eq_zero_of_mem_spanIndices hx hi, fun h => ?_⟩
@@ -103,13 +108,15 @@ theorem finrank_spanIndices (b : OrthonormalBasis ι 𝕜 E) (s : Finset ι) :
       (Set.range fun i : ↥(↑s : Set ι) => b ↑i)) = Fintype.card ↥(↑s : Set ι) :=
     finrank_span_eq_card
       (b.orthonormal.linearIndependent.comp _ Subtype.val_injective)
-  rw [spanIndices, Set.image_eq_range, h]
+  rw [b.spanIndices_eq_span, Set.image_eq_range, h]
   simp
 
-/-- `Set` form of `OrthonormalBasis.finrank_spanIndices`. -/
-theorem finrank_spanIndices_set (b : OrthonormalBasis ι 𝕜 E) (s : Set ι)
-    [DecidablePred (· ∈ s)] :
-    finrank 𝕜 (b.spanIndices s) = s.toFinset.card := by
+/-- The span of a selected set of basis vectors has dimension equal to the
+number of selected indices. -/
+theorem finrank_spanIndices_set (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
+    finrank 𝕜 (b.spanIndices s) = s.ncard := by
+  classical
+  rw [Set.ncard_eq_toFinset_card']
   rw [← b.finrank_spanIndices s.toFinset, Set.coe_toFinset]
 
 /-- The orthogonal complement of the span of a selected subfamily is the span
@@ -122,6 +129,7 @@ theorem orthogonal_spanIndices (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
     rw [Module.finrank_eq_card_basis b.toBasis]
   refine (Submodule.eq_of_le_of_finrank_le ?_ ?_).symm
   · -- the complementary span is orthogonal to the selected span.
+    rw [b.spanIndices_eq_span (sᶜ)]
     apply Submodule.span_le.mpr
     rintro y ⟨j, hj, rfl⟩
     rw [SetLike.mem_coe, Submodule.mem_orthogonal]
@@ -138,6 +146,7 @@ theorem orthogonal_spanIndices (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
       rw [Set.toFinset_compl, Finset.card_compl]
       have := Finset.card_le_univ s.toFinset
       omega
+    simp only [Set.ncard_eq_toFinset_card'] at h2 h3
     omega
 
 end OrthonormalBasis
