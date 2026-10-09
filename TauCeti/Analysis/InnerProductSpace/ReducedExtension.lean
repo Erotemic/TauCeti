@@ -17,8 +17,6 @@ module
 
 public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 
-public section
-
 /-!
 # Quadratic forms of reduced extensions
 
@@ -71,6 +69,8 @@ the cross terms.
   Kitware, Inc.; Apache 2.0.
 * Spectra influence: **none** — imports only Mathlib.
 -/
+
+public section
 
 open scoped InnerProductSpace
 
