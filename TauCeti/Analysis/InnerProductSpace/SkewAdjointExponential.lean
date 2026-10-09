@@ -2,6 +2,10 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
+module
+
+/-
 Adapted from: Spectra (https://github.com/adambornemann-glitch/Spectra),
   `Spectra/YosidaHille/Approximation/Commutation.lean` at commit
   `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`,
@@ -9,7 +13,6 @@ Adapted from: Spectra (https://github.com/adambornemann-glitch/Spectra),
   Apache 2.0.  Modified: see `## Provenance` (Apache 2.0 §4(b)); the donor's
   copyright and authorship notices are retained here and below (§4(c)).
 -/
-module
 
 public import Mathlib.Analysis.SpecialFunctions.Exponential
 public import Mathlib.Analysis.CStarAlgebra.Exponential
