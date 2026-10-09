@@ -45,18 +45,9 @@ completeness of `E →L[𝕜] F`.
 
 public section
 
-namespace TauCeti
-
 open scoped ENNReal
 
 universe u v w
-
-section Base
-
-variable {𝕜 : Type u} [RCLike 𝕜]
-variable {E : Type v} {F : Type w}
-variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
-variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F]
 
 /-- Submultiplicativity of the operator norm across a **two-sided** composition.
 
@@ -81,6 +72,15 @@ theorem ContinuousLinearMap.opNorm_comp_comp_le
         mul_le_mul_of_nonneg_left
           (ContinuousLinearMap.opNorm_comp_le A R) (norm_nonneg L)
     _ = ‖L‖ * ‖A‖ * ‖R‖ := (mul_assoc _ _ _).symm
+
+namespace TauCeti
+
+section Base
+
+variable {𝕜 : Type u} [RCLike 𝕜]
+variable {E : Type v} {F : Type w}
+variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
+variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F]
 
 /-- The operator norm, as an operator ideal family: every bounded operator is a
 member, and the gauge is the operator norm. -/
