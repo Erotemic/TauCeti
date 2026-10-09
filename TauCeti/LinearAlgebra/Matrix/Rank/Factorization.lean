@@ -18,11 +18,11 @@ Exact-rank factorizations are unique up to an invertible change of basis.
 
 ## Main results
 
-* `TauCeti.Matrix.exists_eq_mul_rank`: factor through `Fin M.rank` (MSS-A01).
-* `TauCeti.Matrix.exists_eq_mul_of_rank_le`: factor through `Fin r` when `M.rank ≤ r`
+* `Matrix.exists_eq_mul_rank`: factor through `Fin M.rank` (MSS-A01).
+* `Matrix.exists_eq_mul_of_rank_le`: factor through `Fin r` when `M.rank ≤ r`
   (MSS-A02).
-* `TauCeti.Matrix.rank_le_iff_exists_eq_mul`: rank characterization (MSS-A03).
-* `TauCeti.Matrix.exists_units_eq_mul_of_rank_factorization`: uniqueness under the
+* `Matrix.rank_le_iff_exists_eq_mul`: rank characterization (MSS-A03).
+* `Matrix.exists_units_eq_mul_of_rank_factorization`: uniqueness under the
   general linear group at exact rank (MSS-A08).
 
 ## Provenance
@@ -34,10 +34,9 @@ originally developed by Jon Crall and Claude Fable 5 (Apache-2.0).
 
 public section
 
-namespace TauCeti.Matrix
+namespace Matrix
 
 open Module (finrank)
-open _root_.Matrix
 
 variable {𝕜 m n : Type*} [Field 𝕜] [Fintype n]
 
@@ -230,4 +229,4 @@ theorem exists_units_eq_mul_of_rank_factorization {M : Matrix m n 𝕜} (hM : M.
 
 end Uniqueness
 
-end TauCeti.Matrix
+end Matrix
