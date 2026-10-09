@@ -155,7 +155,6 @@ universe u v w
 -- Written here rather than left silent because this is the only one
 -- of the library's ten linter suppressions with no reason at its site, and
 -- `ForTauCeti/README.md` §207 forbids silencing a linter without one.
-set_option linter.checkUnivs false in
 /-- A **rectangular operator ideal family** over `𝕜`, presented by its gauge.
 
 `gauge A` is the ideal norm of `A`, taken in `ℝ≥0∞` so that it is defined on
