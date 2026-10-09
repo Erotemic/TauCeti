@@ -216,9 +216,8 @@ theorem exists_continuous_integral_norm_sub_le (ν : Measure (spectrum ℂ a))
     rw [eLpNorm_one_eq_lintegral_enorm,
       integral_norm_eq_lintegral_enorm (μ := ν) (f := fun x => f x - g x)
         (hf.sub hgint).aestronglyMeasurable]
-    rfl
-    all_goals
-      simpa only [Pi.sub_apply] using (hf.sub hgint).aestronglyMeasurable
+    · rfl
+    · simpa only [Pi.sub_apply] using (hf.sub hgint).aestronglyMeasurable
   rw [hint]
   calc (eLpNorm (f - ⇑g) 1 ν).toReal ≤ (ENNReal.ofReal ε).toReal := by
         apply ENNReal.toReal_mono _ hgle
