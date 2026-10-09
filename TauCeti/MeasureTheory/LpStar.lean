@@ -22,7 +22,7 @@ layer carries `[Fact (1 ≤ p)]`, matching Mathlib's normed-topological `Lp` str
 
 ## Main results
 
-* `TauCeti.coeFn_star_lp`: `star F` is represented by the pointwise star of a representative.
+* `Lp.coeFn_star`: Mathlib supplies the pointwise representative identity used below.
 * `TauCeti.norm_star_lp`: pointwise star preserves the `Lᵖ` norm.
 * `TauCeti.star_sub_lp`: pointwise star preserves subtraction on `Lᵖ`.
 * `TauCeti.isometry_star_lp`: for `p ≥ 1`, pointwise star is an isometry of `Lᵖ`.
@@ -50,18 +50,13 @@ variable {α R : Type*} [MeasurableSpace α]
 variable [NormedAddCommGroup R] [StarAddMonoid R] [NormedStarGroup R]
 variable {μ : Measure α} {p : ENNReal}
 
-/-- The `Lᵖ` class of `star F` is represented by the pointwise star of a representative of `F`. -/
-theorem coeFn_star_lp (F : Lp R p μ) :
-    ∀ᵐ x ∂μ, (star F : Lp R p μ) x = star ((F : Lp R p μ) x) :=
-  Lp.coeFn_star F
-
 /-- Pointwise star preserves the `Lᵖ` norm. -/
 theorem norm_star_lp (F : Lp R p μ) : ‖star F‖ = ‖F‖ := by
   rw [Lp.norm_def, Lp.norm_def]
   congr 1
   refine eLpNorm_congr_norm_ae (Lp.aestronglyMeasurable (star F))
     (Lp.aestronglyMeasurable F) ?_
-  filter_upwards [coeFn_star_lp F] with x hx
+  filter_upwards [Lp.coeFn_star F] with x hx
   rw [hx, norm_star]
 
 /-- Pointwise star preserves subtraction on `Lᵖ`.
@@ -70,8 +65,8 @@ Mathlib gives `Lp` the pointwise `Star` operation but not a `StarAddMonoid` inst
 is recorded explicitly at the `Lp` level. -/
 theorem star_sub_lp (F G : Lp R p μ) : star (F - G) = star F - star G := by
   refine Lp.ext ?_
-  filter_upwards [coeFn_star_lp (F - G), Lp.coeFn_sub F G,
-    Lp.coeFn_sub (star F) (star G), coeFn_star_lp F, coeFn_star_lp G] with x h1 h2 h3 h4 h5
+  filter_upwards [Lp.coeFn_star (F - G), Lp.coeFn_sub F G,
+    Lp.coeFn_sub (star F) (star G), Lp.coeFn_star F, Lp.coeFn_star G] with x h1 h2 h3 h4 h5
   rw [h1, h2, h3]
   simp only [Pi.sub_apply, h4, h5, star_sub]
 
