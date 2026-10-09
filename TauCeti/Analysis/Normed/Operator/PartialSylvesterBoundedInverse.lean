@@ -75,7 +75,8 @@ theorem eq_leftInverse_comp_add_of_boundedRight_sylvester
   calc
     X x = hA.inv (A u) := by simpa [u] using (hA.inv_apply u).symm
     _ = hA.inv (C x + X (B x)) := by rw [heq]
-    _ = hA.inv (C x) + hA.inv (X (B x)) := by rw [map_add]
+    _ = hA.inv (C x) + hA.inv (X (B x)) := by
+      exact hA.inv.map_add (C x) (X (B x))
 
 /-- A partial-left Sylvester equation has the same bounded fixed-point form as
 the bounded-left equation once the partial operator has a bounded inverse. -/
