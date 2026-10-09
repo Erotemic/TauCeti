@@ -328,7 +328,8 @@ theorem eLpNorm_two_mul_le (ρ : Measure α) {g : α → ℂ} (hg : Measurable g
     (hf : AEStronglyMeasurable f ρ) :
     eLpNorm (fun x => g x * f x) 2 ρ ≤ ENNReal.ofReal |C| * eLpNorm f 2 ρ := by
   have hle : eLpNorm (fun x => g x * f x) 2 ρ ≤ eLpNorm (((|C| : ℝ) : ℂ) • f) 2 ρ := by
-    refine eLpNorm_mono_ae (hg.aestronglyMeasurable.mul hf) (Filter.Eventually.of_forall fun x => ?_)
+    refine eLpNorm_mono_ae (hg.aestronglyMeasurable.mul hf)
+      (Filter.Eventually.of_forall fun x => ?_)
     simp only [Pi.smul_apply, smul_eq_mul, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_abs]
     exact mul_le_mul_of_nonneg_right ((hgC x).trans (le_abs_self C)) (norm_nonneg _)
   rw [eLpNorm_const_smul] at hle

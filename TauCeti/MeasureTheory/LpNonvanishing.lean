@@ -61,7 +61,9 @@ theorem exists_ae_ne_zero_memLp_two (ρ : Measure α) [SigmaFinite ρ] :
       (Complex.continuous_ofReal.measurable.comp
         (Real.continuous_sqrt.measurable.comp
           (measurable_coe_nnreal_real.comp hwmeas))).aestronglyMeasurable
-    rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top (by norm_num) (by norm_num) hfmeas]
+    change eLpNorm (fun x => ((Real.sqrt (w x) : ℝ) : ℂ)) 2 ρ < ∞
+    rw [eLpNorm_lt_top_iff_lintegral_rpow_enorm_lt_top
+      (p := (2 : ℝ≥0∞)) (by norm_num) (by norm_num) hfmeas]
     have hcongr : ∫⁻ x, ‖((Real.sqrt (w x) : ℝ) : ℂ)‖ₑ ^ ((2 : ℝ≥0∞).toReal) ∂ρ
         = ∫⁻ x, (w x : ℝ≥0∞) ∂ρ := by
       refine lintegral_congr fun x => ?_
