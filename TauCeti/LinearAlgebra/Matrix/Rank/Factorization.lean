@@ -172,44 +172,47 @@ theorem exists_mul_eq_of_range_le {ι κ : Type*} [Fintype ι] [Fintype κ]
   rwa [← Matrix.toLin'_apply' L, ← Matrix.toLin'_apply' L', LinearMap.toMatrix'_comp,
     LinearMap.toMatrix'_toLin', LinearMap.toMatrix'_toLin'] at this
 
-/-- Two factorizations of the same matrix through `Fin r`, with rank exactly `r`,
-differ by an invertible change of basis of the intermediate space. -/
-theorem exists_unit_eq_mul_of_rank_factorization {r : ℕ} {M : Matrix m n 𝕜}
-    (hM : M.rank = r) {L L' : Matrix m (Fin r) 𝕜}
-    {R R' : Matrix (Fin r) n 𝕜}
+/-- Two factorizations of the same matrix through any finite intermediate type `ι`,
+when the rank equals `Fintype.card ι`, differ by an invertible change of basis.
+The decidable equality instance supplies the identity matrix and square-matrix units. -/
+theorem exists_unit_eq_mul_of_rank_factorization {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {M : Matrix m n 𝕜} (hM : M.rank = Fintype.card ι)
+    {L L' : Matrix m ι 𝕜} {R R' : Matrix ι n 𝕜}
     (h : M = L * R) (h' : M = L' * R') :
-    ∃ g : (Matrix (Fin r) (Fin r) 𝕜)ˣ,
-      L' = L * (g : Matrix (Fin r) (Fin r) 𝕜) ∧
-        R' = ((g⁻¹ : (Matrix (Fin r) (Fin r) 𝕜)ˣ) : Matrix (Fin r) (Fin r) 𝕜) * R := by
+    ∃ g : (Matrix ι ι 𝕜)ˣ,
+      L' = L * (g : Matrix ι ι 𝕜) ∧
+        R' = ((g⁻¹ : (Matrix ι ι 𝕜)ˣ) : Matrix ι ι 𝕜) * R := by
   classical
-  have hcard : M.rank = Fintype.card (Fin r) := by
-    simpa only [Fintype.card_fin] using hM
   have hrange : LinearMap.range L'.mulVecLin = LinearMap.range L.mulVecLin := by
-    rw [range_left_factor_eq hcard h', range_left_factor_eq hcard h]
+    rw [range_left_factor_eq hM h', range_left_factor_eq hM h]
   obtain ⟨G, hG⟩ := exists_mul_eq_of_range_le (L := L) (L' := L') hrange.le
   obtain ⟨G', hG'⟩ := exists_mul_eq_of_range_le (L := L') (L' := L) hrange.ge
   have hLinj : Function.Injective L.mulVec :=
-    (rank_eq_card_iff_mulVec_injective L).mp (rank_left_factor_eq hcard h)
+    (rank_eq_card_iff_mulVec_injective L).mp (rank_left_factor_eq hM h)
   have hL'inj : Function.Injective L'.mulVec :=
-    (rank_eq_card_iff_mulVec_injective L').mp (rank_left_factor_eq hcard h')
+    (rank_eq_card_iff_mulVec_injective L').mp (rank_left_factor_eq hM h')
   have hGG' : G * G' = 1 := by
-    rcases isEmpty_or_nonempty (Fin r) with hEmpty | hNonempty
+    rcases isEmpty_or_nonempty ι with hEmpty | hNonempty
     · apply Matrix.ext
       intro i j
       exact (hEmpty.false i).elim
-    · let : Inhabited (Fin r) := ⟨Classical.choice hNonempty⟩
+    · let : Inhabited ι := ⟨Classical.choice hNonempty⟩
       apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
-      change L * (G * G') = L * 1
-      rw [← Matrix.mul_assoc, hG, hG', Matrix.mul_one]
+      exact calc
+        L * (G * G') = (L * G) * G' := (Matrix.mul_assoc L G G').symm
+        _ = L := by rw [hG, hG']
+        _ = L * 1 := (Matrix.mul_one L).symm
   have hG'G : G' * G = 1 := by
-    rcases isEmpty_or_nonempty (Fin r) with hEmpty | hNonempty
+    rcases isEmpty_or_nonempty ι with hEmpty | hNonempty
     · apply Matrix.ext
       intro i j
       exact (hEmpty.false i).elim
-    · let : Inhabited (Fin r) := ⟨Classical.choice hNonempty⟩
+    · let : Inhabited ι := ⟨Classical.choice hNonempty⟩
       apply (mul_right_injective_iff_mulVec_injective.mpr hL'inj)
-      change L' * (G' * G) = L' * 1
-      rw [← Matrix.mul_assoc, hG', hG, Matrix.mul_one]
+      exact calc
+        L' * (G' * G) = (L' * G') * G := (Matrix.mul_assoc L' G' G).symm
+        _ = L' := by rw [hG', hG]
+        _ = L' * 1 := (Matrix.mul_one L').symm
   refine ⟨⟨G, G', hGG', hG'G⟩, hG.symm, ?_⟩
   have hR : R = G * R' := by
     rcases isEmpty_or_nonempty n with hEmpty | hNonempty
@@ -218,8 +221,11 @@ theorem exists_unit_eq_mul_of_rank_factorization {r : ℕ} {M : Matrix m n 𝕜}
       exact (hEmpty.false j).elim
     · let : Inhabited n := ⟨Classical.choice hNonempty⟩
       apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
-      change L * R = L * (G * R')
-      rw [← Matrix.mul_assoc, hG, ← h, h']
+      exact calc
+        L * R = M := h.symm
+        _ = L' * R' := h'
+        _ = (L * G) * R' := by rw [hG]
+        _ = L * (G * R') := Matrix.mul_assoc L G R'
   rw [hR, ← Matrix.mul_assoc]
   simp [hG'G]
 
