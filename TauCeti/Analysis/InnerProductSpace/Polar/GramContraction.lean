@@ -2,10 +2,12 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
-
-Staged for Tau Ceti: the polar partial isometry over a general `RCLike` field.
 -/
 module
+
+/-
+Staged for Tau Ceti: the polar partial isometry over a general `RCLike` field.
+-/
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Positive

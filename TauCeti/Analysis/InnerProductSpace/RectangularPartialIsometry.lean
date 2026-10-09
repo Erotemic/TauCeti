@@ -2,7 +2,10 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
+module
 
+/-
 Staged for Tau Ceti, roadmap topic `PolarDecomposition`.  Mathlib is
 not the destination (`ForTauCeti/README.md`); on the closed Mathlib track this
 would have gone to `Mathlib/Analysis/InnerProductSpace/`, beside the polar
@@ -10,7 +13,6 @@ decomposition.
 
 Formalized by Claude Opus 5 (claude-opus-5[1m]).
 -/
-module
 
 public import TauCeti.Analysis.InnerProductSpace.PartialIsometry
 

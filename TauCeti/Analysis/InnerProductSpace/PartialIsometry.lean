@@ -2,7 +2,10 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 4.8
+-/
+module
 
+/-
 Staged for Tau Ceti, roadmap topic T02.  Mathlib is not the destination
 (`ForTauCeti/README.md`); what follows is where this material would have gone on
 the closed Mathlib track —
@@ -12,7 +15,6 @@ Sub-dev II of the operator polar decomposition project — COMPLETE
 (proof-complete; reduction uses only:
 `propext, Classical.choice, Quot.sound`). Tickets PD-05..PD-07.
 -/
-module
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
