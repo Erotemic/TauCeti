@@ -195,7 +195,7 @@ theorem cutoff_split (A : E →L[ℂ] E) (hA : 0 ≤ A) (s : ℝ) :
     cfc_mul (fun t : ℝ => t) (fun t : ℝ => t) A,
     cfc_add (a := A) (fun t : ℝ => t) (fun _ : ℝ => s),
     cfc_const (s ^ 2) A, cfc_const s A, cfc_id' ℝ A]
-  simp
+  simp [Algebra.algebraMap_eq_smul_one]
 
 /-- The operator identity behind the lower bound. -/
 theorem cocutoff_split (A : E →L[ℂ] E) (hA : 0 ≤ A) (s : ℝ) :
@@ -206,7 +206,7 @@ theorem cocutoff_split (A : E →L[ℂ] E) (hA : 0 ≤ A) (s : ℝ) :
     cfc_sub (a := A) (fun t : ℝ => max (s - t) 0) (fun t : ℝ => s - t),
     cfc_sub (a := A) (fun _ : ℝ => s) (fun t : ℝ => t),
     cfc_const s A, cfc_id' ℝ A]
-  simp
+  simp [Algebra.algebraMap_eq_smul_one]
 
 /-- The cutoff and the cocutoff annihilate each other: the real functions defining them have
 disjoint supports. -/
