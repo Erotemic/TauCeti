@@ -14,11 +14,11 @@ public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometr
 
 Two consequences of where a self-adjoint element sits on the real line:
 
-* `TauCeti.IsSelfAdjoint.norm_le_iff_spectrum_subset_Icc`: `‖a‖ ≤ r` **iff** the real
+* `IsSelfAdjoint.norm_le_iff_spectrum_subset_Icc`: `‖a‖ ≤ r` **iff** the real
   spectrum is contained in `[-r, r]`. This is the isometric continuous functional
   calculus specialized to the identity function.
 * `TauCeti.isUnit_of_forall_le_abs` and
-  `TauCeti.IsSelfAdjoint.norm_ringInverse_le`: if the real spectrum avoids the open
+  `IsSelfAdjoint.norm_ringInverse_le`: if the real spectrum avoids the open
   interval `(-r, r)` then `a` is a unit whose inverse has norm at most `r⁻¹`.
 
 Invertibility needs no self-adjointness and no norm: it is exactly
@@ -70,11 +70,16 @@ theorem isUnit_of_forall_le_abs (hr : 0 < r) (hσ : ∀ x ∈ spectrum ℝ a, r 
 
 end Unit
 
+end TauCeti
+
+-- These lemmas belong in Mathlib's IsSelfAdjoint namespace for dot notation.
+namespace IsSelfAdjoint
+
 variable {A : Type*} [CStarAlgebra A] {a : A} {r : ℝ}
 
 /-- A self-adjoint element of a C⋆-algebra has norm at most `r` exactly when its real
 spectrum is contained in `[-r, r]`. -/
-theorem IsSelfAdjoint.norm_le_iff_spectrum_subset_Icc (ha : IsSelfAdjoint a) (hr : 0 ≤ r) :
+theorem norm_le_iff_spectrum_subset_Icc (ha : IsSelfAdjoint a) (hr : 0 ≤ r) :
     ‖a‖ ≤ r ↔ spectrum ℝ a ⊆ Set.Icc (-r) r := by
   conv_lhs => rw [← cfc_id ℝ a]
   rw [norm_cfc_le_iff (id : ℝ → ℝ) a hr]
@@ -85,11 +90,11 @@ its inverse has norm at most `r⁻¹`.
 
 `TauCeti.isUnit_of_forall_le_abs` supplies the invertibility, so `Ring.inverse a` is a
 genuine two-sided inverse here. -/
-theorem IsSelfAdjoint.norm_ringInverse_le (ha : IsSelfAdjoint a) (hr : 0 < r)
+theorem norm_ringInverse_le (ha : IsSelfAdjoint a) (hr : 0 < r)
     (hσ : ∀ x ∈ spectrum ℝ a, r ≤ |x|) : ‖Ring.inverse a‖ ≤ r⁻¹ := by
-  rw [← cfc_ringInverse_id (R := ℝ) a (isUnit_of_forall_le_abs hr hσ)]
+  rw [← cfc_ringInverse_id (R := ℝ) a (TauCeti.isUnit_of_forall_le_abs hr hσ)]
   refine norm_cfc_le (by positivity) fun x hx => ?_
   rw [Real.norm_eq_abs, abs_inv]
   exact inv_anti₀ hr (hσ x hx)
 
-end TauCeti
+end IsSelfAdjoint
