@@ -8,6 +8,7 @@ module
 public import TauCeti.LinearAlgebra.Dimension.RankComp
 public import Mathlib.Analysis.Normed.Operator.Basic
 public import Mathlib.LinearAlgebra.Dimension.LinearMap
+public import Mathlib.LinearAlgebra.Dimension.DivisionRing
 public import Mathlib.LinearAlgebra.Dimension.Finite
 
 /-!
