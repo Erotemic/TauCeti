@@ -2,11 +2,13 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
+module
 
+/-
 Staged for Tau Ceti: additions to `Mathlib/Analysis/InnerProductSpace/Spectrum.lean`,
 next to `LinearMap.IsSymmetric.eigenvectorBasis`.
 -/
-module
 
 public import TauCeti.Analysis.InnerProductSpace.BasisSpan
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
