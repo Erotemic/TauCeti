@@ -10,8 +10,6 @@ module
 
 public import Mathlib.Analysis.InnerProductSpace.LinearPMap
 
-public section
-
 /-!
 # The double adjoint of a submodule
 
@@ -66,6 +64,8 @@ computation, and the proof is `Submodule.mem_adjoint_iff` on both sides.
   Kitware, Inc.; Apache 2.0.
 * Spectra influence: **none** — imports only Mathlib.
 -/
+
+public section
 
 open scoped InnerProductSpace
 
