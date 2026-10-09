@@ -48,16 +48,16 @@ an avoidable `‖M‖ ≤ √(1 + δ)` factor and needs `δ ≤ 1 / 2`.
 
 ## Main results
 
-* `TauCeti.LinearMap.exists_linearIsometryEquiv_comp_polarFactor`: the polar factorization
+* `LinearMap.exists_linearIsometryEquiv_comp_polarFactor`: the polar factorization
   `M = W ∘ S` with `S ∘ S = Mᵀ ∘ M`, `S` symmetric, and
   `‖S x - x‖ ≤ δ * ‖x‖`.  This is the
   primary statement; the estimates below are corollaries of it.
-* `TauCeti.LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le` and
-  `TauCeti.ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`: the sharp
+* `LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le` and
+  `ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`: the sharp
   near-isometry estimate `‖M x - W x‖ ≤ δ * ‖x‖`, under the pointwise quadratic-form
   hypothesis and the operator-norm hypothesis `‖Mᵀ M - 1‖ ≤ δ` respectively.
-* `TauCeti.LinearMap.exists_linearIsometryEquiv_norm_sub_le` and
-  `TauCeti.ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_le`: the historical
+* `LinearMap.exists_linearIsometryEquiv_norm_sub_le` and
+  `ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_le`: the historical
   statements, with the weaker constant `2 * δ` under `δ ≤ 1 / 2`.  Retained because they are
   the form quoted by the downstream paper development and by the challenge comparator; both
   are now one-line corollaries.
@@ -98,7 +98,7 @@ statements are convention-free and only the proofs move.
 * Original declarations: `ForMathlib.Real.abs_one_sub_inv_sqrt_le` (moved to
   `ForTauCeti/Analysis/SpecialFunctions/Sqrt.lean`),
   `ForMathlib.LinearMap.exists_linearIsometryEquiv_norm_sub_le`, and
-  `TauCeti.ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_le`
+  `ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_le`
   (renamed here `ForMathlib.*` → `TauCeti.*`).
 * Original authorship: formalized by Claude Fable 5 (`claude-fable-5[1m]`), golf
   pass by Claude Opus 4.8 (`claude-opus-4-8[1m]`); staged for Mathlib (no
@@ -236,6 +236,15 @@ private theorem inner_map_eq_of_inner_basis (b : OrthonormalBasis (Fin d) ℝ E)
 
 end OrthonormalBasis
 
+end TauCeti
+
+-- The following theorems extend Mathlib's LinearMap and ContinuousLinearMap.
+-- Their namespaces must be at the root for dot notation and the upstream lint.
+open scoped RealInnerProductSpace InnerProductSpace
+open Module (finrank)
+open TauCeti
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 variable [FiniteDimensional ℝ E]
 
 namespace LinearMap
@@ -442,7 +451,7 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ :
 
 /-- **Quantitative polar factor for a near-isometry**, historical form.
 
-Superseded by `TauCeti.LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`, which gives the
+Superseded by `LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`, which gives the
 sharp constant `δ` under the weaker hypothesis `δ < 1`.  This statement is retained because it
 is the form quoted downstream (`Acharyya2025.PolarFactor`) and by the challenge comparator. -/
 theorem exists_linearIsometryEquiv_norm_sub_le (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ ≤ 1 / 2)
@@ -502,7 +511,7 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →L[ℝ] E) {δ : �
 
 /-- **Quantitative polar factor, operator-norm form**, historical statement.
 
-Superseded by `TauCeti.ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`;
+Superseded by `ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`;
 retained for the downstream paper development and the challenge comparator. -/
 theorem exists_linearIsometryEquiv_norm_sub_le (M : E →L[ℝ] E) {δ : ℝ} (hδ : δ ≤ 1 / 2)
     (hM : ‖ContinuousLinearMap.adjoint M * M - 1‖ ≤ δ) :
@@ -512,7 +521,5 @@ theorem exists_linearIsometryEquiv_norm_sub_le (M : E →L[ℝ] E) {δ : ℝ} (h
   exact ⟨W, fun x => by simpa using hW x⟩
 
 end ContinuousLinearMap
-
-end TauCeti
 
 end
