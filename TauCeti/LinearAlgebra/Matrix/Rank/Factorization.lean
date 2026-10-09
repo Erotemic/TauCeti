@@ -7,7 +7,6 @@ module
 
 public import TauCeti.LinearAlgebra.Matrix.Rank.Basic
 
-import Mathlib.Algebra.Module.Projective
 import Mathlib.LinearAlgebra.Dimension.Free
 
 /-!
@@ -150,27 +149,19 @@ theorem range_left_factor_eq {ι : Type*} [Fintype ι]
     exact hM.trans hL.symm
 
 omit [Fintype n] in
-/-- If every column of `L'` lies in the column space of `L`, then `L'` factors
-through `L`. The intermediate index types can be any finite types. -/
-theorem exists_mul_eq_of_range_le {ι κ : Type*} [Fintype ι] [Fintype κ]
+/-- If each column of `L'` belongs to the range of `L`, then `L'` factors
+through `L`. The column index type `κ` need not be finite: a preimage is
+chosen independently for each of its columns. -/
+theorem exists_mul_eq_of_range_le {ι κ : Type*} [Fintype ι]
     {L : Matrix m ι 𝕜} {L' : Matrix m κ 𝕜}
-    (h : LinearMap.range L'.mulVecLin ≤ LinearMap.range L.mulVecLin) :
+    (h : ∀ j : κ, L'.col j ∈ LinearMap.range L.mulVecLin) :
     ∃ G : Matrix ι κ 𝕜, L * G = L' := by
   classical
-  -- The free module `κ → 𝕜` is projective, so its map into the range of `L`
-  -- lifts along the surjection from `ι → 𝕜`.
-  obtain ⟨φ, hφ⟩ := Module.projective_lifting_property L.mulVecLin.rangeRestrict
-    (L'.mulVecLin.codRestrict (LinearMap.range L.mulVecLin) fun x => h ⟨x, rfl⟩)
-    L.mulVecLin.surjective_rangeRestrict
-  refine ⟨LinearMap.toMatrix' φ, ?_⟩
-  have hcomp : L.mulVecLin ∘ₗ φ = L'.mulVecLin := by
-    refine LinearMap.ext fun x => ?_
-    have := congrArg (fun ψ : (κ → 𝕜) →ₗ[𝕜] LinearMap.range L.mulVecLin =>
-      ((ψ x : LinearMap.range L.mulVecLin) : m → 𝕜)) hφ
-    simpa using this
-  have := congrArg LinearMap.toMatrix' hcomp
-  rwa [← Matrix.toLin'_apply' L, ← Matrix.toLin'_apply' L', LinearMap.toMatrix'_comp,
-    LinearMap.toMatrix'_toLin', LinearMap.toMatrix'_toLin'] at this
+  have hpre (j : κ) : ∃ v : ι → 𝕜, L.mulVec v = L'.col j := h j
+  choose v hv using hpre
+  refine ⟨Matrix.of fun i j => v j i, ?_⟩
+  ext i j
+  simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct] using congrFun (hv j) i
 
 /-- Two factorizations of the same matrix through any finite intermediate type `ι`,
 when the rank equals `Fintype.card ι`, differ by an invertible change of basis.
@@ -185,8 +176,16 @@ theorem exists_unit_eq_mul_of_rank_factorization {ι : Type*} [Fintype ι] [Deci
   classical
   have hrange : LinearMap.range L'.mulVecLin = LinearMap.range L.mulVecLin := by
     rw [range_left_factor_eq hM h', range_left_factor_eq hM h]
-  obtain ⟨G, hG⟩ := exists_mul_eq_of_range_le (L := L) (L' := L') hrange.le
-  obtain ⟨G', hG'⟩ := exists_mul_eq_of_range_le (L := L') (L' := L) hrange.ge
+  have hcols : ∀ j : ι, L'.col j ∈ LinearMap.range L.mulVecLin := by
+    intro j
+    rw [← hrange, Matrix.range_mulVecLin]
+    exact Submodule.subset_span (Set.mem_range_self j)
+  have hcols' : ∀ j : ι, L.col j ∈ LinearMap.range L'.mulVecLin := by
+    intro j
+    rw [hrange, Matrix.range_mulVecLin]
+    exact Submodule.subset_span (Set.mem_range_self j)
+  obtain ⟨G, hG⟩ := exists_mul_eq_of_range_le (L := L) (L' := L') hcols
+  obtain ⟨G', hG'⟩ := exists_mul_eq_of_range_le (L := L') (L' := L) hcols'
   have hLinj : Function.Injective L.mulVec :=
     (rank_eq_card_iff_mulVec_injective L).mp (rank_left_factor_eq hM h)
   have hL'inj : Function.Injective L'.mulVec :=
