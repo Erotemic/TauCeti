@@ -49,7 +49,6 @@ closed range, and a trivial orthogonal complement of the range.
 
 public section
 
-namespace TauCeti
 namespace ContinuousLinearMap
 
 open scoped InnerProductSpace
@@ -392,6 +391,8 @@ general-algebra subtree would need a new roadmap topic.  See
 `{lane:ALG-PROMOTE-SEMICONJ}`. -/
 
 end ContinuousLinearMap
+
+namespace TauCeti
 
 /-- **`Ring.inverse` respects semiconjugation.**
 

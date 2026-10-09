@@ -66,7 +66,6 @@ the operator norm itself.
 
 public section
 
-namespace TauCeti
 namespace ContinuousLinearMap
 
 variable {𝕜 : Type*} [NontriviallyNormedField 𝕜]
@@ -289,4 +288,3 @@ theorem norm_le_of_sylvester_of_rightInverse
     hinv hρ hδ hBinv hA hEq
 
 end ContinuousLinearMap
-end TauCeti

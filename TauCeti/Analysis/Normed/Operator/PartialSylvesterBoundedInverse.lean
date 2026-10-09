@@ -21,7 +21,6 @@ inner product, completeness, closedness, or spectral theory enters the bound.
 
 public section
 
-namespace TauCeti
 namespace LinearPMap
 
 variable {𝕜 : Type*} [NontriviallyNormedField 𝕜]
@@ -102,7 +101,7 @@ theorem opNorm_le_of_boundedRight_sylvester_of_everywhereLeftInverse
     (hInvNorm : ‖hA.inv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : BoundedRightSylvesterEquation A B X C) :
     δ * N X ≤ N C :=
-  TauCeti.ContinuousLinearMap.opNorm_le_of_leftInverse_fixedPoint
+  ContinuousLinearMap.opNorm_le_of_leftInverse_fixedPoint
     hadd hidealL hidealR hNnonneg hρ hδ hInvNorm hB
       (eq_leftInverse_comp_add_of_boundedRight_sylvester hA hEq)
 
@@ -139,6 +138,5 @@ theorem norm_le_of_boundedRight_sylvester_of_everywhereInverse
     hA hρ hδ hInvNorm hB hEq
 
 end LinearPMap
-end TauCeti
 
 end

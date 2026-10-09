@@ -37,11 +37,11 @@ taken in the `LinearMap.IsSymmetric` sense, with no reference to adjoints.
 
 ## Main results
 
-* `TauCeti.ContinuousLinearMap.norm_le_of_abs_re_inner_map_self_le`: a
+* `ContinuousLinearMap.norm_le_of_abs_re_inner_map_self_le`: a
   symmetric operator with `|re ⟪C x, x⟫| ≤ κ * ‖x‖ ^ 2` has `‖C‖ ≤ κ`.
-* `TauCeti.ContinuousLinearMap.opNorm_le_div_of_comp_add_comp_eq`: the
+* `ContinuousLinearMap.opNorm_le_div_of_comp_add_comp_eq`: the
   coercive (Lyapunov) form, `‖X‖ ≤ ‖Y‖ / (2 * δ)`.
-* `TauCeti.ContinuousLinearMap.opNorm_le_div_of_comp_sub_comp_eq`: the
+* `ContinuousLinearMap.opNorm_le_div_of_comp_sub_comp_eq`: the
   separated (Davis–Kahan-facing) form, `‖X‖ ≤ ‖Y‖ / g`.
 
 ## References
@@ -55,7 +55,6 @@ taken in the `LinearMap.IsSymmetric` sense, with no reference to adjoints.
 
 public section
 
-namespace TauCeti
 
 open scoped InnerProductSpace
 
@@ -550,5 +549,3 @@ end AbstractSylvesterBound
 
 
 end ContinuousLinearMap
-
-end TauCeti
