@@ -96,11 +96,23 @@ theorem norm_orthogonalGlueMap (f : A ≃ₗᵢ[𝕜] A') (g : Aᗮ ≃ₗᵢ[�
     rw [@norm_add_sq 𝕜, hperp]
     -- The isometries preserve each component's norm.
     have h1 : ‖(f (A.orthogonalProjectionOnto x) : H')‖ = ‖A.starProjection x‖ := by
-      rw [Submodule.norm_coe, f.norm_map, Submodule.norm_coe,
-        Submodule.coe_orthogonalProjectionOnto_apply]
+      calc
+        ‖(f (A.orthogonalProjectionOnto x) : H')‖ =
+            ‖f (A.orthogonalProjectionOnto x)‖ :=
+          Submodule.norm_coe (f (A.orthogonalProjectionOnto x))
+        _ = ‖A.orthogonalProjectionOnto x‖ := f.norm_map _
+        _ = ‖A.starProjection x‖ := by
+          simpa only [Submodule.coe_orthogonalProjectionOnto_apply] using
+            (Submodule.norm_coe (A.orthogonalProjectionOnto x)).symm
     have h2 : ‖(g (Aᗮ.orthogonalProjectionOnto x) : H')‖ = ‖Aᗮ.starProjection x‖ := by
-      rw [Submodule.norm_coe, g.norm_map, Submodule.norm_coe,
-        Submodule.coe_orthogonalProjectionOnto_apply]
+      calc
+        ‖(g (Aᗮ.orthogonalProjectionOnto x) : H')‖ =
+            ‖g (Aᗮ.orthogonalProjectionOnto x)‖ :=
+          Submodule.norm_coe (g (Aᗮ.orthogonalProjectionOnto x))
+        _ = ‖Aᗮ.orthogonalProjectionOnto x‖ := g.norm_map _
+        _ = ‖Aᗮ.starProjection x‖ := by
+          simpa only [Submodule.coe_orthogonalProjectionOnto_apply] using
+            (Submodule.norm_coe (Aᗮ.orthogonalProjectionOnto x)).symm
     rw [h1, h2]
   have h1 : (0 : ℝ) ≤ ‖orthogonalGlueMap f g x‖ := norm_nonneg _
   have h2 : (0 : ℝ) ≤ ‖x‖ := norm_nonneg _
@@ -307,9 +319,15 @@ theorem norm_supGlueAmbient_of_mem_sup (hAB : A ≤ Bᗮ) (hAB' : A' ≤ B'ᗮ)
   have hperp : ⟪a, b⟫_𝕜 = 0 :=
     inner_eq_zero_symm.mp ((Submodule.mem_orthogonal _ _).mp (hAB ha) b hb)
   have hfa : ‖(f ⟨a, ha⟩ : H')‖ = ‖a‖ := by
-    rw [Submodule.norm_coe, f.norm_map, Submodule.norm_coe]
+    calc
+      ‖(f ⟨a, ha⟩ : H')‖ = ‖f ⟨a, ha⟩‖ := Submodule.norm_coe _
+      _ = ‖(⟨a, ha⟩ : A)‖ := f.norm_map _
+      _ = ‖a‖ := (Submodule.norm_coe (⟨a, ha⟩ : A)).symm
   have hgb : ‖(g ⟨b, hb⟩ : H')‖ = ‖b‖ := by
-    rw [Submodule.norm_coe, g.norm_map, Submodule.norm_coe]
+    calc
+      ‖(g ⟨b, hb⟩ : H')‖ = ‖g ⟨b, hb⟩‖ := Submodule.norm_coe _
+      _ = ‖(⟨b, hb⟩ : B)‖ := g.norm_map _
+      _ = ‖b‖ := (Submodule.norm_coe (⟨b, hb⟩ : B)).symm
   have hsq : ‖(f ⟨a, ha⟩ : H') + (g ⟨b, hb⟩ : H')‖ ^ 2 = ‖a + b‖ ^ 2 := by
     rw [@norm_add_sq 𝕜, @norm_add_sq 𝕜, hperp', hperp, hfa, hgb]
   have h1 : (0 : ℝ) ≤ ‖(f ⟨a, ha⟩ : H') + (g ⟨b, hb⟩ : H')‖ := norm_nonneg _
