@@ -43,11 +43,13 @@ Only this half of invertibility is used in the Davis--Kahan fixed-point estimate
 the inverse is applied after `A` to vectors already known to lie in `A.domain`.
 Surjectivity of `A` is neither stated in Theorem 5.1 nor needed by its proof. -/
 structure BoundedEverywhereLeftInverseData (A : E →ₗ.[𝕜] E) where
+  /-- A bounded operator that is a left inverse on the domain of `A`. -/
   inv : E →L[𝕜] E
   inv_apply : ∀ x : A.domain, inv (A x) = (x : E)
 
 /-- A partial linear map with an everywhere-defined bounded two-sided inverse. -/
 structure BoundedEverywhereInverseData (A : E →ₗ.[𝕜] E) where
+  /-- The bounded everywhere-defined inverse of `A`. -/
   inv : E →L[𝕜] E
   inv_mapsTo_domain : ∀ y : E, inv y ∈ A.domain
   apply_inv : ∀ y : E, A ⟨inv y, inv_mapsTo_domain y⟩ = y
