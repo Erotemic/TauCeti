@@ -157,8 +157,13 @@ theorem eLpNorm_rnDerivSqrt_mul [SigmaFinite μ] [SigmaFinite ν] (hμν : μ �
     (hf : AEMeasurable f ν) :
     eLpNorm (fun x => ((rnDerivSqrt μ ν x : ℝ) : ℂ) * f x) 2 ν = eLpNorm f 2 μ := by
   have h2 : (2 : ℝ≥0∞).toReal = 2 := by norm_num
-  rw [eLpNorm_eq_lintegral_rpow_enorm_toReal (by norm_num) (by norm_num),
-    eLpNorm_eq_lintegral_rpow_enorm_toReal (by norm_num) (by norm_num), h2]
+  have hfμ : AEStronglyMeasurable f μ := hf.aestronglyMeasurable.mono_ac hμν
+  have hfprod : AEStronglyMeasurable
+      (fun x => ((rnDerivSqrt μ ν x : ℝ) : ℂ) * f x) ν :=
+    (Complex.continuous_ofReal.measurable.comp
+      (measurable_rnDerivSqrt μ ν)).aestronglyMeasurable.mul hf.aestronglyMeasurable
+  rw [eLpNorm_eq_lintegral_rpow_enorm_toReal (by norm_num) (by norm_num) hfprod,
+    eLpNorm_eq_lintegral_rpow_enorm_toReal (by norm_num) (by norm_num) hfμ, h2]
   simp only [ENNReal.rpow_two]
   rw [lintegral_enorm_rnDerivSqrt_mul_sq hμν hf]
 
@@ -169,11 +174,9 @@ theorem memLp_two_rnDerivSqrt_mul [SigmaFinite μ] [SigmaFinite ν] (hμν : μ 
     {f : α → ℂ} (hf : MemLp f 2 μ) :
     MemLp (fun x => ((rnDerivSqrt μ ν x : ℝ) : ℂ) * f x) 2 ν := by
   have hfν : AEStronglyMeasurable f ν := hf.aestronglyMeasurable.mono_ac hνμ
-  refine ⟨?_, ?_⟩
-  · exact (Complex.continuous_ofReal.measurable.comp
-      (measurable_rnDerivSqrt μ ν)).aestronglyMeasurable.mul hfν
-  · rw [eLpNorm_rnDerivSqrt_mul hμν hfν.aemeasurable]
-    exact hf.eLpNorm_lt_top
+  change eLpNorm (fun x => ((rnDerivSqrt μ ν x : ℝ) : ℂ) * f x) 2 ν < ∞
+  rw [eLpNorm_rnDerivSqrt_mul hμν hfν.aemeasurable]
+  exact hf
 
 end ChangeOfVariables
 
@@ -320,11 +323,12 @@ theorem memLp_two_mul_complex (ρ : Measure α) {g : α → ℂ} (hg : Measurabl
 
 Stated with `|C|` rather than `C`: a bound hypothesis `∀ x, ‖g x‖ ≤ C` does not force `0 ≤ C`
 when the space is empty, and `ENNReal.ofReal` would silently truncate a negative `C`. -/
-theorem eLpNorm_two_mul_le (ρ : Measure α) {g : α → ℂ} {C : ℝ} (hgC : ∀ x, ‖g x‖ ≤ C)
-    (f : α → ℂ) :
+theorem eLpNorm_two_mul_le (ρ : Measure α) {g : α → ℂ} (hg : Measurable g)
+    {C : ℝ} (hgC : ∀ x, ‖g x‖ ≤ C) (f : α → ℂ)
+    (hf : AEStronglyMeasurable f ρ) :
     eLpNorm (fun x => g x * f x) 2 ρ ≤ ENNReal.ofReal |C| * eLpNorm f 2 ρ := by
   have hle : eLpNorm (fun x => g x * f x) 2 ρ ≤ eLpNorm (((|C| : ℝ) : ℂ) • f) 2 ρ := by
-    refine eLpNorm_mono_ae (Filter.Eventually.of_forall fun x => ?_)
+    refine eLpNorm_mono_ae (hg.aestronglyMeasurable.mul hf) (Filter.Eventually.of_forall fun x => ?_)
     simp only [Pi.smul_apply, smul_eq_mul, norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_abs]
     exact mul_le_mul_of_nonneg_right ((hgC x).trans (le_abs_self C)) (norm_nonneg _)
   rw [eLpNorm_const_smul] at hle
@@ -337,7 +341,7 @@ theorem norm_toLp_mul_le (ρ : Measure α) {g : α → ℂ} (hg : Measurable g) 
     (hgC : ∀ x, ‖g x‖ ≤ C) (F : Lp ℂ 2 ρ) :
     ‖MemLp.toLp (fun x => g x * F x) (memLp_two_mul_complex ρ hg hgC F)‖ ≤ |C| * ‖F‖ := by
   rw [Lp.norm_toLp, Lp.norm_def, ← ENNReal.toReal_ofReal (abs_nonneg C), ← ENNReal.toReal_mul]
-  refine ENNReal.toReal_mono ?_ (eLpNorm_two_mul_le ρ hgC _)
+  refine ENNReal.toReal_mono ?_ (eLpNorm_two_mul_le ρ hg hgC _ (Lp.aestronglyMeasurable F))
   exact ENNReal.mul_ne_top ENNReal.ofReal_ne_top (Lp.eLpNorm_ne_top F)
 
 /-- **Multiplication by a bounded measurable function**, as a bounded operator on `L²`.
