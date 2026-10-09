@@ -72,8 +72,6 @@ consumers need nothing.
 
 public section
 
-set_option warn.classDefReducibility false
-
 namespace ContinuousLinearMap
 
 variable {𝕜 : Type*} [RCLike 𝕜]
