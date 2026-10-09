@@ -180,22 +180,19 @@ theorem exists_mul_eq_of_range_le {L L' : Matrix m (Fin r) 𝕜}
     LinearMap.toMatrix'_toLin', LinearMap.toMatrix'_toLin'] at this
 
 omit [Fintype n] in
--- `Fintype p` and `DecidableEq p` are used by `*ᵥ` and `Pi.single` in the proof but do not
--- appear in the statement, which is exactly what these two linters flag.
-set_option linter.unusedFintypeInType false in
-set_option linter.unusedDecidableInType false in
-/-- Left cancellation against an injective factor. -/
-theorem eq_of_mul_left_cancel {p : Type*} [Fintype p] [DecidableEq p]
+/-- Left cancellation against an injective factor; no finiteness assumption is
+needed on the column index type of the right factor. -/
+theorem eq_of_mul_left_cancel {p : Type*}
     {L : Matrix m (Fin r) 𝕜} (hL : Function.Injective L.mulVecLin)
     {A B : Matrix (Fin r) p 𝕜} (hAB : L * A = L * B) : A = B := by
-  have hmv : ∀ x, A *ᵥ x = B *ᵥ x := by
-    intro x
-    refine hL ?_
-    have := congrArg (fun N : Matrix m p 𝕜 => N *ᵥ x) hAB
-    simpa [← Matrix.mulVec_mulVec] using this
+  classical
   ext i j
-  have := congrFun (hmv (Pi.single j 1)) i
-  simpa [Matrix.mulVec, dotProduct, Pi.single_apply] using this
+  have hcol : (fun k : Fin r => A k j) = (fun k : Fin r => B k j) := by
+    apply hL
+    ext row
+    have hj := congrArg (fun N : Matrix m p 𝕜 => N row j) hAB
+    simpa [Matrix.mulVecLin_apply, Matrix.mulVec, Matrix.mul_apply, dotProduct] using hj
+  exact congrFun hcol i
 
 /-- **Milestone A2 — uniqueness of a rank factorization.**
 
