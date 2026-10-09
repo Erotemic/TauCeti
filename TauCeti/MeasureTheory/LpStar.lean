@@ -57,7 +57,7 @@ theorem norm_star_lp (F : Lp R p μ) : ‖star F‖ = ‖F‖ := by
   refine eLpNorm_congr_norm_ae (Lp.aestronglyMeasurable (star F))
     (Lp.aestronglyMeasurable F) ?_
   filter_upwards [Lp.coeFn_star F] with x hx
-  rw [hx, norm_star]
+  rw [hx, Pi.star_apply, norm_star]
 
 /-- Pointwise star preserves subtraction on `Lᵖ`.
 
@@ -67,8 +67,8 @@ theorem star_sub_lp (F G : Lp R p μ) : star (F - G) = star F - star G := by
   refine Lp.ext ?_
   filter_upwards [Lp.coeFn_star (F - G), Lp.coeFn_sub F G,
     Lp.coeFn_sub (star F) (star G), Lp.coeFn_star F, Lp.coeFn_star G] with x h1 h2 h3 h4 h5
-  rw [h1, h2, h3]
-  simp only [Pi.sub_apply, h4, h5, star_sub]
+  rw [h1, h3]
+  simp only [Pi.star_apply, Pi.sub_apply, h2, h4, h5, star_sub]
 
 section Normed
 
