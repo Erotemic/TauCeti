@@ -5,9 +5,10 @@ Authors: Jon Crall, Claude Fable 5
 -/
 module
 
-public import Mathlib.LinearAlgebra.Matrix.Rank
-public import Mathlib.LinearAlgebra.Dimension.Free
-public import Mathlib.Algebra.Module.Projective
+public import TauCeti.LinearAlgebra.Matrix.Rank.Basic
+
+import Mathlib.Algebra.Module.Projective
+import Mathlib.LinearAlgebra.Dimension.Free
 
 /-!
 # Rank factorization through a finite intermediate space
@@ -18,12 +19,11 @@ Exact-rank factorizations are unique up to an invertible change of basis.
 
 ## Main results
 
-* `Matrix.exists_eq_mul_rank`: factor through `Fin M.rank` (MSS-A01).
-* `Matrix.exists_eq_mul_of_rank_le`: factor through `Fin r` when `M.rank ≤ r`
-  (MSS-A02).
-* `Matrix.rank_le_iff_exists_eq_mul`: rank characterization (MSS-A03).
-* `Matrix.exists_units_eq_mul_of_rank_factorization`: uniqueness under the
-  general linear group at exact rank (MSS-A08).
+* `Matrix.exists_eq_mul_rank`: factor through `Fin M.rank`.
+* `Matrix.exists_eq_mul_of_rank_le`: factor through `Fin r` when `M.rank ≤ r`.
+* `Matrix.rank_le_iff_exists_eq_mul`: characterize rank by factorization.
+* `Matrix.exists_unit_eq_mul_of_rank_factorization`: uniqueness under an invertible
+  change of basis at exact rank.
 
 ## Provenance
 
@@ -50,7 +50,8 @@ theorem exists_eq_mul_rank (M : Matrix m n 𝕜) :
   -- `Pi.single` below needs `DecidableEq n`, which the statement does not.
   classical
   -- A basis of the column space, indexed by `Fin M.rank`.
-  have hdim : finrank 𝕜 (LinearMap.range M.mulVecLin) = M.rank := rfl
+  have hdim : finrank 𝕜 (LinearMap.range M.mulVecLin) = M.rank := by
+    rw [Matrix.rank]
   let b : Module.Basis (Fin M.rank) 𝕜 (LinearMap.range M.mulVecLin) :=
     Module.finBasisOfFinrankEq 𝕜 _ hdim
   -- Each column of `M` lies in the column space.
@@ -120,110 +121,105 @@ theorem rank_le_iff_exists_eq_mul (M : Matrix m n 𝕜) (r : ℕ) :
 
 /-! ### Uniqueness of a rank factorization
 
-At the exact rank the two factors are determined up to a change of basis of the intermediate
-space. The engine is `Module.projective_lifting_property`: `Fin r → 𝕜` is free, hence projective, so
-a map into `range L.mulVecLin` lifts along `L`. -/
+For factorizations through a space whose dimension is the rank, the left factors have
+identical ranges and are injective. Their change of basis is therefore invertible. -/
 
 section Uniqueness
 
-variable {r : ℕ}
-
-/-- At the exact rank the left factor has trivial kernel: rank-nullity on `Fin r → 𝕜`. -/
-theorem injective_mulVecLin_of_rank_eq {L : Matrix m (Fin r) 𝕜} (h : L.rank = r) :
-    Function.Injective L.mulVecLin := by
-  rw [← LinearMap.ker_eq_bot]
-  have hrk := LinearMap.finrank_range_add_finrank_ker L.mulVecLin
-  rw [show finrank 𝕜 (LinearMap.range L.mulVecLin) = r from h,
-    Module.finrank_pi 𝕜, Fintype.card_fin] at hrk
-  have : finrank 𝕜 (LinearMap.ker L.mulVecLin) = 0 := by omega
-  exact Submodule.finrank_eq_zero.mp this
-
-/-- A factorization at the exact rank forces the left factor to have that rank: it is at most
-`r` because it has `r` columns, and at least `r` because it dominates `M`. -/
-theorem rank_left_factor_eq {M : Matrix m n 𝕜} {L : Matrix m (Fin r) 𝕜}
-    {R : Matrix (Fin r) n 𝕜} (hM : M.rank = r) (h : M = L * R) : L.rank = r := by
+/-- If `M = L * R` has rank equal to the number of columns of `L`, then `L`
+has full column rank. The intermediate index may be any finite type. -/
+theorem rank_left_factor_eq {ι : Type*} [Fintype ι]
+    {M : Matrix m n 𝕜} {L : Matrix m ι 𝕜}
+    {R : Matrix ι n 𝕜} (hM : M.rank = Fintype.card ι)
+    (h : M = L * R) : L.rank = Fintype.card ι := by
   refine le_antisymm (by simpa using L.rank_le_card_width) ?_
-  calc r = M.rank := hM.symm
+  calc Fintype.card ι = M.rank := hM.symm
     _ = (L * R).rank := by rw [h]
     _ ≤ L.rank := Matrix.rank_mul_le_left L R
 
-/-- At the exact rank the left factor spans the same column space as `M`. -/
-theorem range_left_factor_eq {M : Matrix m n 𝕜} {L : Matrix m (Fin r) 𝕜}
-    {R : Matrix (Fin r) n 𝕜} (hM : M.rank = r) (h : M = L * R) :
+/-- An exact-rank left factor spans the column space of the factored matrix. -/
+theorem range_left_factor_eq {ι : Type*} [Fintype ι]
+    {M : Matrix m n 𝕜} {L : Matrix m ι 𝕜}
+    {R : Matrix ι n 𝕜} (hM : M.rank = Fintype.card ι) (h : M = L * R) :
     LinearMap.range L.mulVecLin = LinearMap.range M.mulVecLin := by
   refine (Submodule.eq_of_le_of_finrank_eq ?_ ?_).symm
   · rw [h, Matrix.mulVecLin_mul]
     exact LinearMap.range_comp_le_range _ _
-  · rw [show finrank 𝕜 (LinearMap.range M.mulVecLin) = M.rank from rfl,
-      show finrank 𝕜 (LinearMap.range L.mulVecLin) = L.rank from rfl, hM,
-      rank_left_factor_eq hM h]
+  · have hL := rank_left_factor_eq hM h
+    rw [Matrix.rank] at hM hL
+    exact hM.trans hL.symm
 
 omit [Fintype n] in
-/-- **The lifting step.**  A matrix whose column space sits inside another's factors through
-it. `Fin r → 𝕜` is free, hence projective, so `Module.projective_lifting_property` supplies the
-factor directly. -/
-theorem exists_mul_eq_of_range_le {L L' : Matrix m (Fin r) 𝕜}
+/-- If every column of `L'` lies in the column space of `L`, then `L'` factors
+through `L`. The intermediate index types can be any finite types. -/
+theorem exists_mul_eq_of_range_le {ι κ : Type*} [Fintype ι] [Fintype κ]
+    {L : Matrix m ι 𝕜} {L' : Matrix m κ 𝕜}
     (h : LinearMap.range L'.mulVecLin ≤ LinearMap.range L.mulVecLin) :
-    ∃ G : Matrix (Fin r) (Fin r) 𝕜, L * G = L' := by
+    ∃ G : Matrix ι κ 𝕜, L * G = L' := by
+  classical
+  -- The free module `κ → 𝕜` is projective, so its map into the range of `L`
+  -- lifts along the surjection from `ι → 𝕜`.
   obtain ⟨φ, hφ⟩ := Module.projective_lifting_property L.mulVecLin.rangeRestrict
     (L'.mulVecLin.codRestrict (LinearMap.range L.mulVecLin) fun x => h ⟨x, rfl⟩)
     L.mulVecLin.surjective_rangeRestrict
   refine ⟨LinearMap.toMatrix' φ, ?_⟩
   have hcomp : L.mulVecLin ∘ₗ φ = L'.mulVecLin := by
     refine LinearMap.ext fun x => ?_
-    have := congrArg (fun ψ : (Fin r → 𝕜) →ₗ[𝕜] LinearMap.range L.mulVecLin =>
+    have := congrArg (fun ψ : (κ → 𝕜) →ₗ[𝕜] LinearMap.range L.mulVecLin =>
       ((ψ x : LinearMap.range L.mulVecLin) : m → 𝕜)) hφ
     simpa using this
   have := congrArg LinearMap.toMatrix' hcomp
   rwa [← Matrix.toLin'_apply' L, ← Matrix.toLin'_apply' L', LinearMap.toMatrix'_comp,
     LinearMap.toMatrix'_toLin', LinearMap.toMatrix'_toLin'] at this
 
-omit [Fintype n] in
-/-- Left cancellation against an injective factor; no finiteness assumption is
-needed on the column index type of the right factor. -/
-theorem eq_of_mul_left_cancel {p : Type*}
-    {L : Matrix m (Fin r) 𝕜} (hL : Function.Injective L.mulVecLin)
-    {A B : Matrix (Fin r) p 𝕜} (hAB : L * A = L * B) : A = B := by
-  classical
-  ext i j
-  have hcol : (fun k : Fin r => A k j) = (fun k : Fin r => B k j) := by
-    apply hL
-    ext row
-    have hj := congrArg (fun N : Matrix m p 𝕜 => N row j) hAB
-    simpa [Matrix.mulVecLin_apply, Matrix.mulVec, Matrix.mul_apply, dotProduct] using hj
-  exact congrFun hcol i
-
-/-- **Milestone A2 — uniqueness of a rank factorization.**
-
-At the exact rank the two factors are determined up to the obvious `GL` action: `L' = L g`
-and `R' = g⁻¹ R`. Stated as an existence over the group rather than through a quotient.
-
-`r = M.rank` is load-bearing. Above the rank the extra columns are unconstrained and the
-statement is false; the proof uses it twice, once for each factor's injectivity. -/
-theorem exists_units_eq_mul_of_rank_factorization {M : Matrix m n 𝕜} (hM : M.rank = r)
-    {L L' : Matrix m (Fin r) 𝕜} {R R' : Matrix (Fin r) n 𝕜}
+/-- Two factorizations of the same matrix through `Fin r`, with rank exactly `r`,
+differ by an invertible change of basis of the intermediate space. -/
+theorem exists_unit_eq_mul_of_rank_factorization {r : ℕ} {M : Matrix m n 𝕜}
+    (hM : M.rank = r) {L L' : Matrix m (Fin r) 𝕜}
+    {R R' : Matrix (Fin r) n 𝕜}
     (h : M = L * R) (h' : M = L' * R') :
     ∃ g : (Matrix (Fin r) (Fin r) 𝕜)ˣ,
       L' = L * (g : Matrix (Fin r) (Fin r) 𝕜) ∧
         R' = ((g⁻¹ : (Matrix (Fin r) (Fin r) 𝕜)ˣ) : Matrix (Fin r) (Fin r) 𝕜) * R := by
   classical
+  have hcard : M.rank = Fintype.card (Fin r) := by
+    simpa only [Fintype.card_fin] using hM
   have hrange : LinearMap.range L'.mulVecLin = LinearMap.range L.mulVecLin := by
-    rw [range_left_factor_eq hM h', range_left_factor_eq hM h]
+    rw [range_left_factor_eq hcard h', range_left_factor_eq hcard h]
   obtain ⟨G, hG⟩ := exists_mul_eq_of_range_le (L := L) (L' := L') hrange.le
   obtain ⟨G', hG'⟩ := exists_mul_eq_of_range_le (L := L') (L' := L) hrange.ge
-  have hLinj := injective_mulVecLin_of_rank_eq (rank_left_factor_eq hM h)
-  have hL'inj := injective_mulVecLin_of_rank_eq (rank_left_factor_eq hM h')
+  have hLinj : Function.Injective L.mulVec :=
+    (rank_eq_card_iff_mulVec_injective L).mp (rank_left_factor_eq hcard h)
+  have hL'inj : Function.Injective L'.mulVec :=
+    (rank_eq_card_iff_mulVec_injective L').mp (rank_left_factor_eq hcard h')
   have hGG' : G * G' = 1 := by
-    refine eq_of_mul_left_cancel hLinj ?_
-    rw [← Matrix.mul_assoc, hG, hG', Matrix.mul_one]
+    rcases isEmpty_or_nonempty (Fin r) with hEmpty | hNonempty
+    · apply Matrix.ext
+      intro i j
+      exact (hEmpty.false i).elim
+    · let : Inhabited (Fin r) := ⟨Classical.choice hNonempty⟩
+      apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
+      change L * (G * G') = L * 1
+      rw [← Matrix.mul_assoc, hG, hG', Matrix.mul_one]
   have hG'G : G' * G = 1 := by
-    refine eq_of_mul_left_cancel hL'inj ?_
-    rw [← Matrix.mul_assoc, hG', hG, Matrix.mul_one]
+    rcases isEmpty_or_nonempty (Fin r) with hEmpty | hNonempty
+    · apply Matrix.ext
+      intro i j
+      exact (hEmpty.false i).elim
+    · let : Inhabited (Fin r) := ⟨Classical.choice hNonempty⟩
+      apply (mul_right_injective_iff_mulVec_injective.mpr hL'inj)
+      change L' * (G' * G) = L' * 1
+      rw [← Matrix.mul_assoc, hG', hG, Matrix.mul_one]
   refine ⟨⟨G, G', hGG', hG'G⟩, hG.symm, ?_⟩
-  -- `L R = M = L' R' = L G R'`, so `R = G R'` by injectivity of `L`.
   have hR : R = G * R' := by
-    refine eq_of_mul_left_cancel hLinj ?_
-    rw [← Matrix.mul_assoc, hG, ← h, h']
+    rcases isEmpty_or_nonempty n with hEmpty | hNonempty
+    · apply Matrix.ext
+      intro i j
+      exact (hEmpty.false j).elim
+    · let : Inhabited n := ⟨Classical.choice hNonempty⟩
+      apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
+      change L * R = L * (G * R')
+      rw [← Matrix.mul_assoc, hG, ← h, h']
   rw [hR, ← Matrix.mul_assoc]
   simp [hG'G]
 
