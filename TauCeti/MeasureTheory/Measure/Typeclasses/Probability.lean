@@ -2,14 +2,6 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Fable 5
-
-Staged for Tau Ceti, roadmap topic T19.  Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on
-the closed Mathlib track —
-additions to
-`Mathlib/MeasureTheory/Measure/Typeclasses/Probability.lean`.
-
-Formalized by Claude Fable 5 (claude-fable-5[1m]).
 -/
 module
 
@@ -29,6 +21,16 @@ the event sets are often not (easily) measurable.
 ## Main result
 
 * `TauCeti.one_sub_measure_compl_le`
+
+## Staging notes
+
+Staged for Tau Ceti, roadmap topic T19.  Mathlib is not the destination
+(`ForTauCeti/README.md`); what follows is where this material would have gone on
+the closed Mathlib track —
+additions to
+`Mathlib/MeasureTheory/Measure/Typeclasses/Probability.lean`.
+
+Formalized by Claude Fable 5 (claude-fable-5[1m]).
 
 ## Provenance
 
