@@ -2,19 +2,23 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
+/-
 Adapted from: Spectra (https://github.com/adambornemann-glitch/Spectra),
-  `Spectra/ProjValMeasure/Basic.lean` at commit
-  `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`,
-  Copyright (c) 2026 Spectra Formalization Project, `Authors: Adam Bornemann`,
-  Apache 2.0.  Modified: see `## Provenance` below (Apache 2.0 §4(b)); the
-  donor's copyright and authorship notices are retained here and below
-  (Apache 2.0 §4(c)).
+`Spectra/ProjValMeasure/Basic.lean` at commit
+`8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`,
+Copyright (c) 2026 Spectra Formalization Project, `Authors: Adam Bornemann`,
+Apache 2.0. Modified: see `## Provenance` below (Apache 2.0 §4(b)); the donor's
+copyright and authorship notices are retained here and below (Apache 2.0 §4(c)).
 -/
 module
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.LinearMap
-public import Mathlib.MeasureTheory.Measure.MeasureSpace
+public import Mathlib.MeasureTheory.Measure.Basic
+public import Mathlib.MeasureTheory.Measure.CompleteLattice
+public import Mathlib.MeasureTheory.Measure.Continuity
+public import Mathlib.MeasureTheory.Measure.Filter
 public import Mathlib.MeasureTheory.Measure.Typeclasses.Finite
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 
