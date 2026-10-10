@@ -37,18 +37,11 @@ open scoped InnerProductSpace
 variable {𝕜 E : Type*} [RCLike 𝕜]
 variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 
-namespace TauCeti
-
-/-! The Mathlib type namespace is mirrored *inside* `TauCeti`, matching the destination
-library (Tau Ceti, e.g. `Analysis/Fredholm/Basic.lean` and
-`LinearAlgebra/TotallyReal.lean`).  Root `ContinuousLinearMap` is deliberately not extended:
-this repository cannot upstream to Mathlib, so a name taken there is a bet that can never be
-settled by coordination.  Consumers get `A.LowerFormBoundOn U c` from `open TauCeti` --
-being inside `namespace TauCeti` is *not* sufficient, as dot notation resolves through
-`open`, not through the enclosing namespace. -/
+/-! The form-bound predicates extend Mathlib's *root* `ContinuousLinearMap`
+namespace.  A mirror nested in `TauCeti` would only be found by dot notation in files
+that additionally `open TauCeti`; at the root, `A.LowerFormBoundOn U c` elaborates for
+every consumer. -/
 namespace ContinuousLinearMap
-
-open TauCeti
 
 /-- Lower quadratic-form bound on a subspace. -/
 @[expose]
@@ -103,5 +96,3 @@ theorem isPositive_of_lowerFormBoundOn_top {A : E →L[𝕜] E} (hsym : A.IsSymm
     simpa [ContinuousLinearMap.reApplyInnerSelf] using h x Submodule.mem_top⟩
 
 end ContinuousLinearMap
-
-end TauCeti

@@ -37,7 +37,9 @@ chosen to avoid installing a second topology on the domain subtype.
 
 public section
 
-namespace TauCeti
+-- This module extends Mathlib's root `LinearPMap` namespace, not a mirror nested in
+-- `TauCeti`: dot notation on a `LinearPMap` value resolves through the type's root
+-- namespace, so consumers find these declarations without opening anything extra.
 namespace LinearPMap
 
 open Filter Topology
@@ -79,7 +81,7 @@ If `uₙ ∈ dom A` with `uₙ → x` and `A uₙ → y`, then `x ∈ dom A` and
 This is the shape every closed-graph argument actually consumes, and stating it
 once avoids re-deriving it from `LinearPMap.mem_graph_iff` at each use.  It is
 what carries a graph-core identity from the core to the whole domain. -/
-theorem _root_.LinearPMap.IsClosed.mem_domain_of_tendsto
+theorem IsClosed.mem_domain_of_tendsto
     {A : E →ₗ.[𝕜] F} (hA : A.IsClosed)
     {u : ℕ → E} {x : E} {y : F} (hu : ∀ n, u n ∈ A.domain)
     (hlim : Tendsto u atTop (𝓝 x))
@@ -99,4 +101,3 @@ theorem _root_.LinearPMap.IsClosed.mem_domain_of_tendsto
   rw [hveq, hv2]
 
 end LinearPMap
-end TauCeti

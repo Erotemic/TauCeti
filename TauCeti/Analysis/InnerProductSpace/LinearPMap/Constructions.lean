@@ -2,10 +2,15 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
+/-
 Adapted from: Spectra (https://github.com/adambornemann-glitch/Spectra),
-  `Spectra/Operator/KatoRellich.lean` and `Spectra/Operator/Bounded.lean` at
-  commit `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`, Copyright (c) 2026 Spectra
-  Formalization Project, Apache 2.0.  See `## Provenance` below.
+`Spectra/Operator/KatoRellich.lean` and `Spectra/Operator/Bounded.lean`,
+commit `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`,
+Copyright (c) 2026 Spectra Formalization Project,
+released under the Apache 2.0 license.  The full attribution and the changes
+made here are recorded in the `## Provenance` section of the module
+documentation below.
 -/
 module
 
@@ -15,10 +20,10 @@ public import Mathlib.Analysis.InnerProductSpace.Adjoint
 /-!
 # Two elementary constructions on partial linear maps
 
-* `TauCeti.LinearPMap.perturb A V`: add a map defined on `dom A` to `A`, keeping
+* `LinearPMap.perturb A V`: add a map defined on `dom A` to `A`, keeping
   the domain.  This is the domain-preserving perturbation that Kato--Rellich
   arguments start from, before any relative-boundedness hypothesis appears.
-* `TauCeti.LinearPMap.isSelfAdjoint_toPMap_top`: a bounded self-adjoint operator,
+* `LinearPMap.isSelfAdjoint_toPMap_top`: a bounded self-adjoint operator,
   viewed as a partial map on all of `H`, is self-adjoint in the `LinearPMap`
   sense.
 
@@ -49,7 +54,9 @@ that used them do not need a spectral-theory dependency for bookkeeping.
 
 public section
 
-namespace TauCeti
+-- These declarations extend Mathlib's root `LinearPMap` namespace, not a mirror nested
+-- in `TauCeti`: dot notation on a `LinearPMap` value resolves through the type's root
+-- namespace, so consumers find them without opening anything extra.
 namespace LinearPMap
 
 open scoped InnerProductSpace
@@ -58,10 +65,8 @@ variable {𝕜 : Type*} [RCLike 𝕜]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
 
 /-- Add a map defined on `dom A` to `A`, keeping the domain unchanged. -/
--- `@[expose]` here is deliberate and minimal: the `_apply` lemma below cannot be
--- *stated* without `.domain` reducing, since it indexes its argument by this map's
--- domain and applies the underlying map to it. That is the `api-design` rubric's own
--- carve-out — a consumer that must unfold — not the blanket exposure it rejects.
+-- `@[expose]` is needed here: the `_apply` lemma below cannot be *stated* without
+-- `.domain` reducing, since it indexes its argument by this map's domain.
 @[expose]
 def perturb (A : H →ₗ.[𝕜] H) (V : A.domain →ₗ[𝕜] H) : H →ₗ.[𝕜] H where
   domain := A.domain
@@ -163,10 +168,8 @@ variable {H' : Type*} [NormedAddCommGroup H'] [InnerProductSpace 𝕜 H']
 
 /-- **Conjugation of a partial map by a unitary**, `A ↦ U A U⁻¹`, with domain
 `U '' dom A` and action `y ↦ U (A (U⁻¹ y))`. -/
--- `@[expose]` here is deliberate and minimal: the `_apply` lemma below cannot be
--- *stated* without `.domain` reducing, since it indexes its argument by this map's
--- domain and applies the underlying map to it. That is the `api-design` rubric's own
--- carve-out — a consumer that must unfold — not the blanket exposure it rejects.
+-- `@[expose]` is needed here: the `_apply` lemma below cannot be *stated* without
+-- `.domain` reducing, since it indexes its argument by this map's domain.
 @[expose]
 noncomputable def unitaryConj (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) : H' →ₗ.[𝕜] H' where
   domain := A.domain.comap (U.symm.toLinearEquiv : H' →ₗ[𝕜] H)
@@ -177,7 +180,7 @@ noncomputable def unitaryConj (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H)
             = ⟨U.symm (x : H'), x.2⟩ + ⟨U.symm (y : H'), y.2⟩ :=
           Subtype.ext (by simp)
         simp only [Submodule.coe_add]
-        rw [hsub, A.map_add, map_add]
+        rw [hsub, A.map_add, U.map_add]
       map_smul' := fun c x => by
         have hsub : (⟨U.symm (c • (x : H')), (c • x).2⟩ : A.domain)
             = c • ⟨U.symm (x : H'), x.2⟩ :=
@@ -185,9 +188,9 @@ noncomputable def unitaryConj (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H)
             -- states the goal with the definition unfolded, in the shape the next step needs;
             -- there is no `_apply` lemma to rewrite with here.
             change U.symm (c • (x : H')) = c • U.symm (x : H')
-            exact map_smul U.symm c (x : H'))
+            exact U.symm.map_smul c (x : H'))
         simp only [Submodule.coe_smul]
-        rw [hsub, A.map_smul, map_smul]
+        rw [hsub, A.map_smul, U.map_smul]
         rfl }
 
 /-- The domain of the conjugated operator is the image of the original domain:
@@ -290,4 +293,3 @@ end UnitaryConjSelfAdjoint
 end UnitaryConj
 
 end LinearPMap
-end TauCeti
