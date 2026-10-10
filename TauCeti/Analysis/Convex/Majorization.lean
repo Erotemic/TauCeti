@@ -725,18 +725,9 @@ gauge cannot tell the difference, since permutation invariance is one of its
 axioms.
 -/
 
-/-- `Fin.rev` as a permutation: it is an involution. -/
-@[expose]
-def revPerm (n : ℕ) : Equiv.Perm (Fin n) :=
-  Function.Involutive.toPerm Fin.rev Fin.rev_rev
-
-/-- `revPerm` acts as `Fin.rev`. -/
-@[simp]
-theorem revPerm_apply {n : ℕ} (i : Fin n) : revPerm n i = i.rev := rfl
-
 /-- The permutation putting a tuple into antitone order: sort, then reverse. -/
 noncomputable def antitoneSortPerm {n : ℕ} (f : Fin n → ℝ) : Equiv.Perm (Fin n) :=
-  (revPerm n).trans (Tuple.sort f)
+  Fin.revPerm.trans (Tuple.sort f)
 
 /-- **The rearrangement is antitone.**
 
@@ -746,7 +737,8 @@ theorem antitone_comp_antitoneSortPerm {n : ℕ} (f : Fin n → ℝ) :
     Antitone (f ∘ antitoneSortPerm f) := by
   intro i j hij
   have hrev : (j : Fin n).rev ≤ (i : Fin n).rev := Fin.rev_le_rev.mpr hij
-  exact Tuple.monotone_sort f hrev
+  simpa only [Function.comp_apply, antitoneSortPerm, Equiv.Perm.trans_apply,
+    Fin.revPerm_apply] using (Tuple.monotone_sort f hrev)
 
 /-- A finite symmetric gauge does not see the rearrangement. -/
 theorem apply_antitoneSortPerm {n : ℕ}
