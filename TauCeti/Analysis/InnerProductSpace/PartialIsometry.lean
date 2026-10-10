@@ -26,9 +26,11 @@ public import Mathlib.Algebra.Star.StarProjection
 
 /-! # Partial isometries (Sub-dev II)
 
-A **partial isometry** in a star-monoid is an element `u` with `u * star u * u = u`; equivalently
-`star u * u` is a projection (`IsStarProjection`). For operators on an inner product space this is
-the classical notion: `u` restricts to an isometry on `(ker u)ᗮ` and vanishes on `ker u`.
+A **partial isometry** in a star-monoid is an element `u` with `u * star u * u = u`.
+This implies that `star u * u` is a projection (`IsStarProjection`), but the reverse
+implication does not hold for arbitrary star-monoids. For operators on an inner
+product space, this is the classical notion: `u` restricts to an isometry on
+`(ker u)ᗮ` and vanishes on `ker u`.
 
 Mathlib currently has **no** partial-isometry API (grep-confirmed). This packages the unitary factor
 of the polar decomposition `A = U |A|`.
