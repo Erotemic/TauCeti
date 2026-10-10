@@ -737,7 +737,7 @@ theorem antitone_comp_antitoneSortPerm {n : ℕ} (f : Fin n → ℝ) :
     Antitone (f ∘ antitoneSortPerm f) := by
   intro i j hij
   have hrev : (j : Fin n).rev ≤ (i : Fin n).rev := Fin.rev_le_rev.mpr hij
-  simpa only [Function.comp_apply, antitoneSortPerm, Equiv.Perm.trans_apply,
+  simpa only [Function.comp_apply, antitoneSortPerm, Equiv.trans_apply,
     Fin.revPerm_apply] using (Tuple.monotone_sort f hrev)
 
 /-- A finite symmetric gauge does not see the rearrangement. -/
