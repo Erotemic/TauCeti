@@ -31,16 +31,6 @@ filter, matching the generality of `MeasureTheory.TendstoInMeasure`.
   good events is genuinely needed, since an outer measure can assign full
   measure to both a set and its complement.
 
-## Staging notes
-
-Staged for Tau Ceti, roadmap topic T19.  Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on
-the closed Mathlib track —
-additions to
-`Mathlib/MeasureTheory/Function/ConvergenceInMeasure.lean`.
-
-Formalized by Claude Fable 5 (claude-fable-5[1m]).
-
 ## Provenance
 
 * Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
