@@ -2,8 +2,10 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
-
-Staged for Tau Ceti: the Banach-space Sylvester lower bound.
+-/
+/-
+Provenance: staged for Tau Ceti (roadmap topic T16) — the Banach-space
+Sylvester lower bound.
 -/
 module
 
