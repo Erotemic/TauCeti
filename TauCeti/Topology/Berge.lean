@@ -14,9 +14,9 @@ public import Mathlib.Topology.Semicontinuity.Hemicontinuity
 /-! # Upper hemicontinuity of the argmin correspondence over a fixed compact set
 
 This is the *fixed-constraint case* of Berge's maximum theorem: the feasible set
-`K` does not vary with the parameter `p`.  (The classical Berge theorem allows a
-parameter-varying constraint correspondence; that more general case is not
-formalized here.)
+`K` does not vary with the parameter `p`.  The classical theorem allows a
+parameter-varying constraint correspondence; that more general case is
+formalized in the second half of this file.
 
 Let `g : P → X → ℝ` be jointly continuous and let `K ⊆ X` be a fixed nonempty
 compact set.  Consider the parametric minimization of `g p` over `K`, with
@@ -42,8 +42,8 @@ usable forms, building on the approximate-minimizer stability engine
   closed-graph form of Berge's theorem.
 * `upperHemicontinuousAt_isMinOn` — the same conclusion phrased through Mathlib's
   own `UpperHemicontinuousAt` predicate for the argmin correspondence
-  `p ↦ {x ∈ K | IsMinOn (g p) K x}` (requires `X` Hausdorff so the compact `K` is
-  closed and limits of feasible points stay feasible).
+  `p ↦ {x ∈ K | IsMinOn (g p) K x}`; the proof is the classical gap argument on
+  `K \ V` and carries no countability or separation hypothesis.
 * `exists_modulus_isMinOn_family` / `exists_modulus_isMinOn` — the **uniform
   `ε`–`δ` modulus** form (metric `P`): for every `ε > 0` there is a `δ > 0` such
   that whenever `dist p p₀ ≤ δ`, *every* minimizer of `g p` over `K` is `ε`-close
@@ -500,54 +500,127 @@ theorem mem_of_tendsto_of_upperHemicontinuousAt
   obtain ⟨k, hkV, hkU⟩ := (hevk.and hUk).exists
   exact Set.disjoint_left.mp hUV hkU (subset_of_mem_nhdsSet hkV (hxK k))
 
+/-- **A sequence that is set-convergent to a compact set clusters in it.**
+
+`x k` lies eventually in every neighbourhood of the set `K` (the open-set form
+of `Tendsto x atTop (𝓝ˢ K)`), and `K` is compact, then some point of `K` is a
+cluster point of the sequence.  No separation is needed: by
+`IsCompact.disjoint_nhdsSet_left`, a filter disjoint from the
+set-neighbourhood filter of a compact set is disjoint from the neighbourhood
+filter of *each* of its points; a sequence filter contained in the
+set-neighbourhood filter cannot be disjoint from it without being trivial. -/
+private theorem exists_mapClusterPt_of_tendsto_nhdsSet {X : Type*}
+    [TopologicalSpace X]
+    {K : Set X} (hK : IsCompact K)
+    {x : ℕ → X}
+    (hx : ∀ (U : Set X), IsOpen U → K ⊆ U → ∀ᶠ k in atTop, x k ∈ U) :
+    ∃ a ∈ K, MapClusterPt a atTop x := by
+  let F : Filter X := Filter.map x atTop
+  -- The sequence filter is contained in the set-neighbourhood filter of `K`:
+  -- members of `𝓝ˢ K` contain an open set around `K`.
+  have hle : F ≤ 𝓝ˢ K := by
+    rw [Filter.le_def]
+    intro S hS
+    obtain ⟨U, hUopen, hUK, hUS⟩ := mem_nhdsSet_iff_exists.mp hS
+    -- `∀ᶠ k, x k ∈ U` and `U ⊆ S`, hence `{k | x k ∈ S} ∈ atTop`.
+    have hUevS : {k | x k ∈ S} ∈ atTop :=
+      Filter.mem_of_superset (hx U hUopen hUK) fun k hk =>
+        hUS (show x k ∈ U from hk)
+    exact mem_map'.mpr hUevS
+  have hF : NeBot F := by
+    dsimp [F]
+    infer_instance
+  by_contra h
+  -- If no point of `K` were a cluster point, compactness would make the
+  -- sequence filter disjoint from the set-neighbourhood filter; but it is
+  -- contained in it, so it would be trivial -- a sequence filter is not.
+  have hdisj : Disjoint (𝓝ˢ K) F := by
+    rw [hK.disjoint_nhdsSet_left]
+    intro a ha
+    by_contra hcp
+    -- `hcp : ¬Disjoint (𝓝 a) F`; since `Disjoint f g` unfolds to
+    -- `x ≤ f → x ≤ g → x ≤ ⊥`, this is just `𝓝 a ⊓ F ≠ ⊥`, i.e. `a`
+    -- is a cluster point of the sequence.
+    have hne : (𝓝 a ⊓ F) ≠ ⊥ := fun h0 =>
+      hcp (fun x hxha hxhf => h0 ▸ le_inf hxha hxhf)
+    exact h ⟨a, ha, ⟨hne⟩⟩
+  have hbot : (𝓝ˢ K) ⊓ F = ⊥ := disjoint_iff.mp hdisj
+  have heq : (𝓝ˢ K) ⊓ F = F := by
+    rw [inf_eq_right.mpr hle]
+  exact hF.ne' (heq.symm.trans hbot)
+
+/-- **Set-convergent sequences to a compact set have point-convergent
+subsequences.**
+
+In a first-countable space, a sequence that is eventually in every
+neighbourhood of a compact set `K` has a subsequence converging to a point of
+`K`.  The cluster point comes from
+`exists_mapClusterPt_of_tendsto_nhdsSet`; first countability is what converts
+it into an actual subsequence (`MapClusterPt.tendsto_subseq`). -/
+private theorem exists_subseq_tendsto_mem_of_tendsto_nhdsSet
+    {X : Type*} [TopologicalSpace X] [FirstCountableTopology X]
+    {K : Set X} (hK : IsCompact K)
+    {x : ℕ → X}
+    (hx : ∀ (U : Set X), IsOpen U → K ⊆ U → ∀ᶠ k in atTop, x k ∈ U) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∃ a ∈ K,
+      Tendsto (x ∘ φ) atTop (𝓝 a) := by
+  obtain ⟨a, ha, hc⟩ := exists_mapClusterPt_of_tendsto_nhdsSet hK hx
+  obtain ⟨φ, hφ, hlim⟩ := MapClusterPt.tendsto_subseq hc
+  exact ⟨φ, hφ, a, ha, hlim⟩
+
 /-- **Subsequence extraction for a varying constraint family.**
 
 From feasible points `xₖ ∈ K pₖ` with `pₖ → p₀`, extract a convergent
 subsequence whose limit is feasible at `p₀`.
 
-**The local-boundedness hypothesis is what makes this possible and cannot be
-weakened to "each `K p` is compact":** a family of individually compact sets can
-march off to infinity as `p → p₀`, leaving no compact set to extract from.  A
-single compact `C` containing `K p` for all `p` near `p₀` is the standard Berge
-assumption and rules exactly that out.
+Only the compactness of `K p₀` is needed, not a compact set `C` containing
+the nearby `K p`: upper hemicontinuity puts `xₖ` eventually into every
+neighbourhood of the set `K p₀`, and
+`exists_subseq_tendsto_mem_of_tendsto_nhdsSet` extracts the subsequence from
+the compactness of `K p₀` alone.  No closedness of `K p₀` and no separation
+of the ambient space are used; first countability of `X` is the sole extra
+hypothesis, and it is what converts the compactness cluster point into an
+actual subsequence.
 
-Given it, the two hemicontinuity lanes supply the rest: compactness of `C`
-produces the convergent subsequence, and
-`mem_of_tendsto_of_upperHemicontinuousAt` returns its limit to `K p₀`. -/
+(The concern a common compact set addresses is different: whether *some*
+compact set contains all the nearby `K p` at once.  That question is what
+`exists_isCompact_eventually_subset_of_upperHemicontinuousAt` settles in a
+locally compact ambient; the sequential extraction proved here does not
+depend on it.) -/
 theorem exists_subseq_tendsto_mem_of_upperHemicontinuousAt
-    {P X : Type*} [TopologicalSpace P] [TopologicalSpace X] [RegularSpace X]
+    {P X : Type*} [TopologicalSpace P] [TopologicalSpace X]
     [FirstCountableTopology X]
     {K : P → Set X} {p₀ : P} (hKu : UpperHemicontinuousAt K p₀)
-    (hKclosed : IsClosed (K p₀))
-    {C : Set X} (hC : IsCompact C) (hKC : ∀ᶠ q in 𝓝 p₀, K q ⊆ C)
+    (hK₀ : IsCompact (K p₀))
     {p : ℕ → P} (hp : Tendsto p atTop (𝓝 p₀))
     {x : ℕ → X} (hxK : ∀ k, x k ∈ K (p k)) :
     ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∃ x₀ ∈ K p₀,
       Tendsto (fun t => x (φ t)) atTop (𝓝 x₀) := by
-  -- Past some index every point lies in the common compact set.
-  obtain ⟨N, hN⟩ := (hp.eventually hKC).exists_forall_of_atTop
-  -- Shift so that the whole tail is inside `C`, extract there.
-  have hmem : ∀ k, x (N + k) ∈ C := fun k => hN (N + k) (Nat.le_add_right N k) (hxK (N + k))
-  obtain ⟨x₀, _hx₀C, ψ, hψmono, hψtend⟩ := hC.tendsto_subseq hmem
-  refine ⟨fun t => N + ψ t, ?_, x₀, ?_, ?_⟩
-  · exact fun a b hab => Nat.add_lt_add_left (hψmono hab) N
-  · -- The limit is feasible, by upper hemicontinuity.
-    refine mem_of_tendsto_of_upperHemicontinuousAt hKu hKclosed
-      (p := fun t => p (N + ψ t)) ?_ (fun t => hxK (N + ψ t)) hψtend
-    exact hp.comp (tendsto_atTop_mono (fun t => Nat.le_add_left (ψ t) N)
-      hψmono.tendsto_atTop)
-  · exact hψtend
+  -- Upper hemicontinuity: for an open `U ⊇ K p₀`, the constraint sets stay
+  -- inside `U` for `p` near `p₀`; and `p k → p₀`.
+  have hset : ∀ (U : Set X), IsOpen U → K p₀ ⊆ U →
+      ∀ᶠ k in atTop, x k ∈ U := by
+    intro U hUopen hUK
+    have hUev : ∀ᶠ q in 𝓝 p₀, U ∈ 𝓝ˢ (K q) :=
+      (upperHemicontinuousAt_iff.mp hKu) U (hUopen.mem_nhdsSet.mpr hUK)
+    filter_upwards [hp.eventually hUev] with k hk
+    exact (subset_of_mem_nhdsSet hk) (hxK k)
+  exact exists_subseq_tendsto_mem_of_tendsto_nhdsSet hK₀ hset
 
 /-- **Local boundedness comes free in a locally compact ambient space.**
 
 If `K p₀` is compact and `K` is upper hemicontinuous at `p₀`, then some compact
 `C` contains `K p` for every `p` near `p₀`.
 
-This reconciles `exists_subseq_tendsto_mem_of_upperHemicontinuousAt`, which
-assumes such a `C`, with the usual statement of Berge's theorem, which assumes
-only that each `K p` is compact.  Those are genuinely different hypotheses --
-individually compact sets can escape to infinity as `p → p₀` — but the escape
-needs a non-locally-compact ambient space, so it cannot happen here.
+This is a local-boundedness fact about the constraint correspondence
+itself, not a hypothesis the sequential extraction needs --
+`exists_subseq_tendsto_mem_of_upperHemicontinuousAt` works directly from the
+compactness of `K p₀` and uses no such `C`.  The escape it rules out is real
+but has nothing to do with local compactness of the ambient space: compact
+sets can march off to infinity as `p → p₀` in *any* ambient, locally compact
+or not, once the upper hemicontinuity (or the compactness of `K p₀`) is
+dropped.  Under upper hemicontinuity and compactness of `K p₀`, a locally
+compact ambient is what supplies the uniform compact `C`.
 
 The proof is the reason upper hemicontinuity is stated with neighbourhoods
 rather than with sets: `exists_compact_superset` puts `K p₀` inside the
@@ -565,27 +638,6 @@ theorem exists_isCompact_eventually_subset_of_upperHemicontinuousAt
   have hnhds : interior C ∈ 𝓝ˢ (K p₀) := isOpen_interior.mem_nhdsSet.mpr hsub
   filter_upwards [(upperHemicontinuousAt_iff.mp hKu) (interior C) hnhds] with p hp
   exact (subset_of_mem_nhdsSet hp).trans interior_subset
-
-/-- **The extraction, from Berge's own hypotheses.**
-
-`exists_subseq_tendsto_mem_of_upperHemicontinuousAt` with its local-boundedness
-assumption discharged by
-`exists_isCompact_eventually_subset_of_upperHemicontinuousAt`.  This is the form
-the value theorem consumes: compactness of the single set `K p₀`, upper
-hemicontinuity, and a locally compact ambient space. -/
-theorem exists_subseq_tendsto_mem_of_isCompact
-    {P X : Type*} [TopologicalSpace P] [TopologicalSpace X] [RegularSpace X]
-    [T2Space X] [FirstCountableTopology X] [WeaklyLocallyCompactSpace X]
-    {K : P → Set X} {p₀ : P} (hKu : UpperHemicontinuousAt K p₀)
-    (hK₀ : IsCompact (K p₀))
-    {p : ℕ → P} (hp : Tendsto p atTop (𝓝 p₀))
-    {x : ℕ → X} (hxK : ∀ k, x k ∈ K (p k)) :
-    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∃ x₀ ∈ K p₀,
-      Tendsto (fun t => x (φ t)) atTop (𝓝 x₀) := by
-  obtain ⟨C, hCcompact, hKC⟩ :=
-    exists_isCompact_eventually_subset_of_upperHemicontinuousAt hKu hK₀
-  exact exists_subseq_tendsto_mem_of_upperHemicontinuousAt hKu hK₀.isClosed
-    hCcompact hKC hp hxK
 
 /-- **Upper semicontinuity of the value function under lower hemicontinuity.**
 
@@ -623,17 +675,19 @@ theorem eventually_iInf_lt_of_lt_iInf
 `V p` eventually exceeds any bound strictly below `V p₀`.  This is the half that
 consumes the whole upper-hemicontinuity chain: the contradiction produces a
 *frequently* statement, first countability of the parameter space turns it into
-a sequence, and `exists_subseq_tendsto_mem_of_isCompact` extracts a limit
-feasible at `p₀` whose value would undercut `V p₀`. -/
+a sequence, and `exists_subseq_tendsto_mem_of_upperHemicontinuousAt` extracts a
+limit feasible at `p₀` whose value would undercut `V p₀`.
+
+No separation or local compactness is needed: the extraction goes through the
+compactness of `K p₀` alone, and boundedness below of the values follows from
+compactness of the `K p` and continuity of `g p`. -/
 theorem eventually_lt_iInf_of_iInf_lt
     {P X : Type*} [TopologicalSpace P] [FirstCountableTopology P]
-    [TopologicalSpace X] [RegularSpace X] [T2Space X] [FirstCountableTopology X]
-    [WeaklyLocallyCompactSpace X]
+    [TopologicalSpace X] [FirstCountableTopology X]
     {K : P → Set X} {p₀ : P} (hKu : UpperHemicontinuousAt K p₀)
     (hK₀ : IsCompact (K p₀))
     {g : P → X → ℝ} (hg : Continuous (Function.uncurry g))
     (hKne : ∀ p, (K p).Nonempty) (hKcompact : ∀ p, IsCompact (K p))
-    (hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x))
     {b : ℝ} (hb : b < ⨅ x : ↥(K p₀), g p₀ ↑x) :
     ∀ᶠ p in 𝓝 p₀, b < ⨅ x : ↥(K p), g p ↑x := by
   by_contra hcon
@@ -643,6 +697,12 @@ theorem eventually_lt_iInf_of_iInf_lt
   -- At each, pick a minimizer; its value is the (low) infimum.
   have hgcont : ∀ r : P, Continuous (g r) :=
     fun r => hg.comp (continuous_const.prodMk continuous_id)
+  -- Boundedness below of the values, from compactness and continuity.
+  have hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x) := by
+    intro p
+    refine ((hKcompact p).bddBelow_image (hgcont p).continuousOn).mono ?_
+    rintro _ ⟨x, rfl⟩
+    exact ⟨↑x, x.2, rfl⟩
   choose x hxK hxmin using fun k =>
     (hKcompact (q k)).exists_isMinOn (hKne (q k)) (hgcont (q k)).continuousOn
   have hxval : ∀ k, g (q k) (x k) = ⨅ y : ↥(K (q k)), g (q k) ↑y := by
@@ -652,7 +712,7 @@ theorem eventually_lt_iInf_of_iInf_lt
       (ciInf_le (hbdd (q k)) ⟨x k, hxK k⟩)
   -- Extract a convergent subsequence with feasible limit.
   obtain ⟨φ, hφmono, x₀, hx₀K, hx₀tend⟩ :=
-    exists_subseq_tendsto_mem_of_isCompact hKu hK₀ hqtend hxK
+    exists_subseq_tendsto_mem_of_upperHemicontinuousAt hKu hK₀ hqtend hxK
   -- Its value is a limit of values below `b`, hence at most `b`.
   have hjoint : Tendsto (fun t => g (q (φ t)) (x (φ t))) atTop (𝓝 (g p₀ x₀)) :=
     (hg.tendsto (p₀, x₀)).comp
@@ -675,21 +735,32 @@ Each hypothesis is consumed exactly once and by a different half of the proof:
 **lower** hemicontinuity gives `V p < b` above `V p₀`
 (`eventually_iInf_lt_of_lt_iInf`), **upper** hemicontinuity gives `b < V p`
 below it (`eventually_lt_iInf_of_iInf_lt`), and the order characterisation of
-convergence in `ℝ` joins them. -/
+convergence in `ℝ` joins them.
+
+The proof works by sequences, so it uses first countability of the parameter
+and ambient spaces; it needs no separation or local compactness, and the
+boundedness below of the values follows from compactness of the `K p` and
+continuity of `g p`. -/
 theorem continuous_iInf_of_hemicontinuousAt
     {P X : Type*} [TopologicalSpace P] [FirstCountableTopology P]
-    [TopologicalSpace X] [RegularSpace X] [T2Space X] [FirstCountableTopology X]
-    [WeaklyLocallyCompactSpace X]
+    [TopologicalSpace X] [FirstCountableTopology X]
     {K : P → Set X} (hKcompact : ∀ p, IsCompact (K p)) (hKne : ∀ p, (K p).Nonempty)
     (hKu : ∀ p, UpperHemicontinuousAt K p) (hKl : ∀ p, LowerHemicontinuousAt K p)
-    {g : P → X → ℝ} (hg : Continuous (Function.uncurry g))
-    (hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x)) :
+    {g : P → X → ℝ} (hg : Continuous (Function.uncurry g)) :
     Continuous (fun p => ⨅ x : ↥(K p), g p ↑x) := by
+  -- Boundedness below of the values, from compactness and continuity.
+  have hgcont : ∀ p, Continuous (g p) :=
+    fun p => hg.comp (continuous_const.prodMk continuous_id)
+  have hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x) := by
+    intro p
+    refine ((hKcompact p).bddBelow_image (hgcont p).continuousOn).mono ?_
+    rintro _ ⟨x, rfl⟩
+    exact ⟨↑x, x.2, rfl⟩
   rw [continuous_iff_continuousAt]
   intro p₀
   rw [ContinuousAt, tendsto_order]
   refine ⟨fun b hb => ?_, fun b hb => ?_⟩
-  · exact eventually_lt_iInf_of_iInf_lt (hKu p₀) (hKcompact p₀) hg hKne hKcompact hbdd hb
+  · exact eventually_lt_iInf_of_iInf_lt (hKu p₀) (hKcompact p₀) hg hKne hKcompact hb
   · exact eventually_iInf_lt_of_lt_iInf (hKl p₀) (hKcompact p₀) (hKne p₀) hg hbdd hb
 
 /-- **Berge's argmin theorem, varying constraints.**
@@ -697,49 +768,79 @@ theorem continuous_iInf_of_hemicontinuousAt
 The argmin correspondence `p ↦ {x ∈ K p | IsMinOn (g p) (K p) x}` is upper
 hemicontinuous.
 
-Minimality of a limit point is *not* proved by tracking comparison points into
-the nearby constraint sets — the value theorem subsumes that.  Along a sequence
-of minimizers, `g pₙ cₙ` **is** the value `V pₙ`, so joint continuity and
-`continuous_iInf_of_hemicontinuousAt` together force `g p₀ c₀ = V p₀`, and
-`V p₀ ≤ g p₀ y` for feasible `y` is then just `ciInf_le`. -/
+The proof goes by contraposition: along a sequence `p n → p₀` of parameters
+with `p n`-minimisers outside an open `V` around the `p₀`-argmin set,
+`exists_subseq_tendsto_mem_of_upperHemicontinuousAt` extracts a limit that is
+`p₀`-feasible.  Minimality of the limit is *not* proved by tracking comparison
+points into the nearby constraint sets — the value theorem subsumes that:
+along the subsequence, `g p c` **is** the value `V p`, so joint continuity and
+`continuous_iInf_of_hemicontinuousAt` together force the limit's value to be
+`V p₀`, and `V p₀ ≤ g p₀ y` for feasible `y` is then just `ciInf_le`.
+
+The argument uses first countability of the parameter space (to turn
+non-eventuality into a sequence) and of the ambient space (to extract the
+subsequence); it needs no separation or local compactness, and it routes
+directly through `UpperHemicontinuousAt.of_forall_isOpen` rather than through
+a common compact set. -/
 theorem upperHemicontinuousAt_isMinOn_of_hemicontinuousAt
     {P X : Type*} [TopologicalSpace P] [FirstCountableTopology P]
-    [TopologicalSpace X] [RegularSpace X] [T2Space X] [FirstCountableTopology X]
-    [WeaklyLocallyCompactSpace X]
+    [TopologicalSpace X] [FirstCountableTopology X]
     {K : P → Set X} (hKcompact : ∀ p, IsCompact (K p)) (hKne : ∀ p, (K p).Nonempty)
     (hKu : ∀ p, UpperHemicontinuousAt K p) (hKl : ∀ p, LowerHemicontinuousAt K p)
     {g : P → X → ℝ} (hg : Continuous (Function.uncurry g))
-    (hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x))
-    (p₀ : P) [(𝓝 p₀).IsCountablyGenerated] :
+    (p₀ : P) :
     UpperHemicontinuousAt (fun p => {x ∈ K p | IsMinOn (g p) (K p) x}) p₀ := by
-  obtain ⟨C, hCcompact, hKC⟩ :=
-    exists_isCompact_eventually_subset_of_upperHemicontinuousAt (hKu p₀) (hKcompact p₀)
-  refine UpperHemicontinuousAt.of_sequences hCcompact.isSeqCompact
-    (hKC.mono fun p hp => (Set.sep_subset _ _).trans hp) ?_
-  intro p hp c hc c₀ hc₀
-  have hcK : ∀ n, c n ∈ K (p n) := fun n => (hc n).1
-  -- Feasibility of the limit, from upper hemicontinuity.
-  have hc₀K : c₀ ∈ K p₀ :=
-    mem_of_tendsto_of_upperHemicontinuousAt (hKu p₀) (hKcompact p₀).isClosed hp hcK hc₀
-  refine ⟨hc₀K, ?_⟩
-  -- Along minimizers the objective value *is* the value function.
-  have hval : ∀ n, g (p n) (c n) = ⨅ y : ↥(K (p n)), g (p n) ↑y := by
-    intro n
-    have : Nonempty ↥(K (p n)) := (hKne (p n)).to_subtype
-    exact le_antisymm (le_ciInf fun y => (isMinOn_iff.mp (hc n).2) ↑y y.2)
-      (ciInf_le (hbdd (p n)) ⟨c n, hcK n⟩)
-  -- Two limits of the same sequence: joint continuity, and the value theorem.
-  have hL : Tendsto (fun n => g (p n) (c n)) atTop (𝓝 (g p₀ c₀)) :=
-    (hg.tendsto (p₀, c₀)).comp (hp.prodMk_nhds hc₀)
-  have hV : Tendsto (fun n => g (p n) (c n)) atTop (𝓝 (⨅ y : ↥(K p₀), g p₀ ↑y)) := by
+  -- Boundedness below of the values, from compactness and continuity.
+  have hgcont : ∀ p, Continuous (g p) :=
+    fun p => hg.comp (continuous_const.prodMk continuous_id)
+  have hbdd : ∀ p, BddBelow (Set.range fun x : ↥(K p) => g p ↑x) := by
+    intro p
+    refine ((hKcompact p).bddBelow_image (hgcont p).continuousOn).mono ?_
+    rintro _ ⟨x, rfl⟩
+    exact ⟨↑x, x.2, rfl⟩
+  refine UpperHemicontinuousAt.of_forall_isOpen fun V hV hFV => ?_
+  -- `hFV : F p₀ ⊆ V`; show `F p ⊆ V` for `p` near `p₀`.
+  by_contra hcon
+  rw [not_eventually] at hcon
+  -- Otherwise, along a sequence `p n → p₀`, there are `p n`-minimisers outside
+  -- the open `V`.
+  obtain ⟨p, hptend, hnot⟩ := exists_seq_forall_of_frequently hcon
+  choose c hcKV hcV using fun n => Set.not_subset.mp (hnot n)
+  have hxK : ∀ n, c n ∈ K (p n) := fun n => (hcKV n).1
+  have hxmin : ∀ n, IsMinOn (g (p n)) (K (p n)) (c n) := fun n => (hcKV n).2
+  -- Extract a convergent subsequence; its limit is feasible at `p₀`.
+  obtain ⟨φ, hφmono, x₀, hx₀K, hx₀tend⟩ :=
+    exists_subseq_tendsto_mem_of_upperHemicontinuousAt (hKu p₀) (hKcompact p₀)
+      hptend hxK
+  -- Joint continuity: the values of the extracted subsequence tend to
+  -- `g p₀ x₀`.
+  have hjoint : Tendsto (fun t => g (p (φ t)) (c (φ t))) atTop (𝓝 (g p₀ x₀)) :=
+    (hg.tendsto (p₀, x₀)).comp
+      ((hptend.comp hφmono.tendsto_atTop).prodMk_nhds hx₀tend)
+  -- Along the minimisers the objective value *is* the value function.
+  have hval : ∀ t, g (p (φ t)) (c (φ t)) =
+      ⨅ y : ↥(K (p (φ t))), g (p (φ t)) ↑y := by
+    intro t
+    have : Nonempty ↥(K (p (φ t))) := (hKne (p (φ t))).to_subtype
+    exact le_antisymm (le_ciInf fun y => (isMinOn_iff.mp (hxmin (φ t))) ↑y y.2)
+      (ciInf_le (hbdd (p (φ t))) ⟨c (φ t), hxK (φ t)⟩)
+  -- And the values tend to `V p₀` by the value theorem.
+  have hVtend : Tendsto (fun t => g (p (φ t)) (c (φ t))) atTop
+      (𝓝 (⨅ y : ↥(K p₀), g p₀ ↑y)) := by
     simp only [hval]
-    exact ((continuous_iInf_of_hemicontinuousAt hKcompact hKne hKu hKl hg hbdd).tendsto
-      p₀).comp hp
-  have heq : g p₀ c₀ = ⨅ y : ↥(K p₀), g p₀ ↑y := tendsto_nhds_unique hL hV
-  -- Minimality is then `ciInf_le`.
-  rw [isMinOn_iff]
-  intro y hy
-  rw [heq]
-  exact ciInf_le (hbdd p₀) ⟨y, hy⟩
+    exact ((continuous_iInf_of_hemicontinuousAt hKcompact hKne hKu hKl hg).tendsto
+      p₀).comp (hptend.comp hφmono.tendsto_atTop)
+  have heq : g p₀ x₀ = ⨅ y : ↥(K p₀), g p₀ ↑y := tendsto_nhds_unique hjoint hVtend
+  -- `x₀` attains the infimum over `K p₀`, so it is a `p₀`-minimiser, hence in
+  -- the open `V` containing the `p₀`-argmin set.
+  have hx₀min : IsMinOn (g p₀) (K p₀) x₀ := by
+    rw [isMinOn_iff]
+    intro y hy
+    rw [heq]
+    exact ciInf_le (hbdd p₀) ⟨y, hy⟩
+  have hx₀V : x₀ ∈ V := hFV ⟨hx₀K, hx₀min⟩
+  -- But the extracted subsequence stays outside `V` while converging into it.
+  obtain ⟨N, hN⟩ := (hx₀tend.eventually (hV.mem_nhds hx₀V)).exists_forall_of_atTop
+  exact hcV (φ N) (hN N (by linarith))
 
 end TauCeti
