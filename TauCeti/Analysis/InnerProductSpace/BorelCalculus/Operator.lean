@@ -387,11 +387,6 @@ noncomputable def borelCalculus (hf : IsBddMeasurable f) : H →L[ℂ] H :=
 /-- The Borel calculus acts through the Riesz vector of the polarised functional. -/
 @[simp] theorem borelCalculus_apply (hf : IsBddMeasurable f) (ξ : H) :
     borelCalculus ha hf ξ = borelVector ha hf ξ := (rfl)
-/-- **The defining property of the Borel calculus.** -/
-@[simp] theorem inner_borelCalculus (hf : IsBddMeasurable f) (ψ ξ : H) :
-    ⟪ψ, borelCalculus ha hf ξ⟫_ℂ = pair ha f ψ ξ :=
-  inner_borelVector ha hf ψ ξ
-
 /-- The norm chooseBound for the Borel calculus. -/
 theorem norm_borelCalculus_le (hf : IsBddMeasurable f) :
     ‖borelCalculus ha hf‖ ≤ 2 * hf.chooseBound :=
