@@ -300,19 +300,4 @@ theorem realSpectrumCfcHom_ofReal_comp {a : A} (ha : IsSelfAdjoint a)
 
 end RealSymbols
 
-section Operators
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
-
-/-- **The intended instance.** On a complex Hilbert space the bounded operators form a unital
-C⋆-algebra, so a self-adjoint operator carries the transported calculus
-`C(spectrum ℝ a, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H)`: continuous complex symbols of a real spectral
-parameter, sending the identity symbol back to the operator. This is the base layer the
-real-spectrum spectral multiplicity theory is built on. -/
-theorem realSpectrumCfcHom_realSpectrumId_operator {a : H →L[ℂ] H} (ha : IsSelfAdjoint a) :
-    realSpectrumCfcHom ha (realSpectrumId a) = a :=
-  realSpectrumCfcHom_realSpectrumId ha
-
-end Operators
-
 end TauCeti
