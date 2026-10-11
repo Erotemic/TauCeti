@@ -129,7 +129,7 @@ variable [FiniteDimensional 𝕜 F] {m : ℕ}
 sum: `‖x − P x‖² = ∑_{i ∉ s} ‖⟪w i, x⟫‖²`.  Companion to
 `Orthonormal.norm_sq_starProjection_span_image` (`‖P x‖² = ∑_{i ∈ s}`); together they split
 Parseval `‖x‖² = ∑_i ‖⟪w i, x⟫‖²` across `s` and its complement. -/
-theorem OrthonormalBasis.norm_sq_sub_starProjection_span_image
+theorem norm_sq_sub_starProjection_span_image
     (w : OrthonormalBasis (Fin m) 𝕜 F) (s : Finset (Fin m)) (x : F) :
     ‖x - (Submodule.span 𝕜 (w '' ↑s)).starProjection x‖ ^ 2
       = ∑ i ∈ sᶜ, ‖⟪w i, x⟫_𝕜‖ ^ 2 := by
@@ -199,7 +199,7 @@ theorem sum_norm_sub_starProjection_span_sq_eq (u v : OrthonormalBasis (Fin m) �
     · -- `k ∈ s`: `P_u` keeps `uₖ`, so the term is the residual of `uₖ` against the `v`-span,
       -- which is the complementary Parseval sum.
       rw [norm_sub_rev]
-      exact OrthonormalBasis.norm_sq_sub_starProjection_span_image v s (u k)
+      exact norm_sq_sub_starProjection_span_image v s (u k)
     · -- `k ∉ s`: the `u`-projection vanishes; the term is the `v`-projection norm.
       rw [sub_zero, hQnorm k]
   -- Sum the per-`k` formula and swap the two cross blocks into each other.

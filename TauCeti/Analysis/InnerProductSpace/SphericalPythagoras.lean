@@ -281,6 +281,8 @@ theorem sq_le_sq_add_sq_of_cos_eq_cos_mul_cos {ω a b : ℝ} (hω0 : 0 ≤ ω)
     Real.sq_sqrt (by positivity)
   nlinarith [Real.sqrt_nonneg (a ^ 2 + b ^ 2)]
 
+end TauCeti
+
 /-! ### The exact identity in an inner product space -/
 
 namespace Submodule
@@ -345,12 +347,10 @@ theorem sq_lineAngle_le_sq_add_sq (K : Submodule 𝕜 E) [K.HasOrthogonalProject
       Real.arccos ‖K.starProjection f‖ ^ 2 +
         Real.arccos
           ‖(inner 𝕜 e (((‖K.starProjection f‖ : ℝ) : 𝕜)⁻¹ • K.starProjection f))‖ ^ 2 := by
-  refine sq_le_sq_add_sq_of_cos_eq_cos_mul_cos (Real.arccos_nonneg _)
+  refine TauCeti.sq_le_sq_add_sq_of_cos_eq_cos_mul_cos (Real.arccos_nonneg _)
     (Real.arccos_le_pi _) (Real.arccos_nonneg _)
     (Real.arccos_le_pi_div_two.2 (norm_nonneg _)) (Real.arccos_nonneg _)
     (Real.arccos_le_pi_div_two.2 (norm_nonneg _)) ?_
   exact cos_lineAngle_eq_mul K he hef hf hPf
 
 end Submodule
-
-end TauCeti

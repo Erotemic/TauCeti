@@ -2,13 +2,15 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Fable 5
+-/
 
-Staged for Tau Ceti, roadmap topic T01.  Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on
-the closed Mathlib track —
-addition to `Mathlib/Analysis/InnerProductSpace/Basic.lean`.
+/-
+Provenance: staged for Tau Ceti, roadmap topic T01. Mathlib is not the
+destination (`ForTauCeti/README.md`); what follows is where this material would
+have gone on the closed Mathlib track — addition to
+`Mathlib/Analysis/InnerProductSpace/Basic.lean`.
 
-Formalized by Claude Fable 5 (claude-fable-5[1m]).  Placement history: originally
+Formalized by Claude Fable 5 (claude-fable-5[1m]). Placement history: originally
 in the Gram-matrix staging file, then moved to `Orthonormal.lean` to sit by the
 `Finsupp`/inner-product machinery; following @wwylele's review (PR #40567) it
 moved here to `Basic.lean` — the lemma involves no `Orthonormal`, and `Basic`

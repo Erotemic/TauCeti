@@ -30,7 +30,7 @@ orthogonal family of lines — and reads off the vector-level statements needed 
 * `TauCeti.OrthogonalSeries.summable_of_pairwise_inner_eq_zero_of_partial_sum_norm_le`: a
   uniform bound on all finite partial sums gives summability directly, with no separate
   closedness theorem for a parameterized family of series.
-* `TauCeti.OrthogonalSeries.HasSum.norm_sq_eq_tsum_of_pairwise_inner_eq_zero`: Parseval.
+* `HasSum.norm_sq_eq_tsum_of_pairwise_inner_eq_zero`: Parseval.
 
 The last two have no `OrthogonalFamily` counterpart upstream and carry the real content of
 this file; the first two are one-line specializations.
@@ -119,13 +119,27 @@ theorem summable_of_pairwise_inner_eq_zero_of_partial_sum_norm_le [CompleteSpace
   rw [← norm_sum_sq_of_pairwise_inner_eq_zero hf]
   nlinarith [hbound s, norm_nonneg (∑ i ∈ s, f i)]
 
+end
+
+end TauCeti.OrthogonalSeries
+
+namespace HasSum
+
+universe u v
+
+variable {𝕜 : Type u} {H : Type v}
+variable [RCLike 𝕜]
+variable [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
+variable {ι : Type*} {f : ι → H}
+
 /-- Parseval for any pairwise orthogonal family with a specified sum. -/
-theorem HasSum.norm_sq_eq_tsum_of_pairwise_inner_eq_zero [CompleteSpace H] {z : H}
+theorem norm_sq_eq_tsum_of_pairwise_inner_eq_zero [CompleteSpace H] {z : H}
     (hsum : HasSum f z)
     (hf : Pairwise fun i j => ⟪f i, f j⟫_𝕜 = 0) :
     ‖z‖ ^ 2 = ∑' i, ‖f i‖ ^ 2 := by
-  have hnorm : Summable fun i => ‖f i‖ ^ 2 :=
-    (summable_iff_norm_sq_summable_of_pairwise_inner_eq_zero f hf).1 hsum.summable
+  have hiff : Summable f ↔ Summable fun i => ‖f i‖ ^ 2 :=
+      TauCeti.OrthogonalSeries.summable_iff_norm_sq_summable_of_pairwise_inner_eq_zero f hf
+  have hnorm : Summable fun i => ‖f i‖ ^ 2 := hiff.1 hsum.summable
   have hright0 :
       Tendsto (fun s : Finset ι => ∑ i ∈ s, ‖f i‖ ^ 2)
         (SummationFilter.unconditional ι).filter (𝓝 (∑' i, ‖f i‖ ^ 2)) :=
@@ -133,9 +147,7 @@ theorem HasSum.norm_sq_eq_tsum_of_pairwise_inner_eq_zero [CompleteSpace H] {z : 
   have hright :
       Tendsto (fun s : Finset ι => ‖∑ i ∈ s, f i‖ ^ 2)
         (SummationFilter.unconditional ι).filter (𝓝 (∑' i, ‖f i‖ ^ 2)) := by
-    simpa only [norm_sum_sq_of_pairwise_inner_eq_zero hf] using hright0
+    simpa only [TauCeti.OrthogonalSeries.norm_sum_sq_of_pairwise_inner_eq_zero hf] using hright0
   exact tendsto_nhds_unique ((continuous_norm.pow 2).tendsto z |>.comp hsum) hright
 
-end
-
-end TauCeti.OrthogonalSeries
+end HasSum
