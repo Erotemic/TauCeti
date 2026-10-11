@@ -191,7 +191,7 @@ end RCLikeIso
 
 The type, the additive group, the topology and the norm are unchanged; only the
 scalar action and the inner product's field of values move. -/
-@[expose, nolint unusedArguments]
+@[expose]
 def ScalarTransport {𝕜 : Type u} {𝕂 : Type w} [RCLike 𝕜] [RCLike 𝕂]
     (_e : RCLikeIso 𝕜 𝕂) (E : Type v) : Type v := E
 
