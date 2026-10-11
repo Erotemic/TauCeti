@@ -6,6 +6,7 @@ Authors: Jon Crall, GPT-5.6 Thinking, Claude Fable 5, Claude Opus 5
 module
 
 public import Mathlib.Analysis.Convex.Basic
+public import Mathlib.Analysis.Normed.Module.Seminorm.Basic
 public import Mathlib.Algebra.BigOperators.Fin
 public import Mathlib.Algebra.Order.Field.Basic
 public import Mathlib.Basic.Real.Basic
@@ -43,8 +44,8 @@ domination, some T-transform of `q` still dominates `z` in prefix sums while agr
 * `FiniteVector.IsSymmetricConvex K` — `K` is convex, transposition-closed, and closed under
   flipping the sign of a single coordinate.  These are exactly the closure properties the
   descent consumes.
-* `FiniteSymmetricGauge n` — a subadditive, absolutely homogeneous, permutation-invariant,
-  sign-flip-invariant function on `Fin n → ℝ`.
+* `FiniteSymmetricGauge n` — a `Seminorm` on `Fin n → ℝ` that is invariant under
+  permuting coordinates and under flipping a single coordinate's sign.
 
 ## Main results
 
@@ -196,37 +197,36 @@ theorem sum_le {x y : Fin n → ℝ} (h : x ≺w y) :
 
 end WeaklyMajorized
 
-/-! ### Zero padding -/
+/-! ### Appending a zero tail -/
 
-/-- Right zero-padding from length `n` to length `n + m`. -/
-@[expose]
-def zeroPadRight (x : Fin n → ℝ) : Fin (n + m) → ℝ :=
-  fun i => if hi : (i : ℕ) < n then x ⟨i, hi⟩ else 0
-
-/-- Zero padding leaves the original coordinates alone. -/
-@[simp] theorem zeroPadRight_left (x : Fin n → ℝ) (i : Fin n) :
-    zeroPadRight (m := m) x (Fin.castAdd m i) = x i := by
-  simp [zeroPadRight]
-
-/-- The padded coordinates are zero. -/
-@[simp] theorem zeroPadRight_right (x : Fin n → ℝ) (i : Fin m) :
-    zeroPadRight (m := m) x (Fin.natAdd n i) = 0 := by
-  simp [zeroPadRight]
-
-/-- Zero padding preserves every prefix sum. -/
-theorem prefixSum_zeroPadRight (k : ℕ) (x : Fin n → ℝ) :
-    prefixSum k (zeroPadRight (m := m) x) = prefixSum k x := by
+/-- Appending a zero tail (`Fin.append x (0 : Fin m → ℝ)`, the zero tuple of length `m`)
+preserves every prefix sum. -/
+theorem prefixSum_appendZeroTail (k : ℕ) (x : Fin n → ℝ) :
+    prefixSum k (Fin.append x (0 : Fin m → ℝ)) = prefixSum k x := by
   unfold prefixSum
   rw [Finset.sum_filter, Fin.sum_univ_add, Finset.sum_filter]
-  simp [zeroPadRight]
+  simp
 
-/-- A decreasing nonnegative vector remains decreasing after appending zeros. -/
-theorem antitone_zeroPadRight {x : Fin n → ℝ}
+/-- Evaluating `Fin.append x (0 : Fin m → ℝ)` at `i`: the `i`-th coordinate of
+`x` when `i` sits in the first part, and `0` when it sits in the appended zero
+part.  The `Fin.addCases` definition is the same if-then-else, up to the
+`castLT` re-presentation of the index. -/
+private theorem appendZeroTail_eval (x : Fin n → ℝ) (i : Fin (n + m)) :
+    (Fin.append x (0 : Fin m → ℝ)) i =
+      if hi : (i : ℕ) < n then x (Fin.castLT i hi) else 0 := by
+  dsimp only [Fin.append, Fin.addCases]
+  split_ifs with h
+  · simp
+  · simp
+
+/-- A decreasing nonnegative vector remains decreasing after appending a zero
+tail. -/
+theorem antitone_appendZeroTail {x : Fin n → ℝ}
     (hxanti : Antitone x) (hx0 : ∀ i, 0 ≤ x i) :
-    Antitone (zeroPadRight (m := m) x) := by
+    Antitone (Fin.append x (0 : Fin m → ℝ)) := by
   intro i j hij
   have hijv : (i : ℕ) ≤ (j : ℕ) := Fin.le_def.mp hij
-  unfold zeroPadRight
+  simp only [appendZeroTail_eval]
   -- the antitonicity goal is `pad j ≤ pad i`, so the outer split is on `j`
   split_ifs with hj hi
   · apply hxanti
@@ -236,25 +236,24 @@ theorem antitone_zeroPadRight {x : Fin n → ℝ}
   · exact hx0 _
   · exact le_rfl
 
-/-- Zero padding preserves nonnegativity. -/
-theorem zeroPadRight_nonneg {x : Fin n → ℝ} (hx0 : ∀ i, 0 ≤ x i) :
-    ∀ i, 0 ≤ zeroPadRight (m := m) x i := by
+/-- Appending a zero tail preserves nonnegativity. -/
+theorem appendZeroTail_nonneg {x : Fin n → ℝ} (hx0 : ∀ i, 0 ≤ x i) :
+    ∀ i, 0 ≤ (Fin.append x (0 : Fin m → ℝ)) i := by
   intro i
-  unfold zeroPadRight
+  simp only [appendZeroTail_eval]
   split_ifs
   · exact hx0 _
   · exact le_rfl
 
 /-- Appending a common zero tail preserves weak majorization. -/
-theorem WeaklyMajorized.zeroPadRight {x y : Fin n → ℝ}
+theorem WeaklyMajorized.appendZeroTail {x y : Fin n → ℝ}
     (h : WeaklyMajorized x y) :
-    WeaklyMajorized (zeroPadRight (m := m) x)
-      (zeroPadRight (m := m) y) := by
-  exact ⟨antitone_zeroPadRight h.left_antitone h.left_nonneg,
-    antitone_zeroPadRight h.right_antitone h.right_nonneg,
-    zeroPadRight_nonneg h.left_nonneg,
-    zeroPadRight_nonneg h.right_nonneg, fun k => by
-      simpa only [prefixSum_zeroPadRight] using h.prefix_le k⟩
+    WeaklyMajorized (Fin.append x (0 : Fin m → ℝ)) (Fin.append y (0 : Fin m → ℝ)) := by
+  exact ⟨antitone_appendZeroTail h.left_antitone h.left_nonneg,
+    antitone_appendZeroTail h.right_antitone h.right_nonneg,
+    appendZeroTail_nonneg h.left_nonneg,
+    appendZeroTail_nonneg h.right_nonneg, fun k => by
+      simpa only [prefixSum_appendZeroTail] using h.prefix_le k⟩
 
 /-! ### T-transforms -/
 
@@ -611,34 +610,27 @@ end FiniteVector
 
 /-! ### Finite symmetric gauges -/
 
-/-- Algebraic interface for a finite symmetric gauge.  These are precisely the
-properties used by the T-transform proof of weak-majorization monotonicity. -/
-structure FiniteSymmetricGauge (n : ℕ) where
-  /-- The real-valued gauge evaluated on a finite vector. -/
-  toFun : (Fin n → ℝ) → ℝ
-  add_le' : ∀ x y, toFun (x + y) ≤ toFun x + toFun y
-  real_smul' : ∀ c x, toFun (c • x) = |c| * toFun x
+/-- Algebraic interface for a finite symmetric gauge: a `Seminorm` on the finite
+real vectors that is invariant under permuting coordinates and under flipping
+the sign of a single coordinate.  These are precisely the properties used by
+the T-transform proof of weak-majorization monotonicity. -/
+structure FiniteSymmetricGauge (n : ℕ) extends Seminorm ℝ (Fin n → ℝ) where
+  /-- Invariance under permuting coordinates -- the *symmetric* half of the name. -/
   perm' : ∀ x (π : Equiv.Perm (Fin n)), toFun (x ∘ π) = toFun x
+  /-- Invariance under flipping the sign of a single coordinate; with `perm'` this
+  gives invariance under all signed permutations, which is what makes the
+  sublevel sets symmetric-convex. -/
   neg_single' : ∀ x j, toFun (Function.update x j (-(x j))) = toFun x
-
 namespace FiniteSymmetricGauge
 
 variable {n : ℕ}
 
-/-- Apply a finite symmetric gauge directly to a vector, writing `Φ x` for `Φ.toFun x`. -/
+/-- Apply a finite symmetric gauge directly to a vector, writing `Φ x` for
+`Φ.toSeminorm x`. -/
 instance : CoeFun (FiniteSymmetricGauge n) fun _ => (Fin n → ℝ) → ℝ :=
-  ⟨FiniteSymmetricGauge.toFun⟩
+  ⟨fun Φ x => Φ.toSeminorm x⟩
 
 variable (Φ : FiniteSymmetricGauge n)
-
-/-- Subadditivity of a finite symmetric gauge. -/
-theorem add_le (x y : Fin n → ℝ) : Φ (x + y) ≤ Φ x + Φ y :=
-  Φ.add_le' x y
-
-/-- Absolute homogeneity of a finite symmetric gauge. -/
-theorem real_smul (c : ℝ) (x : Fin n → ℝ) :
-    Φ (c • x) = |c| * Φ x :=
-  Φ.real_smul' c x
 
 /-- A finite symmetric gauge is invariant under permuting coordinates -- the *symmetric* half of
 the name. -/
@@ -655,23 +647,26 @@ theorem neg_single (x : Fin n → ℝ) (j : Fin n) :
 
 /-- **Every sublevel set of a finite symmetric gauge is symmetric-convex.**  This is the
 bridge that lets the whole majorization theory be proved once, for sets, and read off for
-gauges: convexity is subadditivity plus absolute homogeneity, and the two closure properties
-are the gauge's permutation and sign-flip invariance. -/
+gauges: a `Seminorm` is convex, the sublevel set of a convex function is convex, and
+the two closure properties are the gauge's permutation and sign-flip invariance. -/
 theorem isSymmetricConvex_sublevel (r : ℝ) :
     FiniteVector.IsSymmetricConvex {x : Fin n → ℝ | Φ x ≤ r} where
   convex := by
-    intro x hx y hy a b ha hb hab
-    have hx' : Φ x ≤ r := hx
-    have hy' : Φ y ≤ r := hy
-    have : Φ (a • x + b • y) ≤ a * Φ x + b * Φ y := by
-      refine (Φ.add_le _ _).trans_eq ?_
-      rw [Φ.real_smul, Φ.real_smul, abs_of_nonneg ha, abs_of_nonneg hb]
-    have hle : a * Φ x + b * Φ y ≤ a * r + b * r :=
-      add_le_add (mul_le_mul_of_nonneg_left hx' ha) (mul_le_mul_of_nonneg_left hy' hb)
-    have : Φ (a • x + b • y) ≤ r := by
-      refine this.trans (hle.trans_eq ?_)
-      rw [← add_mul, hab, one_mul]
-    exact this
+    -- Convexity of a `Seminorm` is Mathlib's `Seminorm.convexOn`, which is
+    -- `protected`; rebuild the same `ConvexOn` from the public
+    -- `SeminormClass` fields and take the sublevel set.
+    have hco : ConvexOn ℝ Set.univ (fun x => Φ.toSeminorm x) := by
+      refine ⟨convex_univ, fun x _ y _ a b ha hb _ => ?_⟩
+      calc
+        Φ.toSeminorm (a • x + b • y)
+            ≤ Φ.toSeminorm (a • x) + Φ.toSeminorm (b • y) :=
+          map_add_le_add _ _ _
+        _ = |a| * Φ.toSeminorm x + |b| * Φ.toSeminorm y := by
+          simp only [map_smul_eq_mul, Real.norm_eq_abs]
+        _ = a • Φ.toSeminorm x + b • Φ.toSeminorm y := by
+          rw [abs_of_nonneg ha, abs_of_nonneg hb]
+          simp
+    simpa using hco.convex_le r
   swap_mem := fun y hy j l => by
     have : Φ (y ∘ Equiv.swap j l) ≤ r := by rw [Φ.perm]; exact hy
     exact this
