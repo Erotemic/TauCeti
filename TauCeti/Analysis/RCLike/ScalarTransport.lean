@@ -2,10 +2,13 @@
 Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
+-/
 
-Staged for Tau Ceti.  Mathlib is not the destination (`ForTauCeti/README.md`);
-what follows is where this material would have gone on the closed Mathlib track —
-additions to `Mathlib/Analysis/RCLike/` (new file `ScalarTransport.lean`).
+/-
+Provenance: staged for Tau Ceti. Mathlib is not the destination
+(`ForTauCeti/README.md`); on the closed Mathlib track this material
+would have been an addition to `Mathlib/Analysis/RCLike/` (new file
+`ScalarTransport.lean`).
 
 Formalized by Claude Opus 5 (claude-opus-5[1m]).
 
@@ -87,6 +90,7 @@ namespace TauCeti
 
 /-- An isomorphism of `RCLike` fields fixing the reals and `I`. -/
 structure RCLikeIso (𝕜 : Type u) (𝕂 : Type w) [RCLike 𝕜] [RCLike 𝕂] where
+  /-- The underlying ring isomorphism. -/
   toRingEquiv : 𝕜 ≃+* 𝕂
   map_ofReal : ∀ r : ℝ, toRingEquiv (r : 𝕜) = (r : 𝕂)
   map_I : toRingEquiv (RCLike.I : 𝕜) = RCLike.I
@@ -97,9 +101,6 @@ variable {𝕜 : Type u} {𝕂 : Type w} [RCLike 𝕜] [RCLike 𝕂]
 
 /-- The isomorphism acts as a function. -/
 instance : CoeFun (RCLikeIso 𝕜 𝕂) (fun _ => 𝕜 → 𝕂) := ⟨fun e => e.toRingEquiv⟩
-
-/-- The coercion to a function is the underlying ring equivalence. -/
-@[simp] theorem coe_toRingEquiv (e : RCLikeIso 𝕜 𝕂) (x : 𝕜) : e.toRingEquiv x = e x := rfl
 
 /-- Reverse an isomorphism of `RCLike` fields. -/
 def symm (e : RCLikeIso 𝕜 𝕂) : RCLikeIso 𝕂 𝕜 where
@@ -184,12 +185,6 @@ noncomputable def homeomorph (e : RCLikeIso 𝕜 𝕂) : 𝕜 ≃ₜ 𝕂 where
 /-- The homeomorphism is the isomorphism. -/
 @[simp] theorem coe_homeomorph (e : RCLikeIso 𝕜 𝕂) : (e.homeomorph : 𝕜 → 𝕂) = e := rfl
 
-/-- The inverse preserves norms. -/
-@[simp] theorem norm_symm_map (e : RCLikeIso 𝕜 𝕂) (c : 𝕂) :
-    ‖e.toRingEquiv.symm c‖ = ‖c‖ := by
-  conv_rhs => rw [← e.toRingEquiv.apply_symm_apply c]
-  exact (e.norm_map _).symm
-
 end RCLikeIso
 
 /-- `E`, carrying the `𝕂`-Hilbert structure its `𝕜`-structure induces through `e`.
@@ -236,7 +231,7 @@ theorem smul_def (c : 𝕂) (x : ScalarTransport e E) :
 noncomputable instance : NormedSpace 𝕂 (ScalarTransport e E) where
   norm_smul_le c x := by
     change ‖(e.toRingEquiv.symm c) • (out x)‖ ≤ ‖c‖ * ‖x‖
-    rw [norm_smul, e.norm_symm_map]
+    rw [norm_smul, e.norm_symm_map']
     rfl
 
 /-- The inner product is the original, carried across `e`. -/
@@ -277,11 +272,6 @@ omit [InnerProductSpace 𝕜 E] in
     exact e.toRingEquiv.symm_apply_apply _
   rw [this]
   rfl
-
-/-- and its real part is literally unchanged. -/
-@[simp] theorem re_inner_of (x y : E) :
-    RCLike.re (inner 𝕂 (of (e := e) x) (of (e := e) y)) = RCLike.re (inner 𝕜 x y) := by
-  rw [inner_of, e.re_map]
 
 /-! ### Subspaces -/
 
@@ -445,12 +435,6 @@ instance hasOrthogonalProjection (S : Submodule 𝕜 E) [S.HasOrthogonalProjecti
   rw [show out (of (e := e) x - of (e := e) (S.starProjection x)) = x - S.starProjection x from rfl,
     show inner 𝕜 (x - S.starProjection x) (out w) = 0 from
       (Submodule.mem_orthogonal' _ _).mp hperp (out w) hw, map_zero]
-
-/-- The transported projection is the transport of the projection. -/
-@[simp] theorem starProjection_clm (S : Submodule 𝕜 E) [S.HasOrthogonalProjection] :
-    (submodule (e := e) S).starProjection = clm (e := e) S.starProjection := by
-  ext x
-  exact starProjection_of (e := e) S (out x)
 
 /-! ### Adjoints -/
 
