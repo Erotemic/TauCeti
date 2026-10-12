@@ -22,10 +22,10 @@ public import Mathlib.Algebra.Order.BigOperators.Group.Finset
 The combinatorial engine underlying every unitarily invariant norm inequality in this
 development, isolated from the operator theory that consumes it.
 
-A **T-transform** (Hardy–Littlewood–Pólya; also called a *Robin Hood operation*) replaces a
-vector by a convex combination of itself with one of its transpositions.  Concretely, moving
-`δ` from a larger coordinate `j` down to a smaller coordinate `l` — `FiniteVector.transfer` —
-is such a combination.  The transfer lemma
+A **T-transform** (Hardy–Littlewood–Pólya) is a convex combination of a vector
+and a transposition of that vector. The operation `FiniteVector.transfer` changes two
+coordinates by `-δ` and `+δ`; it realizes a Robin Hood/T-transform step under the
+hypotheses `j ≠ l` and `0 ≤ δ ≤ q j - q l`. The transfer lemma
 `FiniteVector.exists_isTTransform_of_not_forall_le` says that a single T-transform always
 makes progress: given prefix-sum domination `z ≺w q` that is not yet coordinatewise
 domination, some T-transform of `q` still dominates `z` in prefix sums while agreeing with
@@ -62,20 +62,13 @@ Nothing here needs a separation theorem, Birkhoff's theorem on doubly stochastic
 a majorization *completion*: total-sum equality is never assumed, and each descent step costs
 one convexity application and one closure property.
 
-## Provenance
+## Source
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original modules: `ForTauCeti.Analysis.Normed.FiniteLpGauge` (the `FiniteVector`
-  vocabulary, `FiniteSymmetricGauge`, and its majorization monotonicity),
-  `ForTauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm` and
-  `ForTauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Majorization`
-  (two further copies of the same descent, now deleted in favour of this one).
-* Extraction class: **split and generalized**.  The moved declarations keep their names and
-  statements; the descent itself was restated for a symmetric-convex set, which is the common
-  generalization of the three copies, and factored through the T-transform vocabulary.
-* Original authors / copyright: Jon Crall, GPT-5.6 Thinking, Claude Fable 5, Claude Opus 5;
-  Copyright (c) 2026 Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib.
+Adapted from the [Davis--Kahan/DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+(Kitware, Inc.; Apache 2.0). The source developments include
+`ForTauCeti.Analysis.Normed.FiniteLpGauge` and the unitarily invariant
+seminorm majorization modules. Original authors: Jon Crall, GPT-5.6 Thinking,
+Claude Fable 5, and Claude Opus 5.
 -/
 
 public section
@@ -90,11 +83,43 @@ variable {n m : ℕ}
 
 /-! ### Prefix sums -/
 
-/-- Sum of the first `k` coordinates of a finite vector.  For `k ≥ n` this is
+/-- Sum of the first `k` coordinates of a finite vector. For `k ≥ n` this is
 its full sum. -/
-@[expose]
 def prefixSum (k : ℕ) (x : Fin n → ℝ) : ℝ :=
   ∑ i ∈ Finset.univ.filter (fun i : Fin n => (i : ℕ) < k), x i
+
+/-- The finite filtered-sum characterization of `prefixSum`. -/
+theorem prefixSum_def (k : ℕ) (x : Fin n → ℝ) :
+    prefixSum k x = ∑ i ∈ Finset.univ.filter (fun i : Fin n => (i : ℕ) < k), x i := by
+  simp only [prefixSum]
+
+/-- An empty prefix has sum zero, regardless of the vector. -/
+@[simp] theorem prefixSum_zero_length (x : Fin n → ℝ) : prefixSum 0 x = 0 := by
+  simp [prefixSum_def]
+
+/-- Adding the next coordinate increases the prefix sum by that coordinate. -/
+theorem prefixSum_succ (x : Fin n → ℝ) {k : ℕ} (hk : k < n) :
+    prefixSum (k + 1) x = prefixSum k x + x ⟨k, hk⟩ := by
+  classical
+  have hfilter :
+      Finset.univ.filter (fun i : Fin n => (i : ℕ) < k + 1) =
+        insert ⟨k, hk⟩ (Finset.univ.filter (fun i : Fin n => (i : ℕ) < k)) := by
+    ext i
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert]
+    constructor
+    · intro hi
+      have hle : (i : ℕ) ≤ k := Nat.lt_succ_iff.mp hi
+      rcases lt_or_eq_of_le hle with hlt | heq
+      · exact Or.inr hlt
+      · exact Or.inl (Fin.ext heq)
+    · rintro (h | h)
+      · subst i
+        exact Nat.lt_succ_self k
+      · exact lt_trans h (Nat.lt_succ_self k)
+  simp only [prefixSum_def, hfilter]
+  rw [Finset.sum_insert]
+  · ring
+  · simp
 
 /-- Prefix sums of the zero vector vanish. -/
 @[simp] theorem prefixSum_zero (k : ℕ) :
@@ -257,9 +282,9 @@ theorem WeaklyMajorized.appendZeroTail {x y : Fin n → ℝ}
 
 /-! ### T-transforms -/
 
-/-- The **elementary transfer** of `δ` from coordinate `j` to coordinate `l`: the
-Hardy–Littlewood–Pólya "Robin Hood" operation, which takes `δ` from the richer coordinate and
-gives it to the poorer one. -/
+/-- Update coordinates `j` and `l` by `-δ` and `+δ`, respectively.
+Under `j ≠ l` and `0 ≤ δ ≤ q j - q l`, this is a Robin Hood/T-transform step.
+For arbitrary indices and `δ`, no averaging or donor-order assumption is implied. -/
 def transfer (q : Fin n → ℝ) (j l : Fin n) (δ : ℝ) : Fin n → ℝ :=
   Function.update (Function.update q j (q j - δ)) l (q l + δ)
 
@@ -348,10 +373,9 @@ let `q` be nonnegative with every prefix sum of `z` dominated by that of `q`.  I
 already dominate `z` coordinatewise, then a *single* T-transform of `q` still dominates `z` in
 prefix sums, is still nonnegative, and agrees with `z` in strictly more coordinates.
 
-This is the whole content of the majorization descent: everything below iterates it.  The
-transform moves mass from the least index `j` where `q` is strictly above `z` down to the
-least index `l` where `q` falls strictly below `z`, stopping as soon as either coordinate
-meets `z`. -/
+The descent selects a surplus index `j` below the first deficient index `l`,
+so that the transfer keeps all prefix sums large enough and reduces the number of
+coordinate mismatches. -/
 theorem exists_isTTransform_of_not_forall_le {z q : Fin n → ℝ}
     (hz : Antitone z) (hz0 : ∀ i, 0 ≤ z i) (hq0 : ∀ i, 0 ≤ q i)
     (hpre : ∀ k, prefixSum k z ≤ prefixSum k q) (hnot : ¬ ∀ i, z i ≤ q i) :
