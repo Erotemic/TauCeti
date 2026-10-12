@@ -11,19 +11,16 @@ public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometr
 /-!
 # Spectral-gap inverse of a self-adjoint element
 
-If the real spectrum of a self-adjoint element `a` of a C⋆-algebra avoids
-`(-r, r)` for `r > 0`, then `a` is a unit and its canonical ring inverse
+If a self-adjoint element `a` of a C⋆-algebra has a real spectral gap around
+zero of radius `r > 0`, then `a` is invertible and its canonical ring inverse
 has norm at most `r⁻¹`.
 
-The invertibility statement is useful when constructing and manipulating
-inverse operators. The norm estimate supplies the spectral-gap bound used
-in interval and exterior Sylvester estimates.
+This quantitative bound is used in interval and exterior Sylvester estimates.
 
-## Main results
+## Main result
 
-* `IsSelfAdjoint.isUnit_and_norm_ringInverse_le` returns both invertibility
-  and the norm bound for the canonical inverse. Its unit conclusion is proved
-  using Mathlib's spectrum criterion rather than a separate wrapper.
+* `IsSelfAdjoint.isUnit_and_norm_ringInverse_le` provides both `IsUnit a`
+  and the norm bound for `Ring.inverse a` under the spectral-gap hypothesis.
 
 ## Source
 
