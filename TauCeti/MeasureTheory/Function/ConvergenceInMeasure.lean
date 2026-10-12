@@ -66,17 +66,10 @@ theorem tendstoInMeasure_of_tendsto_measure_rate_lt_edist [EDist E]
   exact measure_mono fun x hx => hi.trans_le hx
 
 /--
-If `f i` is within `rate i` of `g` outside a set whose measure tends to `0`,
-and the real-valued `rate` tends to `0`, then `f` tends to `g` in measure.
-
-`dist` version of `tendstoInMeasure_of_tendsto_measure_rate_lt_edist`,
-derived from it: taking the extended-distance rate to be `ENNReal.ofReal ∘
-rate` (which tends to `0` whenever `rate` does, and is `0` for negative
-`rate i`), its exceptional set is contained in the present one because
-`ENNReal.ofReal p < ENNReal.ofReal q` (with `q > 0`) iff `p < q`; no
-measurability of the exceptional sets is needed.  Negative real rates are
-handled as well, since `rate i < dist (f i x) (g x)` holds automatically
-there and the transferred bound uses only the inclusion.
+If a real-valued rate tends to zero and the measure of the events
+`{x | rate i < dist (f i x) (g x)}` tends to zero, then `f` converges to `g`
+in measure. The rate may be negative, and no measurability assumption on the
+exceptional sets is required.
 -/
 theorem tendstoInMeasure_of_tendsto_measure_rate_lt_dist [PseudoMetricSpace E]
     {f : ι → α → E} {g : α → E} {rate : ι → ℝ} (hrate : Tendsto rate l (𝓝 0))
