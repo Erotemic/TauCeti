@@ -22,18 +22,12 @@ the event sets are often not (easily) measurable.
 
 * `MeasureTheory.Measure.one_sub_measure_compl_le`
 
-## Provenance
+## Source
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `ForMathlib/MeasureTheory/Measure/Typeclasses/Probability.lean`
-  at Davis--Kahan commit `fc38eb4`.
-* Original declaration: `ForMathlib.one_sub_measure_compl_le`
-  (the public theorem is exposed in `MeasureTheory.Measure`).
-* Original authorship: formalized by Claude Fable 5 (`claude-fable-5[1m]`);
-  staged for Mathlib (no separate copyright line in the source header), released
-  under Apache 2.0.
-* Extraction class: **copied**, converted to the Tau Ceti module system.
-* Spectra influence: **none** (imports only Mathlib).
+Adapted from the Davis--Kahan/DKPS formalization,
+`ForMathlib/MeasureTheory/Measure/Typeclasses/Probability.lean` at `fc38eb4`,
+by Claude Fable 5 (Kitware, Inc., Apache-2.0); the public theorem is
+exposed in `MeasureTheory.Measure`.
 -/
 
 public section

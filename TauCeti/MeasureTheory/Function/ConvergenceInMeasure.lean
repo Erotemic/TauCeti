@@ -31,20 +31,11 @@ filter, matching the generality of `MeasureTheory.TendstoInMeasure`.
   good events is genuinely needed, since an outer measure can assign full
   measure to both a set and its complement.
 
-## Provenance
+## Source
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `ForMathlib/MeasureTheory/Function/ConvergenceInMeasure.lean`
-  at Davis--Kahan commit `fc38eb4`.
-* Original declarations: `ForMathlib.tendstoInMeasure_of_tendsto_measure_rate_lt_edist`,
-  `ForMathlib.tendstoInMeasure_of_tendsto_measure_rate_lt_dist`,
-  `ForMathlib.tendstoInMeasure_of_tendsto_measure_dist_le_rate`
-  (namespace renamed here `ForMathlib` → `TauCeti`).
-* Original authorship: formalized by Claude Fable 5 (`claude-fable-5[1m]`);
-  staged for Mathlib (no separate copyright line in the source header), released
-  under Apache 2.0.
-* Extraction class: **copied**, converted to the Tau Ceti module system.
-* Spectra influence: **none** (imports only Mathlib).
+Adapted from the Davis--Kahan/DKPS formalization,
+`ForMathlib/MeasureTheory/Function/ConvergenceInMeasure.lean` at `fc38eb4`,
+by Claude Fable 5 (Kitware, Inc., Apache-2.0).
 -/
 
 public section
@@ -78,19 +69,35 @@ theorem tendstoInMeasure_of_tendsto_measure_rate_lt_edist [EDist E]
 If `f i` is within `rate i` of `g` outside a set whose measure tends to `0`,
 and the real-valued `rate` tends to `0`, then `f` tends to `g` in measure.
 
-`dist` version of `tendstoInMeasure_of_tendsto_measure_rate_lt_edist`; no
-measurability of the exceptional sets is needed.
+`dist` version of `tendstoInMeasure_of_tendsto_measure_rate_lt_edist`,
+derived from it: taking the extended-distance rate to be `ENNReal.ofReal ∘
+rate` (which tends to `0` whenever `rate` does, and is `0` for negative
+`rate i`), its exceptional set is contained in the present one because
+`ENNReal.ofReal p < ENNReal.ofReal q` (with `q > 0`) iff `p < q`; no
+measurability of the exceptional sets is needed.  Negative real rates are
+handled as well, since `rate i < dist (f i x) (g x)` holds automatically
+there and the transferred bound uses only the inclusion.
 -/
 theorem tendstoInMeasure_of_tendsto_measure_rate_lt_dist [PseudoMetricSpace E]
     {f : ι → α → E} {g : α → E} {rate : ι → ℝ} (hrate : Tendsto rate l (𝓝 0))
     (h : Tendsto (fun i => μ {x | rate i < dist (f i x) (g x)}) l (𝓝 0)) :
     TendstoInMeasure μ f l g := by
-  rw [tendstoInMeasure_iff_dist]
-  intro ε hε
-  refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h
-    (Eventually.of_forall fun i => zero_le) ?_
-  filter_upwards [hrate.eventually_lt_const hε] with i hi
-  exact measure_mono fun x hx => hi.trans_le hx
+  -- The extended-distance rate `ENNReal.ofReal ∘ rate` tends to `0` by
+  -- continuity of `ENNReal.ofReal`, and its exceptional set is contained
+  -- in the present one: `ofReal p < ofReal q` (q > 0) iff p < q.
+  let rate' (i : ι) := ENNReal.ofReal (rate i)
+  have hrate' : Tendsto rate' l (𝓝 0) := by
+    simpa [ENNReal.ofReal_zero] using ENNReal.tendsto_ofReal hrate
+  have h' : Tendsto (fun i => μ {x | rate' i < edist (f i x) (g x)}) l (𝓝 0) := by
+    refine tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds h
+      (Eventually.of_forall fun i => zero_le) (Eventually.of_forall fun i => ?_)
+    exact measure_mono fun x hx => by
+      simp only [Set.mem_ofPred_eq] at hx
+      rw [edist_dist] at hx
+      have h2 := (ENNReal.ofReal_lt_ofReal_iff'
+          (p := rate i) (q := dist (f i x) (g x))).1 hx
+      exact h2.1
+  exact tendstoInMeasure_of_tendsto_measure_rate_lt_edist hrate' h'
 
 /--
 **High-probability phrasing.** If, for a probability measure, the events
