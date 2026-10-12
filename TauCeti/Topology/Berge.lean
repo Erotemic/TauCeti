@@ -43,7 +43,9 @@ usable forms, building on the approximate-minimizer stability engine
 * `upperHemicontinuousAt_isMinOn` — the same conclusion phrased through Mathlib's
   own `UpperHemicontinuousAt` predicate for the argmin correspondence
   `p ↦ {x ∈ K | IsMinOn (g p) K x}`; the proof is the classical gap argument on
-  `K \ V` and carries no countability or separation hypothesis.
+  `K \ V` and carries no countability or separation hypothesis.  This is the
+  unique statement of the fixed-constraint upper-hemicontinuity half: the
+  earlier `of_sequences`-routed duplicate was removed (2026-10-12).
 * `exists_modulus_isMinOn_family` / `exists_modulus_isMinOn` — the **uniform
   `ε`–`δ` modulus** form (metric `P`): for every `ε > 0` there is a `δ > 0` such
   that whenever `dist p p₀ ≤ δ`, *every* minimizer of `g p` over `K` is `ε`-close
@@ -201,12 +203,15 @@ theorem eventually_forall_abs_sub_lt_of_isCompact {X : Type*} [TopologicalSpace 
   have hzero : |g p₀ x₀ - g p₀ x₀| = 0 := by simp
   exact hcont (by simpa [hzero] using Iio_mem_nhds hε)
 
-/-- **Upper hemicontinuity of the argmin correspondence, with no countability hypothesis.**
-
-The same conclusion as `upperHemicontinuousAt_isMinOn` below, but free of
-`[FirstCountableTopology X]` and `[(𝓝 p₀).IsCountablyGenerated]`: those are artifacts of
-routing the proof through `UpperHemicontinuousAt.of_sequences`, not features of the
-mathematics.
+/-- **Upper hemicontinuity of the argmin correspondence (the fixed-constraint case of
+Berge's maximum theorem), phrased through Mathlib's `UpperHemicontinuousAt`.**
+For jointly continuous `g` and compact `K`, the argmin correspondence
+`p ↦ {x ∈ K | IsMinOn (g p) K x}` is upper hemicontinuous at `p₀` in the sense of
+`Mathlib.Topology.Semicontinuity.Hemicontinuity`, with no countability or separation
+hypothesis: routing the same statement through
+`UpperHemicontinuousAt.of_sequences` would force
+`[FirstCountableTopology X]` and `[(𝓝 p₀).IsCountablyGenerated]`, and those are
+artifacts of that route, not of the mathematics.
 
 The argument is the classical one.  Let `V` be open around the `p₀`-argmin set.  If `K ⊆ V`
 there is nothing to do; otherwise `K \ V` is compact and nonempty, and no point of it
@@ -214,7 +219,7 @@ minimises `g p₀`, so the minimum of `g p₀` over `K \ V` strictly exceeds its
 `K`.  Take `ε` a third of that gap and move `p` close enough that `g p` is uniformly within
 `ε` of `g p₀` on `K`: a minimiser of `g p` outside `V` would then be within `2ε` of the
 smaller value, contradicting the `3ε` gap. -/
-theorem upperHemicontinuousAt_isMinOn_of_isCompact {X : Type*} [TopologicalSpace X]
+theorem upperHemicontinuousAt_isMinOn {X : Type*} [TopologicalSpace X]
     {K : Set X} (hK : IsCompact K)
     {g : P → X → ℝ} (hg : Continuous (Function.uncurry g)) (p₀ : P) :
     UpperHemicontinuousAt (fun p => {x ∈ K | IsMinOn (g p) K x}) p₀ := by
@@ -251,23 +256,6 @@ theorem upperHemicontinuousAt_isMinOn_of_isCompact {X : Type*} [TopologicalSpace
   rw [hεdef] at this
   linarith
 
-/-- **Upper hemicontinuity of the argmin correspondence over a fixed compact set
-(the fixed-constraint case of Berge's maximum theorem), via Mathlib's
-`UpperHemicontinuousAt`.**
-For jointly continuous `g` and compact `K`, the argmin correspondence
-`p ↦ {x ∈ K | IsMinOn (g p) K x}` is upper hemicontinuous at `p₀` in the sense of
-`Mathlib.Topology.Semicontinuity.Hemicontinuity`.
-
-This lands the closed-graph statement on Mathlib's own predicate.  It carries no
-countability or separation hypothesis: the earlier route through
-`UpperHemicontinuousAt.of_sequences` needed `[FirstCountableTopology X]`,
-`[T2Space X]` and `[(𝓝 p₀).IsCountablyGenerated]`, and
-`upperHemicontinuousAt_isMinOn_of_isCompact` does without them. -/
-theorem upperHemicontinuousAt_isMinOn {X : Type*} [TopologicalSpace X]
-    {K : Set X} (hK : IsCompact K)
-    {g : P → X → ℝ} (hg : Continuous (Function.uncurry g)) (p₀ : P) :
-    UpperHemicontinuousAt (fun p => {x ∈ K | IsMinOn (g p) K x}) p₀ :=
-  upperHemicontinuousAt_isMinOn_of_isCompact hK hg p₀
 /-- **Value-function continuity over a fixed compact set (the value-function half
 of the fixed-constraint case of Berge's maximum theorem).**
 For jointly continuous `g`, a fixed nonempty compact `K`, and `P` first-countable,
