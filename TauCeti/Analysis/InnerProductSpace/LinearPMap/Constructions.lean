@@ -93,16 +93,6 @@ theorem isSelfAdjoint_toPMap_top {T : H →L[𝕜] H} (hT : IsSelfAdjoint T) :
   rw [_root_.LinearPMap.isSelfAdjoint_def,
     ContinuousLinearMap.toPMap_adjoint_eq_adjoint_toPMap_of_dense T hdense, hTadj]
 
-/-- The everywhere-defined bounded perturbation of `A`, restricted to `dom A`. -/
-def boundedPerturbation (A : H →ₗ.[𝕜] H) (T : H →L[𝕜] H) : A.domain →ₗ[𝕜] H :=
-  (T.comp (Submodule.subtypeL A.domain)).toLinearMap
-
-omit [CompleteSpace H] in
-/-- A bounded perturbation acts by `T` itself; restricting `T` to `A.domain`
-changes nothing about its values. -/
-@[simp] theorem boundedPerturbation_apply (A : H →ₗ.[𝕜] H) (T : H →L[𝕜] H)
-    (x : A.domain) : boundedPerturbation A T x = T (x : H) := (rfl)
-
 /-- **Bounded Kato--Rellich.**  A bounded self-adjoint perturbation of a
 self-adjoint partial map is self-adjoint, on the same domain.
 
@@ -110,11 +100,12 @@ Spectra obtains this as the `a = 0` corollary of the full Kato--Rellich theorem,
 which needs relative bounds and von Neumann's criterion.  The bounded case does
 not: because `T` is everywhere defined and continuous, `x ↦ ⟪y, T x⟫` is
 automatically continuous, so `A + T` and `A` have *the same* adjoint domain, and
-symmetry finishes it. -/
+symmetry finishes it.  Stated directly with Mathlib's `VAdd`
+(`T.toLinearMap +ᵥ A`), which keeps the domain `A.domain`. -/
 theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoint A)
     {T : H →L[𝕜] H} (hT : IsSelfAdjoint T) :
-    IsSelfAdjoint (perturb A (boundedPerturbation A T)) := by
-  set B := perturb A (boundedPerturbation A T) with hB
+    IsSelfAdjoint (T.toLinearMap +ᵥ A) := by
+  set B := T.toLinearMap +ᵥ A with hB
   have hdense : Dense (A.domain : Set H) := hA.dense_domain
   have hsymA : A.IsFormalAdjoint A := by
     have h := _root_.LinearPMap.adjoint_isFormalAdjoint (T := A) hdense
@@ -128,7 +119,7 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
   have hsymB : B.IsFormalAdjoint B := by
     intro x y
     -- states the goal as the inner-product identity the structure lemma expects.
-    change ⟪A x + T (x : H), (y : H)⟫_𝕜 = ⟪(x : H), A y + T (y : H)⟫_𝕜
+    change ⟪T (x : H) + A x, (y : H)⟫_𝕜 = ⟪(x : H), T (y : H) + A y⟫_𝕜
     rw [inner_add_left, inner_add_right, hsymA x y, hTsym (x : H) (y : H)]
   -- `T` contributes a continuous term, so `B` and `A` have the same adjoint domain
   have hsub : ∀ y : H, y ∈ (_root_.LinearPMap.adjoint B).domain → y ∈ A.domain := by
@@ -142,7 +133,7 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
               ((innerₛₗ 𝕜 y).comp B.toFun) x - ⟪y, T (x : H)⟫_𝕜 := by
         funext x
         -- states the goal as the inner-product identity the structure lemma expects.
-        change ⟪y, A x⟫_𝕜 = ⟪y, A x + T (x : H)⟫_𝕜 - ⟪y, T (x : H)⟫_𝕜
+        change ⟪y, A x⟫_𝕜 = ⟪y, T (x : H) + A x⟫_𝕜 - ⟪y, T (x : H)⟫_𝕜
         rw [inner_add_right]
         abel
       have hcont : Continuous fun x : A.domain => ((innerₛₗ 𝕜 y).comp A.toFun) x := by
