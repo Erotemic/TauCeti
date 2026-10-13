@@ -141,6 +141,12 @@ noncomputable def homeomorph (e : RCLikeIso 𝕜 𝕂) : 𝕜 ≃ₜ 𝕂 where
 /-- The homeomorphism is the isomorphism. -/
 @[simp] theorem coe_homeomorph (e : RCLikeIso 𝕜 𝕂) : (e.homeomorph : 𝕜 → 𝕂) = e := rfl
 
+/-- The inverse homeomorphism is the inverse isomorphism. -/
+@[simp] theorem homeomorph_symm_apply (e : RCLikeIso 𝕜 𝕂) (c : 𝕂) :
+    (e.homeomorph.symm : 𝕂 → 𝕜) c = e.symm c := by
+  dsimp only [homeomorph, RCLikeIso.symm, Homeomorph.symm, Equiv.symm]
+  rfl
+
 end RCLikeIso
 
 /-- The type `E` with its scalars transported across `e : RCLikeIso 𝕜 𝕂`.
@@ -164,10 +170,10 @@ def of (x : E) : ScalarTransport e E := x
 @[expose]
 def out (x : ScalarTransport e E) : E := x
 
-/-- `of` followed by `out` is the identity. -/
+/-- `out` followed by `of` is the identity. -/
 @[simp] theorem of_out (x : ScalarTransport e E) : of (e := e) (out x) = x := rfl
 
-/-- `out` followed by `of` is the identity. -/
+/-- `of` followed by `out` is the identity. -/
 @[simp] theorem out_of (x : E) : out (of (e := e) x) = x := rfl
 
 /-! ## Algebraic scalar transport -/
@@ -272,6 +278,15 @@ def addEquiv : E ≃+ ScalarTransport e E where
   right_inv _ := rfl
   map_add' _ _ := rfl
 
+omit [Module 𝕜 E] in
+/-- Applying the additive transport is the `of` embedding. -/
+@[simp] theorem addEquiv_apply (x : E) : addEquiv (e := e) x = of (e := e) x := rfl
+
+omit [Module 𝕜 E] in
+/-- The inverse additive transport reads the vector back out. -/
+@[simp] theorem addEquiv_symm_apply (x : ScalarTransport e E) :
+    (addEquiv (e := e)).symm x = out (e := e) x := rfl
+
 /-- The additive identity intertwines the two scalar actions through `e`. -/
 theorem addEquiv_smul (r : 𝕜) (x : E) :
     addEquiv (e := e) (r • x) = e r • addEquiv (e := e) x := by
@@ -311,8 +326,19 @@ instance : AddCommGroup (ScalarTransport e E) :=
 def domainOut (A : E →ₗ.[𝕜] F) (x : submodule (e := e) A.domain) : A.domain :=
   ⟨out (x : ScalarTransport e E), x.2⟩
 
+/-- Reading the transported-domain point back to the ambient vector. -/
+@[simp] theorem domainOut_coe (A : E →ₗ.[𝕜] F) (x : submodule (e := e) A.domain) :
+    (domainOut (e := e) A x : E) = out (e := e) (x : ScalarTransport e E) := by
+  dsimp only [domainOut]
+
 /-- A `𝕜`-linear partial map, as a `𝕂`-linear one on the transports:
 the same domain and the same function. -/
+-- `pmap` (like `domainOut`, `clm`, `clmEquiv`, `homeomorph`, and
+-- `addEquiv`) remains exposed: its `domain` field is referenced
+-- definitionally in the statements of the characteristic lemmas
+-- `pmap_apply` and `pmap_domain`, and its body is required by the
+-- `rfl`-style proofs elsewhere in this module, so the bundle cannot be
+-- made opaque without changing the public API.
 @[expose]
 def pmap (A : E →ₗ.[𝕜] F) : ScalarTransport e E →ₗ.[𝕂] ScalarTransport e F where
   domain := submodule (e := e) A.domain
@@ -412,6 +438,10 @@ def clmEquiv : (E →L[𝕜] F) ≃ (ScalarTransport e E →L[𝕂] ScalarTransp
     { toFun := fun x => out (T (of (e := e) x))
       map_add' := fun _ _ => T.map_add _ _
       map_smul' := fun c x => by
+        -- The goal is stated in transported terms; this conversion reads both
+        -- sides back to the original field so the original `map_smul` and the
+        -- transport scalar laws apply. The transport type is definitionally
+        -- the original type, so no vector is moved.
         change out (T (of (e := e) (c • x))) = c • out (T (of (e := e) x))
         rw [of_smul, T.map_smul, out_smul, e.toRingEquiv.symm_apply_apply]
       cont := T.continuous }

@@ -38,7 +38,6 @@ variable {X Y : Type v}
   [NormedAddCommGroup Y] [NormedSpace 𝕜 Y]
 
 /-- **A linear isometric equivalence transports.** -/
-@[expose]
 noncomputable def linearIsometryEquiv (f : X ≃ₗᵢ[𝕜] Y) :
     ScalarTransport e X ≃ₗᵢ[𝕂] ScalarTransport e Y where
   toFun x := of (e := e) (f (out (e := e) x))
@@ -57,13 +56,17 @@ noncomputable def linearIsometryEquiv (f : X ≃ₗᵢ[𝕜] Y) :
 /-- The transported equivalence acts through the original one. -/
 @[simp] theorem linearIsometryEquiv_apply (f : X ≃ₗᵢ[𝕜] Y)
     (x : ScalarTransport e X) :
-    linearIsometryEquiv (e := e) f x = of (e := e) (f (out (e := e) x)) := rfl
+    linearIsometryEquiv (e := e) f x = of (e := e) (f (out (e := e) x)) := by
+  dsimp only [linearIsometryEquiv]
+  rfl
 
 /-- The inverse acts through the inverse original equivalence. -/
 @[simp] theorem linearIsometryEquiv_symm_apply (f : X ≃ₗᵢ[𝕜] Y)
     (y : ScalarTransport e Y) :
     (linearIsometryEquiv (e := e) f).symm y =
-      of (e := e) (f.symm (out (e := e) y)) := rfl
+      of (e := e) (f.symm (out (e := e) y)) := by
+  dsimp only [linearIsometryEquiv, Equiv.symm]
+  rfl
 
 /-- **The subtype of a transported subspace is the transport of the original subtype.**
 
@@ -72,7 +75,6 @@ noncomputable def linearIsometryEquiv (f : X ≃ₗᵢ[𝕜] Y) :
 This canonical isometry is the adapter between those two spellings.  The equivalence
 identifies a submodule subtype with the corresponding subtype of the
 transported ambient space, without changing underlying vectors. -/
-@[expose]
 noncomputable def submoduleSubtypeEquiv (S : Submodule 𝕜 X) :
     ScalarTransport e S ≃ₗᵢ[𝕂]
       (submodule (e := e) S : Submodule 𝕂 (ScalarTransport e X)) where
@@ -89,12 +91,16 @@ noncomputable def submoduleSubtypeEquiv (S : Submodule 𝕜 X) :
     (x : ScalarTransport e S) :
     (((submoduleSubtypeEquiv (e := e) S x :
         submodule (e := e) S) : ScalarTransport e X)) =
-      of (e := e) (((out (e := e) x : S) : X)) := rfl
+      of (e := e) (((out (e := e) x : S) : X)) := by
+  dsimp only [submoduleSubtypeEquiv]
+  rfl
 /-- Nor does its inverse move the ambient vector. -/
 @[simp] theorem submoduleSubtypeEquiv_symm_coe_apply (S : Submodule 𝕜 X)
     (x : submodule (e := e) S) :
     out (e := e) ((submoduleSubtypeEquiv (e := e) S).symm x) =
-      (⟨out (e := e) (x : ScalarTransport e X), x.2⟩ : S) := rfl
+      (⟨out (e := e) (x : ScalarTransport e X), x.2⟩ : S) := by
+  dsimp only [submoduleSubtypeEquiv, Equiv.symm]
+  rfl
 
 
 end Normed
@@ -108,7 +114,6 @@ variable {X : Type v} [NormedAddCommGroup X] [InnerProductSpace 𝕜 X]
 
 /-- Transport of an orthogonal-complement subtype to the complement of
 its transported parent submodule. It is the same ambient vector. -/
-@[expose]
 noncomputable def orthogonalSubmoduleSubtypeEquiv (S : Submodule 𝕜 X) :
     ScalarTransport e Sᗮ ≃ₗᵢ[𝕂]
       ((submodule (e := e) S)ᗮ : Submodule 𝕂 (ScalarTransport e X)) where
@@ -134,13 +139,17 @@ noncomputable def orthogonalSubmoduleSubtypeEquiv (S : Submodule 𝕜 X) :
     (((orthogonalSubmoduleSubtypeEquiv (e := e) S x :
         ((submodule (e := e) S)ᗮ : Submodule 𝕂 (ScalarTransport e X))) :
           ScalarTransport e X)) =
-      of (e := e) (((out (e := e) x : Sᗮ) : X)) := rfl
+      of (e := e) (((out (e := e) x : Sᗮ) : X)) := by
+  dsimp only [orthogonalSubmoduleSubtypeEquiv]
+  rfl
 
 /-- The inverse orthogonal-subtype adapter preserves the ambient vector. -/
 @[simp] theorem orthogonalSubmoduleSubtypeEquiv_symm_coe_apply (S : Submodule 𝕜 X)
     (x : ((submodule (e := e) S)ᗮ : Submodule 𝕂 (ScalarTransport e X))) :
     (((out (e := e) ((orthogonalSubmoduleSubtypeEquiv (e := e) S).symm x) : Sᗮ) : X)) =
-      out (e := e) (x : ScalarTransport e X) := rfl
+      out (e := e) (x : ScalarTransport e X) := by
+  dsimp only [orthogonalSubmoduleSubtypeEquiv, Equiv.symm]
+  rfl
 
 end Orthogonal
 
