@@ -20,23 +20,25 @@ For a self-adjoint `a` in a unital C⋆-algebra `A` over `ℂ`, Mathlib supplies
 * `cfcHom ha : C(spectrum ℝ a, ℝ) →⋆ₐ[ℝ] A`, real symbols on the real spectrum, obtained from
   the first by `SpectrumRestricts.starAlgHom`.
 
-Neither is the object needed to state spectral multiplicity for a self-adjoint operator with a
-*real* spectral parameter and *complex* matrix elements. This module supplies the third corner,
+The real-valued calculus already captures self-adjoint functions of `a`, but it is also useful
+to allow general complex-valued symbols while keeping the spectral parameter real. This module
+supplies that third corner,
 
 ```text
-TauCeti.realSpectrumCfcHom ha : C(spectrum ℝ a, ℂ) →⋆ₐ[ℂ] A
+ha.realSpectrumCfcHom : C(spectrum ℝ a, ℂ) →⋆ₐ[ℂ] A
 ```
 
 — the symbol **domain** lowered to `spectrum ℝ a`, the symbol **codomain** and the scalars kept
 at `ℂ`.
 
-## Why the domain and not the codomain
+## Real spectral parameters and complex-valued symbols
 
-Lowering the codomain to `ℝ` is not an option on a complex Hilbert space, and this is not a
-matter of missing API. The two-term real polarization identity recovers only `Re ⟪ψ, T ξ⟫`, for
-every operator including the self-adjoint ones: on `H = ℂ` with `T = 1`, `ξ = 1` and `ψ = I`,
-the two-term sum is `0` while the matrix element is `-I`. A complex Hilbert space therefore
-forces complex-valued symbols, and the only remaining degree of freedom is the domain.
+Real-valued symbols suffice to define self-adjoint functions of `a`, even on a complex Hilbert
+space where the resulting operators may have complex matrix coefficients. Allowing
+complex-valued symbols instead supplies the full complex algebra of continuous functions on
+the real spectrum, including symbols that need not have self-adjoint images. The complex
+polarization identity concerns reconstruction of matrix elements, not a requirement that the
+symbol field be complex.
 
 Lowering the domain costs nothing, because for a self-adjoint element the two spectra are
 homeomorphic: `SpectrumRestricts.homeomorph` turns `IsSelfAdjoint.spectrumRestricts` into
@@ -47,15 +49,15 @@ are what make the definition usable from consumers already phrased over `spectru
 
 ## Main results
 
-* `TauCeti.realSpectrumHomeomorph`: `spectrum ℂ a ≃ₜ spectrum ℝ a`, for self-adjoint `a`;
-* `TauCeti.realSpectrumCfcHom`: the transported calculus, a `⋆`-algebra homomorphism over `ℂ`;
-* `TauCeti.realSpectrumCfcHom_apply` and `TauCeti.cfcHom_eq_realSpectrumCfcHom`: the
+* `IsSelfAdjoint.realSpectrumHomeomorph`: `spectrum ℂ a ≃ₜ spectrum ℝ a`, for self-adjoint `a`;
+* `IsSelfAdjoint.realSpectrumCfcHom`: the transported calculus, a `⋆`-algebra homomorphism over `ℂ`;
+* `IsSelfAdjoint.realSpectrumCfcHom_apply` and `IsSelfAdjoint.cfcHom_eq_realSpectrumCfcHom`: the
   compatibility bridge with `cfcHom` on `spectrum ℂ a`, in both directions;
-* `TauCeti.realSpectrumCfcHom_realSpectrumId`: the identity symbol is sent to `a`;
-* `TauCeti.realSpectrumCfcHom_injective`, `TauCeti.continuous_realSpectrumCfcHom`,
-  `TauCeti.realSpectrumCfcHom_map_spectrum`: injectivity, continuity, and the spectral mapping
+* `IsSelfAdjoint.realSpectrumCfcHom_realSpectrumId`: the identity symbol is sent to `a`;
+* `IsSelfAdjoint.realSpectrumCfcHom_injective`, `IsSelfAdjoint.continuous_realSpectrumCfcHom`,
+  `IsSelfAdjoint.realSpectrumCfcHom_map_spectrum`: injectivity, continuity, and the spectral mapping
   theorem, each inherited across the transport;
-* `TauCeti.realSpectrumCfcHom_isSelfAdjoint`: a real-valued symbol has self-adjoint image.
+* `IsSelfAdjoint.realSpectrumCfcHom_isSelfAdjoint`: a real-valued symbol has self-adjoint image.
 
 Every statement is generic in the C⋆-algebra. The final section establishes compatibility
 with Mathlib's real-valued calculus when a real-spectrum symbol is complexified.
@@ -97,6 +99,12 @@ theorem realSpectrumId_apply (a : A) (x : spectrum ℝ a) :
   realSpectrumId_apply_aux a x
 
 end Symbol
+
+end TauCeti
+
+namespace IsSelfAdjoint
+
+open TauCeti (realSpectrumId)
 
 section Transport
 
@@ -287,4 +295,4 @@ theorem realSpectrumCfcHom_ofReal_comp {a : A} (ha : IsSelfAdjoint a)
 
 end RealSymbols
 
-end TauCeti
+end IsSelfAdjoint

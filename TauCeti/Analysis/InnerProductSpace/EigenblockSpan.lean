@@ -191,7 +191,7 @@ theorem eigenvalues_top_level_eq_Iio (hT : T.IsSymmetric) (hn : finrank 𝕜 E =
 /-- **The middle block of the sorted eigenbasis is an eigenspace.**
 
 The general form of `spanIndices_Iio_eq_topEigenspace`: the `spanIndices` block
-over `[m, m + d)` is the eigenspace at `μ` exactly when `m` eigenvalues exceed
+over `[m, m + d)` is the eigenspace at `μ` when `m` eigenvalues exceed
 `μ` and `μ` has multiplicity `d`. -/
 theorem spanIndices_Ico_eq_eigenspace (hT : T.IsSymmetric)
     (hn : finrank 𝕜 E = n) {μ : ℝ} {m d : ℕ}
@@ -211,7 +211,7 @@ theorem spanIndices_Ico_eq_eigenspace (hT : T.IsSymmetric)
 
 This is the bridge the statistical Davis--Kahan literature needs: the paper's
 "leading `d` eigenvectors" is a `spanIndices` block over the initial segment,
-and it equals the eigenspace of the largest eigenvalue exactly when `d` is that
+and it equals the eigenspace of the largest eigenvalue when `d` is that
 eigenvalue's multiplicity. -/
 theorem spanIndices_Iio_eq_topEigenspace (hT : T.IsSymmetric)
     (hn : finrank 𝕜 E = n) {μ : ℝ} {d : ℕ} (hmax : ∀ i, hT.eigenvalues hn i ≤ μ)
