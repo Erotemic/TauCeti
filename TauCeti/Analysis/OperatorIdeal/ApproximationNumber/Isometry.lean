@@ -19,6 +19,10 @@ completeness. The proof uses the two-sided ideal inequality from the canonical
 
 Adapted from the DKPS formalization's isometric-invariance argument. The
 real-valued legacy `approximationNumber` API is not reintroduced.
+
+The core invariance theorem is a prerequisite for OperatorIdeals target `OI-B72`:
+the donor proof of `symmetricGaugeFamily_injective` invokes it to transport a
+diagonal model through independent universe lifts.
 -/
 
 public section
@@ -26,16 +30,6 @@ public section
 namespace ContinuousLinearMap
 
 variable {𝕜 : Type*} [NontriviallyNormedField 𝕜]
-
-/-- A linear isometric equivalence is a contraction as a continuous linear map. -/
-private theorem nnnorm_linearIsometryEquiv_le_one {X Y : Type*}
-    [NormedAddCommGroup X] [NormedSpace 𝕜 X] [NormedAddCommGroup Y] [NormedSpace 𝕜 Y]
-    (g : X ≃ₗᵢ[𝕜] Y) : ‖g.toLinearIsometry.toContinuousLinearMap‖₊ ≤ 1 := by
-  have hnorm : ‖g.toLinearIsometry.toContinuousLinearMap‖ ≤ (1 : ℝ) := by
-    refine opNorm_le_bound _ zero_le_one fun x => ?_
-    simp
-  apply NNReal.coe_le_coe.mp
-  simpa only [coe_nnnorm, NNReal.coe_one] using hnorm
 
 /-- Sandwiching an operator by linear isometric equivalences does not increase
 its approximation numbers. -/
@@ -53,8 +47,12 @@ private theorem singularValue_linearIsometryEquiv_sandwich_le {X Y X' Y' : Type*
     _ ≤ 1 * S.singularValue n * 1 := by
       gcongr <;>
         first
-          | exact nnnorm_linearIsometryEquiv_le_one b
-          | exact nnnorm_linearIsometryEquiv_le_one a
+          | apply NNReal.coe_le_coe.mp
+            simpa only [coe_nnnorm, NNReal.coe_one] using
+              b.toLinearIsometry.norm_toContinuousLinearMap_le
+          | apply NNReal.coe_le_coe.mp
+            simpa only [coe_nnnorm, NNReal.coe_one] using
+              a.toLinearIsometry.norm_toContinuousLinearMap_le
     _ = _ := by simp
 
 variable {E F E' F' : Type*}
