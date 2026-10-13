@@ -12,6 +12,7 @@ public import Mathlib.Algebra.Order.Field.Basic
 public import Mathlib.Basic.Real.Basic
 public import Mathlib.Tactic.FieldSimp
 public import Mathlib.Data.Fin.Tuple.Sort
+public import TauCeti.Data.Fin.Append
 public import Mathlib.Tactic.Linarith
 public import Mathlib.Tactic.LinearCombination
 public import Mathlib.Algebra.Order.BigOperators.Group.Finset
@@ -232,18 +233,6 @@ theorem prefixSum_appendZeroTail (k : ℕ) (x : Fin n → ℝ) :
   rw [Finset.sum_filter, Fin.sum_univ_add, Finset.sum_filter]
   simp
 
-/-- Evaluating `Fin.append x (0 : Fin m → ℝ)` at `i`: the `i`-th coordinate of
-`x` when `i` sits in the first part, and `0` when it sits in the appended zero
-part.  The `Fin.addCases` definition is the same if-then-else, up to the
-`castLT` re-presentation of the index. -/
-private theorem appendZeroTail_eval (x : Fin n → ℝ) (i : Fin (n + m)) :
-    (Fin.append x (0 : Fin m → ℝ)) i =
-      if hi : (i : ℕ) < n then x (Fin.castLT i hi) else 0 := by
-  dsimp only [Fin.append, Fin.addCases]
-  split_ifs with h
-  · simp
-  · simp
-
 /-- A decreasing nonnegative vector remains decreasing after appending a zero
 tail. -/
 theorem antitone_appendZeroTail {x : Fin n → ℝ}
@@ -251,7 +240,7 @@ theorem antitone_appendZeroTail {x : Fin n → ℝ}
     Antitone (Fin.append x (0 : Fin m → ℝ)) := by
   intro i j hij
   have hijv : (i : ℕ) ≤ (j : ℕ) := Fin.le_def.mp hij
-  simp only [appendZeroTail_eval]
+  simp only [Fin.append_zero_apply]
   -- the antitonicity goal is `pad j ≤ pad i`, so the outer split is on `j`
   split_ifs with hj hi
   · apply hxanti
@@ -265,7 +254,7 @@ theorem antitone_appendZeroTail {x : Fin n → ℝ}
 theorem appendZeroTail_nonneg {x : Fin n → ℝ} (hx0 : ∀ i, 0 ≤ x i) :
     ∀ i, 0 ≤ (Fin.append x (0 : Fin m → ℝ)) i := by
   intro i
-  simp only [appendZeroTail_eval]
+  simp only [Fin.append_zero_apply]
   split_ifs
   · exact hx0 _
   · exact le_rfl
@@ -368,14 +357,10 @@ theorem isTTransform_transfer {q : Fin n → ℝ} {j l : Fin n} (hjl : j ≠ l) 
 
 /-! ### The transfer lemma -/
 
-/-- **The Hardy–Littlewood–Pólya transfer lemma.**  Let `z` be antitone and nonnegative and
-let `q` be nonnegative with every prefix sum of `z` dominated by that of `q`.  If `q` does not
-already dominate `z` coordinatewise, then a *single* T-transform of `q` still dominates `z` in
-prefix sums, is still nonnegative, and agrees with `z` in strictly more coordinates.
-
-The descent selects a surplus index `j` below the first deficient index `l`,
-so that the transfer keeps all prefix sums large enough and reduces the number of
-coordinate mismatches. -/
+/-- **Hardy–Littlewood–Pólya transfer lemma.** If a nonnegative tuple `q` has
+prefix sums dominating those of an antitone nonnegative tuple `z`, but fails
+to dominate `z` coordinatewise, a single T-transform produces a nonnegative
+tuple with the same prefix domination and strictly fewer disagreements with `z`. -/
 theorem exists_isTTransform_of_not_forall_le {z q : Fin n → ℝ}
     (hz : Antitone z) (hz0 : ∀ i, 0 ≤ z i) (hq0 : ∀ i, 0 ≤ q i)
     (hpre : ∀ k, prefixSum k z ≤ prefixSum k q) (hnot : ¬ ∀ i, z i ≤ q i) :
@@ -507,9 +492,10 @@ theorem mem_of_isTTransform {y q : Fin n → ℝ} (hy : y ∈ K) (h : IsTTransfo
   obtain ⟨j, l, c, hc0, hc1, rfl⟩ := h
   exact hK.convex hy (hK.swap_mem y hy j l) (by linarith) hc0 (by ring)
 
-/-- Shrinking one coordinate of `q ∈ K` in absolute value stays in `K`: the update is the
-midpoint-style convex combination of `q` with its `j`-th sign flip. -/
-theorem update_mem {q : Fin n → ℝ} (hq : q ∈ K) (j : Fin n) {t : ℝ} (ht : |t| ≤ q j) :
+/-- Replacing a nonnegative coordinate by a number of no greater absolute
+value preserves membership in a symmetric-convex set. -/
+private theorem update_mem_of_nonneg {q : Fin n → ℝ} (hq : q ∈ K) (j : Fin n)
+    {t : ℝ} (ht : |t| ≤ q j) :
     Function.update q j t ∈ K := by
   have hqj : 0 ≤ q j := le_trans (abs_nonneg t) ht
   rcases hqj.eq_or_lt with hzero | hpos
@@ -540,14 +526,34 @@ theorem update_mem {q : Fin n → ℝ} (hq : q ∈ K) (j : Fin n) {t : ℝ} (ht 
     rw [hdecomp]
     exact hK.convex hq (hK.neg_single_mem q hq j) hc₁0 hc₂0 hsum
 
-/-- **Coordinatewise descent.**  A symmetric-convex set containing `q` contains every
-nonnegative vector below `q`. -/
-theorem mem_of_forall_le {z q : Fin n → ℝ} (hz0 : ∀ i, 0 ≤ z i) (hzq : ∀ i, z i ≤ q i)
+/-- Replacing a coordinate of a vector in a symmetric-convex set by a
+number of no greater absolute value preserves membership. -/
+theorem update_mem {q : Fin n → ℝ} (hq : q ∈ K) (j : Fin n) {t : ℝ}
+    (ht : |t| ≤ |q j|) : Function.update q j t ∈ K := by
+  by_cases hqj : 0 ≤ q j
+  · exact hK.update_mem_of_nonneg hq j (by simpa only [abs_of_nonneg hqj] using ht)
+  · have hneg : q j < 0 := lt_of_not_ge hqj
+    have hflip := hK.neg_single_mem q hq j
+    have htflip : |t| ≤ (Function.update q j (-(q j))) j := by
+      simpa only [Function.update_self, abs_of_neg hneg] using ht
+    have h := hK.update_mem_of_nonneg hflip j htflip
+    have heq : Function.update (Function.update q j (-(q j))) j t =
+        Function.update q j t := by
+      funext i
+      by_cases hij : i = j
+      · subst i
+        simp
+      · simp only [Function.update_of_ne hij]
+    rwa [heq] at h
+
+/-- **Absolute coordinatewise descent.** A symmetric-convex set containing
+`q` also contains every tuple `z` satisfying `|z i| ≤ |q i|` at every index. -/
+theorem mem_of_forall_abs_le {z q : Fin n → ℝ} (hzq : ∀ i, |z i| ≤ |q i|)
     (hq : q ∈ K) : z ∈ K := by
   classical
   -- Induct on the number of coordinates where `z` and `q` disagree.
   suffices H : ∀ d (q : Fin n → ℝ), (Finset.univ.filter fun i => z i ≠ q i).card ≤ d →
-      (∀ i, z i ≤ q i) → q ∈ K → z ∈ K from H _ q le_rfl hzq hq
+      (∀ i, |z i| ≤ |q i|) → q ∈ K → z ∈ K from H _ q le_rfl hzq hq
   intro d
   induction d with
   | zero =>
@@ -569,7 +575,7 @@ theorem mem_of_forall_le {z q : Fin n → ℝ} (hz0 : ∀ i, 0 ≤ z i) (hzq : �
       by_contra hne
       exact Finset.filter_eq_empty_iff.mp hemp (Finset.mem_univ i) hne
     refine ih (Function.update q j (z j)) ?_ ?_
-      (hK.update_mem hqK j (by rw [abs_of_nonneg (hz0 j)]; exact hzq j))
+      (hK.update_mem hqK j (hzq j))
     · have hsub : (Finset.univ.filter fun i => z i ≠ Function.update q j (z j) i)
           ⊆ (Finset.univ.filter fun i => z i ≠ q i).erase j := by
         intro i hi
@@ -588,17 +594,10 @@ theorem mem_of_forall_le {z q : Fin n → ℝ} (hz0 : ∀ i, 0 ≤ z i) (hzq : �
       · rw [Function.update_of_ne hij]
         exact hzq i
 
-/-- **The Hardy–Littlewood–Pólya transfer descent.**  If `z` is antitone and nonnegative, `y`
-is nonnegative, and every prefix sum of `z` is dominated by the corresponding prefix sum of
-`y`, then every symmetric-convex set containing `y` contains `z`.
-
-The proof iterates the transfer lemma `exists_isTTransform_of_not_forall_le`: each T-transform
-stays inside `K`, keeps the prefix domination, and strictly reduces the number of coordinates
-where `z` and the current vector disagree.  When no disagreement above `z` is left, the
-coordinatewise descent finishes.
-
-No total-sum equality is assumed, and no majorization *completion*, separation theorem, or
-Birkhoff decomposition is used. -/
+/-- **Hardy–Littlewood–Pólya transfer descent.** For an antitone nonnegative
+`z` and nonnegative `y`, domination of every prefix sum of `z` by the
+corresponding sum of `y` implies that every symmetric-convex set containing
+`y` also contains `z`. Total-sum equality is not required. -/
 theorem mem_of_prefixSum_le {z y : Fin n → ℝ} (hz : Antitone z) (hz0 : ∀ i, 0 ≤ z i)
     (hy0 : ∀ i, 0 ≤ y i) (hpre : ∀ k, prefixSum k z ≤ prefixSum k y) (hy : y ∈ K) : z ∈ K := by
   classical
@@ -608,17 +607,18 @@ theorem mem_of_prefixSum_le {z y : Fin n → ℝ} (hz : Antitone z) (hz0 : ∀ i
   intro d
   induction d with
   | zero =>
-    intro q hcard hq0 hqpre hqK
-    refine hK.mem_of_forall_le hz0 (fun i => ?_) hqK
+    intro q hcard _ _ hqK
     have hemp : (Finset.univ.filter fun i => z i ≠ q i) = ∅ :=
       Finset.card_eq_zero.mp (Nat.le_zero.mp hcard)
-    by_contra hne
-    exact Finset.filter_eq_empty_iff.mp hemp (Finset.mem_univ i)
-      (ne_of_gt (lt_of_not_ge hne))
+    have hzq : z = q := funext fun i => by
+      by_contra hne
+      exact Finset.filter_eq_empty_iff.mp hemp (Finset.mem_univ i) hne
+    rwa [hzq]
   | succ d ih =>
     intro q hcard hq0 hqpre hqK
     by_cases hall : ∀ i, z i ≤ q i
-    · exact hK.mem_of_forall_le hz0 hall hqK
+    · exact hK.mem_of_forall_abs_le (fun i => by
+        simpa only [abs_of_nonneg (hz0 i), abs_of_nonneg (hq0 i)] using hall i) hqK
     obtain ⟨q', htr, hq'0, hq'pre, hcard'⟩ :=
       exists_isTTransform_of_not_forall_le hz hz0 hq0 hqpre hall
     exact ih q' (by omega) hq'0 hq'pre (hK.mem_of_isTTransform hqK htr)
@@ -669,28 +669,12 @@ theorem neg_single (x : Fin n → ℝ) (j : Fin n) :
     Φ (Function.update x j (-(x j))) = Φ x :=
   Φ.neg_single' x j
 
-/-- **Every sublevel set of a finite symmetric gauge is symmetric-convex.**  This is the
-bridge that lets the whole majorization theory be proved once, for sets, and read off for
-gauges: a `Seminorm` is convex, the sublevel set of a convex function is convex, and
-the two closure properties are the gauge's permutation and sign-flip invariance. -/
+/-- Every sublevel set of a finite symmetric gauge is convex, invariant under
+coordinate transpositions, and invariant under single-coordinate sign flips. -/
 theorem isSymmetricConvex_sublevel (r : ℝ) :
     FiniteVector.IsSymmetricConvex {x : Fin n → ℝ | Φ x ≤ r} where
   convex := by
-    -- Convexity of a `Seminorm` is Mathlib's `Seminorm.convexOn`, which is
-    -- `protected`; rebuild the same `ConvexOn` from the public
-    -- `SeminormClass` fields and take the sublevel set.
-    have hco : ConvexOn ℝ Set.univ (fun x => Φ.toSeminorm x) := by
-      refine ⟨convex_univ, fun x _ y _ a b ha hb _ => ?_⟩
-      calc
-        Φ.toSeminorm (a • x + b • y)
-            ≤ Φ.toSeminorm (a • x) + Φ.toSeminorm (b • y) :=
-          map_add_le_add _ _ _
-        _ = |a| * Φ.toSeminorm x + |b| * Φ.toSeminorm y := by
-          simp only [map_smul_eq_mul, Real.norm_eq_abs]
-        _ = a • Φ.toSeminorm x + b • Φ.toSeminorm y := by
-          rw [abs_of_nonneg ha, abs_of_nonneg hb]
-          simp
-    simpa using hco.convex_le r
+    simpa using (Φ.toSeminorm.convexOn).convex_le r
   swap_mem := fun y hy j l => by
     have : Φ (y ∘ Equiv.swap j l) ≤ r := by rw [Φ.perm]; exact hy
     exact this
@@ -698,25 +682,22 @@ theorem isSymmetricConvex_sublevel (r : ℝ) :
     have : Φ (Function.update y j (-(y j))) ≤ r := by rw [Φ.neg_single]; exact hy
     exact this
 
-/-- Shrinking one coordinate of `y` (in absolute value) does not increase the
-gauge: `update y j t` with `|t| ≤ y j` is a convex combination of `y` and its
-`j`-th sign flip. -/
-theorem update_le {y : Fin n → ℝ} {j : Fin n} {t : ℝ} (ht : |t| ≤ y j) :
+/-- Changing a single coordinate to any value of no larger modulus cannot
+increase a finite symmetric gauge. -/
+theorem update_le {y : Fin n → ℝ} {j : Fin n} {t : ℝ}
+    (ht : |t| ≤ |y j|) :
     Φ (Function.update y j t) ≤ Φ y := by
   have hy : y ∈ {x : Fin n → ℝ | Φ x ≤ Φ y} := by exact le_refl (Φ y)
   exact (Φ.isSymmetricConvex_sublevel (Φ y)).update_mem hy j ht
 
-/-- **Coordinatewise monotonicity of the gauge** on nonnegative vectors. -/
-theorem mono {x y : Fin n → ℝ} (hx0 : ∀ i, 0 ≤ x i) (hxy : ∀ i, x i ≤ y i) : Φ x ≤ Φ y := by
+/-- **Absolute coordinatewise monotonicity.** If `|x i| ≤ |y i|` at every index,
+then `Φ x ≤ Φ y`, regardless of the signs of their coordinates. -/
+theorem mono {x y : Fin n → ℝ} (hxy : ∀ i, |x i| ≤ |y i|) : Φ x ≤ Φ y := by
   have hy : y ∈ {v : Fin n → ℝ | Φ v ≤ Φ y} := by exact le_refl (Φ y)
-  exact (Φ.isSymmetricConvex_sublevel (Φ y)).mem_of_forall_le hx0 hxy hy
+  exact (Φ.isSymmetricConvex_sublevel (Φ y)).mem_of_forall_abs_le hxy hy
 
-/-- **The T-transform descent on the gauge** — the engine of Fan dominance.
-If `z` is antitone and nonnegative, `y` is nonnegative, and every prefix sum
-of `z` is dominated by the corresponding prefix sum of `y`, then `Φ z ≤ Φ y`.
-
-An instance of `FiniteVector.IsSymmetricConvex.mem_of_prefixSum_le` at the sublevel set
-`{x | Φ x ≤ Φ y}`. -/
+/-- A finite symmetric gauge preserves weak prefix-sum domination for
+antitone nonnegative left vectors and nonnegative right vectors. -/
 theorem le_of_prefixSum_le {z y : Fin n → ℝ} (hz_anti : Antitone z) (hz0 : ∀ i, 0 ≤ z i)
     (hy0 : ∀ i, 0 ≤ y i)
     (hpre : ∀ k : ℕ,
@@ -748,10 +729,8 @@ axioms.
 noncomputable def antitoneSortPerm {n : ℕ} (f : Fin n → ℝ) : Equiv.Perm (Fin n) :=
   Fin.revPerm.trans (Tuple.sort f)
 
-/-- **The rearrangement is antitone.**
-
-`Tuple.monotone_sort` makes `f ∘ sort f` monotone, and `Fin.rev` is strictly
-antitone, so the composite reverses order. -/
+/-- Sorting a tuple and reversing the sorted order gives an antitone
+rearrangement of its coordinates. -/
 theorem antitone_comp_antitoneSortPerm {n : ℕ} (f : Fin n → ℝ) :
     Antitone (f ∘ antitoneSortPerm f) := by
   intro i j hij
