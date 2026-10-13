@@ -1,250 +1,147 @@
 /-
-Copyright (c) 2026 Kitware, Inc. All rights reserved.
+Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Jon Crall, Claude Opus 4.8
+Authors: The Tau Ceti contributors
 -/
-
 module
 
-public import Mathlib.Probability.Moments.Variance
-public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Probability.Independence.Integration
 public import Mathlib.MeasureTheory.Function.L2Space
+public import TauCeti.Analysis.Convex.FiniteMean
 
 /-!
-# Mean-squared error of a sample mean
+# Second moments of sample means
 
-For pairwise-independent square-integrable random vectors sharing a common
-mean `μ`, the mean-square error of the average of `r > 0` observations is
-`r⁻²` times the sum of their individual mean-square errors. No identical-
-distribution hypothesis is needed for this identity.
+Let `X₁, …, X_r` be pairwise independent, square-integrable random vectors in a real Hilbert space
+with a common mean `m`. Their sample mean `S = r⁻¹ ∑ₖ Xₖ` has mean-square error
 
-The proof reduces to the scalar variance-of-a-sum identity, using an
-orthonormal basis for the finite-dimensional real inner-product-space case.
-Equal individual second moments yield the familiar `1/r` scale; a uniform
-upper bound `γ` yields the bound `γ / r`.
+`∫ ‖S - m‖² dP = r⁻² ∑ₖ ∫ ‖Xₖ - m‖² dP`,
 
-## Main results
+so that averaging `r` samples with a common per-sample error `γ` divides it by `r`. Together with
+Chebyshev's inequality for the second moment, `TauCeti.meas_ge_le_integral_norm_sq_div_sq` in
+`TauCeti.Probability.Moments.Chebyshev`, this is the scale `1 / r` behind the elementary
+concentration of empirical moments.
 
-* `TauCeti.integral_sq_scaledSum_sub_of_pairwise_indep`: scalar mean-square identity.
-* `TauCeti.integral_norm_sq_average_sub_eq_sum`: finite-dimensional vector identity.
-* `TauCeti.integral_norm_sq_average_sub_of_iid`: equal-second-moment specialization.
-* `TauCeti.integral_norm_sq_average_sub_le_of_bound`: uniform `γ / r` bound.
+The identity rests on Bienaymé's identity for random vectors: the squared norm of a sum of
+pairwise independent, centered, square-integrable random vectors has expectation equal to the
+sum of the expected squared norms. Only pairwise independence is used, through the factorization
+`∫ ⟪Xᵢ, Xⱼ⟫ = ⟪∫ Xᵢ, ∫ Xⱼ⟫` of `ProbabilityTheory.IndepFun.integral_bilin`, which makes every
+cross term vanish. The sample mean is `TauCeti.finiteMean`, and the scalar statement is the
+case `E = ℝ`.
 
-## Source
+## Main statements
 
-Adapted from the Apache-2.0 DKPS formalization
-(https://github.com/AIQ-Kitware/aiq-dkps-formalization), originally
-`ForMathlib.Probability.Moments.SampleMean` at commit `e9379f2`.
-The author and copyright attribution is retained above.
+* `TauCeti.integral_norm_sum_sq_of_pairwise_indepFun`: Bienaymé's identity for random vectors.
+* `TauCeti.integral_norm_finiteMean_sub_sq`: the mean-square error of a sample mean.
+* `TauCeti.integral_finiteMean_sub_sq`: the same identity for real random variables.
+* `TauCeti.integral_norm_finiteMean_sub_sq_of_forall_eq` and
+  `TauCeti.integral_norm_finiteMean_sub_sq_le_of_forall_le`: the mean-square error is `γ / r`
+  when every per-sample error equals `γ`, and at most `γ / r` when every one is at most `γ`.
+
+## References
+
+* R. Vershynin, *High-Dimensional Probability* (2018), §1.3: the variance of sums of independent
+  random variables.
 -/
 
 public section
 
+open MeasureTheory ProbabilityTheory Finset
+open scoped RealInnerProductSpace
+
 namespace TauCeti
 
-open scoped BigOperators InnerProductSpace
-open MeasureTheory ProbabilityTheory Filter
+variable {Ω ι E : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω}
 
-variable {Ω : Type*} [MeasurableSpace Ω]
+variable [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] [MeasurableSpace E]
+  [BorelSpace E]
 
-/--
-**Scalar variance-of-the-mean identity.** For pairwise-independent,
-square-integrable real random variables `Z 0, …, Z (r-1)` sharing a common mean
-`c` (each `∫ Z k = c`), the second moment of the scaled sum about `c` is `r⁻²`
-times the sum of the per-variable second moments about `c`:
+/-- **Bienaymé's identity for random vectors.** If the random vectors `X i`, `i ∈ s`, in a real
+Hilbert space are square-integrable, centered and pairwise independent, then the expected squared
+norm of their sum is the sum of their expected squared norms. -/
+theorem integral_norm_sum_sq_of_pairwise_indepFun [IsFiniteMeasure μ] {X : ι → Ω → E}
+    {s : Finset ι} (hX : ∀ i ∈ s, MemLp (X i) 2 μ) (hmean : ∀ i ∈ s, μ[X i] = 0)
+    (hindep : Set.Pairwise ↑s fun i j ↦ X i ⟂ᵢ[μ] X j) :
+    ∫ ω, ‖∑ i ∈ s, X i ω‖ ^ 2 ∂μ = ∑ i ∈ s, ∫ ω, ‖X i ω‖ ^ 2 ∂μ := by
+  -- Over `ℝ`, `innerSL ℝ` is linear only up to `starRingEnd ℝ = RingHom.id ℝ`, so its applications
+  -- below are not syntactically `⟪·, ·⟫` and `simp` cannot rewrite them with
+  -- `innerSL_apply_apply`; they agree with `⟪·, ·⟫` by that lemma, which is `rfl`.
+  have hint : ∀ i ∈ s, ∀ j ∈ s, Integrable (fun ω ↦ ⟪X i ω, X j ω⟫) μ := by
+    intro i hi j hj
+    obtain rfl | hij := eq_or_ne i j
+    · simpa only [real_inner_self_eq_norm_sq] using
+        (memLp_two_iff_integrable_sq_norm (hX i hi).aestronglyMeasurable).1 (hX i hi)
+    · exact (hindep hi hj hij).integrable_bilin ((hX i hi).integrable one_le_two)
+        ((hX j hj).integrable one_le_two) (innerSL ℝ)
+  -- Pairwise independence makes every cross term `∫ ⟪X i, X j⟫` vanish.
+  have hcross : ∀ i ∈ s, ∀ j ∈ s, j ≠ i → ∫ ω, ⟪X i ω, X j ω⟫ ∂μ = 0 := by
+    intro i hi j hj hji
+    have h := (hindep hi hj hji.symm).integral_bilin ((hX i hi).integrable one_le_two)
+      ((hX j hj).integrable one_le_two) (innerSL ℝ)
+    rw [hmean i hi, map_zero, zero_apply] at h
+    exact h
+  simp_rw [← real_inner_self_eq_norm_sq, sum_inner, inner_sum]
+  rw [integral_finsetSum _ fun i hi ↦ integrable_finsetSum _ fun j hj ↦ hint i hi j hj]
+  refine sum_congr rfl fun i hi ↦ ?_
+  rw [integral_finsetSum _ fun j hj ↦ hint i hi j hj,
+    sum_eq_single_of_mem i hi fun j hj hji ↦ hcross i hi j hj hji]
 
-`∫ (r⁻¹ ∑ₖ Zₖ − c)² = r⁻² ∑ₖ ∫ (Zₖ − c)²`.
+variable [Fintype ι] [Nonempty ι]
 
-The common-mean hypothesis is genuinely needed: without centring each `Z k` at
-`c` an extra bias term `(E[mean] − c)²` appears. The proof routes through
-`ProbabilityTheory.variance` (which absorbs the centring) and
-`ProbabilityTheory.IndepFun.variance_sum`.
--/
-theorem integral_sq_scaledSum_sub_of_pairwise_indep
-    (P : Measure Ω) [IsProbabilityMeasure P]
-    {r : ℕ} (hr : 0 < r) (Z : Fin r → Ω → ℝ) (c : ℝ)
-    (hL2 : ∀ k, MemLp (Z k) 2 P)
-    (hmean : ∀ k, ∫ ω, Z k ω ∂P = c)
-    (hindep : Set.Pairwise (Set.univ : Set (Fin r))
-      fun i j => IndepFun (Z i) (Z j) P) :
-    ∫ ω, ((r : ℝ)⁻¹ * (∑ k, Z k ω) - c) ^ 2 ∂P
-      = (r : ℝ)⁻¹ ^ 2 * ∑ k, ∫ ω, (Z k ω - c) ^ 2 ∂P := by
-  have hr0 : (r : ℝ) ≠ 0 := by exact_mod_cast hr.ne'
-  -- The scaled sum has mean `c`.
-  have hmean_sum : P[fun ω => (r : ℝ)⁻¹ * (∑ k, Z k ω)] = c := by
-    rw [integral_const_mul, integral_finsetSum]
-    · simp_rw [hmean]
-      simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-      field_simp
-    · exact fun k _ => (hL2 k).integrable one_le_two
-  -- Measurability of the scaled sum.
-  have hmeasS : AEMeasurable (fun ω => (r : ℝ)⁻¹ * (∑ k, Z k ω)) P := by
-    refine AEMeasurable.const_mul ?_ _
-    have h := Finset.aemeasurable_sum (Finset.univ : Finset (Fin r))
-      (fun k _ => (hL2 k).aemeasurable)
-    have heq : (fun ω => ∑ k, Z k ω) = (∑ i : Fin r, Z i) := by
-      ext ω; simp [Finset.sum_apply]
-    rw [heq]; exact h
-  -- LHS is the variance of the scaled sum (since its mean is `c`).
-  have hLHS : ∫ ω, ((r : ℝ)⁻¹ * (∑ k, Z k ω) - c) ^ 2 ∂P
-      = variance (fun ω => (r : ℝ)⁻¹ * (∑ k, Z k ω)) P := by
-    rw [variance_eq_integral hmeasS, hmean_sum]
-  rw [hLHS, variance_const_mul]
-  -- Variance of a sum of pairwise-independent variables is the sum of variances.
-  have hvarsum : variance (fun ω => ∑ k, Z k ω) P = ∑ k, variance (Z k) P := by
-    have hsum := IndepFun.variance_sum (X := Z) (s := Finset.univ)
-      (fun i _ => hL2 i)
-      (fun i _ j _ hij => hindep (Set.mem_univ i) (Set.mem_univ j) hij)
-    rw [← hsum]
-    congr 1
-    ext ω
-    simp [Finset.sum_apply]
-  rw [hvarsum]
-  -- Each variance is the second moment about `c`.
-  have hvark : ∀ k, variance (Z k) P = ∫ ω, (Z k ω - c) ^ 2 ∂P := by
-    intro k
-    rw [variance_eq_integral (hL2 k).aemeasurable, hmean k]
-  simp_rw [hvark]
+/-- **The mean-square error of a sample mean.** If the random vectors `X i` in a real Hilbert space
+are square-integrable, pairwise independent and have a common mean `m`, then their sample mean
+`S` satisfies `∫ ‖S - m‖² = r⁻² ∑ᵢ ∫ ‖X i - m‖²`, where `r` is the number of samples. -/
+theorem integral_norm_finiteMean_sub_sq [IsProbabilityMeasure μ] {X : ι → Ω → E} {m : E}
+    (hX : ∀ i, MemLp (X i) 2 μ) (hmean : ∀ i, μ[X i] = m)
+    (hindep : Pairwise fun i j ↦ X i ⟂ᵢ[μ] X j) :
+    ∫ ω, ‖finiteMean ℝ (X · ω) - m‖ ^ 2 ∂μ =
+      ((Fintype.card ι : ℝ) ^ 2)⁻¹ * ∑ i, ∫ ω, ‖X i ω - m‖ ^ 2 ∂μ := by
+  -- The deviation of the sample mean is the sample mean of the deviations.
+  simp_rw [← finiteMean_sub_const, finiteMean_eq_inv_smul_sum, norm_smul, mul_pow, norm_inv,
+    Real.norm_natCast, inv_pow]
+  rw [integral_const_mul, integral_norm_sum_sq_of_pairwise_indepFun (X := fun i ω ↦ X i ω - m)
+    (fun i _ ↦ (hX i).sub (memLp_const m)) (fun i _ ↦ ?_)
+    (fun i _ j _ hij ↦ (hindep hij).comp (measurable_sub_const m) (measurable_sub_const m))]
+  simp [integral_sub ((hX i).integrable one_le_two) (integrable_const m), hmean i]
 
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [FiniteDimensional ℝ E]
-  [MeasurableSpace E] [BorelSpace E]
+/-- **The mean-square error of a sample mean of real random variables.** If the real random
+variables `Z i` are square-integrable, pairwise independent and have a common mean `c`, then their
+sample mean `S` satisfies `∫ (S - c)² = r⁻² ∑ᵢ ∫ (Z i - c)²`, where `r` is the number of
+samples. -/
+theorem integral_finiteMean_sub_sq [IsProbabilityMeasure μ] {Z : ι → Ω → ℝ} {c : ℝ}
+    (hZ : ∀ i, MemLp (Z i) 2 μ) (hmean : ∀ i, μ[Z i] = c)
+    (hindep : Pairwise fun i j ↦ Z i ⟂ᵢ[μ] Z j) :
+    ∫ ω, (finiteMean ℝ (Z · ω) - c) ^ 2 ∂μ =
+      ((Fintype.card ι : ℝ) ^ 2)⁻¹ * ∑ i, ∫ ω, (Z i ω - c) ^ 2 ∂μ := by
+  simpa only [Real.norm_eq_abs, sq_abs] using integral_norm_finiteMean_sub_sq hZ hmean hindep
 
-/--
-**Mean-squared error of the sample mean (additive form).**
-
-Let `X : Fin r → Ω → E` be pairwise-independent, square-integrable random
-vectors in a finite-dimensional real inner product space, with common mean
-`μ` (each Bochner integral `∫ X k = μ`). Then the mean-squared error of the
-sample mean equals `r⁻²` times the sum of the individual mean-squared errors:
-
-`∫ ‖r⁻¹ ∑ₖ Xₖ − μ‖² = r⁻² ∑ₖ ∫ ‖Xₖ − μ‖²`.
-
-Only pairwise independence and identical centring are required (not identical
-distribution); the cross terms vanish by independence. The proof reduces
-coordinatewise via `stdOrthonormalBasis` to the scalar identity
-`integral_sq_scaledSum_sub_of_pairwise_indep`.
--/
-theorem integral_norm_sq_average_sub_eq_sum
-    (P : Measure Ω) [IsProbabilityMeasure P]
-    {r : ℕ} (hr : 0 < r) (X : Fin r → Ω → E) (μ : E)
-    (hL2 : ∀ k, MemLp (X k) 2 P)
-    (hmean : ∀ k, ∫ ω, X k ω ∂P = μ)
-    (hindep : Set.Pairwise (Set.univ : Set (Fin r))
-      fun i j => IndepFun (X i) (X j) P) :
-    ∫ ω, ‖(r : ℝ)⁻¹ • (∑ k, X k ω) - μ‖ ^ 2 ∂P
-      = (r : ℝ)⁻¹ ^ 2 * ∑ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P := by
-  set b := stdOrthonormalBasis ℝ E with hb
-  -- The coordinate functional `x ↦ ⟪b c, x⟫` as a continuous linear map.
-  let φ : Fin (Module.finrank ℝ E) → (E →L[ℝ] ℝ) := fun c => innerSL ℝ (b c)
-  have hφ : ∀ c x, φ c x = ⟪b c, x⟫_ℝ := fun _ _ => rfl
-  -- Per-coordinate square-integrability of `X k`.
-  have hL2c : ∀ (k : Fin r) (c), MemLp (fun ω => ⟪b c, X k ω⟫_ℝ) 2 P := by
-    intro k c
-    have := (hL2 k).continuousLinearMap_comp (φ c)
-    simpa [hφ] using this
-  -- Per-coordinate common mean, from the Bochner mean via `integral_inner`.
-  have hmeanc : ∀ (k : Fin r) (c), ∫ ω, ⟪b c, X k ω⟫_ℝ ∂P = ⟪b c, μ⟫_ℝ := by
-    intro k c
-    rw [integral_inner ((hL2 k).integrable one_le_two) (b c), hmean k]
-  -- Per-coordinate pairwise independence, by composing with the functional.
-  have hindepc : ∀ c, Set.Pairwise (Set.univ : Set (Fin r))
-      fun i j => IndepFun (fun ω => ⟪b c, X i ω⟫_ℝ) (fun ω => ⟪b c, X j ω⟫_ℝ) P := by
-    intro c i hi j hj hij
-    have hmeas : Measurable fun x : E => ⟪b c, x⟫_ℝ := (φ c).continuous.measurable
-    exact (hindep hi hj hij).comp hmeas hmeas
-  -- Per-coordinate integrability of the deviation squares (for `∫ Σ = Σ ∫`).
-  have hintc : ∀ c, Integrable
-      (fun ω => ((r : ℝ)⁻¹ * (∑ k, ⟪b c, X k ω⟫_ℝ) - ⟪b c, μ⟫_ℝ) ^ 2) P := by
-    intro c
-    have h1 : MemLp (fun ω => ∑ k, ⟪b c, X k ω⟫_ℝ) 2 P :=
-      memLp_finsetSum (Finset.univ : Finset (Fin r)) (fun k _ => hL2c k c)
-    exact (((h1.const_mul _).sub (memLp_const _))).integrable_sq
-  have hintkc : ∀ (k : Fin r) c,
-      Integrable (fun ω => (⟪b c, X k ω⟫_ℝ - ⟪b c, μ⟫_ℝ) ^ 2) P :=
-    fun k c => ((hL2c k c).sub (memLp_const _)).integrable_sq
-  -- Norm-square as a sum over basis coordinates (real Parseval).
-  have hpar : ∀ v : E, ‖v‖ ^ 2 = ∑ c, ⟪b c, v⟫_ℝ ^ 2 := by
-    intro v
-    rw [← b.sum_sq_norm_inner_right v]
-    exact Finset.sum_congr rfl fun c _ => by rw [Real.norm_eq_abs, sq_abs]
-  -- Coordinate of the (centred) sample mean.
-  have hcoordS : ∀ (ω : Ω) c,
-      ⟪b c, (r : ℝ)⁻¹ • (∑ k, X k ω) - μ⟫_ℝ
-        = (r : ℝ)⁻¹ * (∑ k, ⟪b c, X k ω⟫_ℝ) - ⟪b c, μ⟫_ℝ := by
-    intro ω c
-    rw [inner_sub_right, inner_smul_right, inner_sum]
-  calc
-    ∫ ω, ‖(r : ℝ)⁻¹ • (∑ k, X k ω) - μ‖ ^ 2 ∂P
-        = ∫ ω, ∑ c, ((r : ℝ)⁻¹ * (∑ k, ⟪b c, X k ω⟫_ℝ) - ⟪b c, μ⟫_ℝ) ^ 2 ∂P := by
-          refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
-          dsimp only
-          rw [hpar]
-          exact Finset.sum_congr rfl fun c _ => by rw [hcoordS ω c]
-    _ = ∑ c, ∫ ω, ((r : ℝ)⁻¹ * (∑ k, ⟪b c, X k ω⟫_ℝ) - ⟪b c, μ⟫_ℝ) ^ 2 ∂P := by
-          rw [integral_finsetSum]; exact fun c _ => hintc c
-    _ = ∑ c, (r : ℝ)⁻¹ ^ 2 * ∑ k, ∫ ω, (⟪b c, X k ω⟫_ℝ - ⟪b c, μ⟫_ℝ) ^ 2 ∂P := by
-          refine Finset.sum_congr rfl fun c _ => ?_
-          exact integral_sq_scaledSum_sub_of_pairwise_indep P hr
-            (fun k ω => ⟪b c, X k ω⟫_ℝ) (⟪b c, μ⟫_ℝ) (fun k => hL2c k c)
-            (fun k => hmeanc k c) (hindepc c)
-    _ = (r : ℝ)⁻¹ ^ 2 * ∑ k, ∑ c, ∫ ω, (⟪b c, X k ω⟫_ℝ - ⟪b c, μ⟫_ℝ) ^ 2 ∂P := by
-          rw [← Finset.mul_sum, Finset.sum_comm]
-    _ = (r : ℝ)⁻¹ ^ 2 * ∑ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P := by
-          congr 1
-          refine Finset.sum_congr rfl fun k _ => ?_
-          rw [← integral_finsetSum Finset.univ (fun c _ => hintkc k c)]
-          refine integral_congr_ae (Eventually.of_forall fun ω => ?_)
-          dsimp only
-          rw [hpar (X k ω - μ)]
-          exact Finset.sum_congr rfl fun c _ => by rw [inner_sub_right]
-
-/--
-**Identically-distributed collapse.** If in addition the per-sample
-mean-squared errors are identical (`∫ ‖X k − μ‖² = ∫ ‖X 0 − μ‖²` for all `k`,
-automatic for an iid sample), the additive identity collapses to the classical
-`trace(Σ) / r` rate: `∫ ‖r⁻¹ ∑ₖ Xₖ − μ‖² = r⁻¹ ∫ ‖X 0 − μ‖²`.
--/
-theorem integral_norm_sq_average_sub_of_iid
-    (P : Measure Ω) [IsProbabilityMeasure P]
-    {r : ℕ} (hr : 0 < r) (X : Fin r → Ω → E) (μ : E)
-    (hL2 : ∀ k, MemLp (X k) 2 P)
-    (hmean : ∀ k, ∫ ω, X k ω ∂P = μ)
-    (hindep : Set.Pairwise (Set.univ : Set (Fin r))
-      fun i j => IndepFun (X i) (X j) P)
-    (hident : ∀ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P = ∫ ω, ‖X ⟨0, hr⟩ ω - μ‖ ^ 2 ∂P) :
-    ∫ ω, ‖(r : ℝ)⁻¹ • (∑ k, X k ω) - μ‖ ^ 2 ∂P
-      = (r : ℝ)⁻¹ * ∫ ω, ‖X ⟨0, hr⟩ ω - μ‖ ^ 2 ∂P := by
-  rw [integral_norm_sq_average_sub_eq_sum P hr X μ hL2 hmean hindep]
-  simp_rw [hident]
-  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-  have hr0 : (r : ℝ) ≠ 0 := by exact_mod_cast hr.ne'
+/-- If, in addition to the hypotheses of `TauCeti.integral_norm_finiteMean_sub_sq`, every sample
+has the same mean-square error `γ`, then the sample mean has mean-square error `γ / r`, where `r`
+is the number of samples. -/
+theorem integral_norm_finiteMean_sub_sq_of_forall_eq [IsProbabilityMeasure μ] {X : ι → Ω → E}
+    {m : E} (hX : ∀ i, MemLp (X i) 2 μ) (hmean : ∀ i, μ[X i] = m)
+    (hindep : Pairwise fun i j ↦ X i ⟂ᵢ[μ] X j) {γ : ℝ}
+    (hγ : ∀ i, ∫ ω, ‖X i ω - m‖ ^ 2 ∂μ = γ) :
+    ∫ ω, ‖finiteMean ℝ (X · ω) - m‖ ^ 2 ∂μ = γ / Fintype.card ι := by
+  have hr : (Fintype.card ι : ℝ) ≠ 0 := Nat.cast_ne_zero.2 Fintype.card_ne_zero
+  rw [integral_norm_finiteMean_sub_sq hX hmean hindep, sum_congr rfl fun i _ ↦ hγ i, sum_const,
+    card_univ, nsmul_eq_mul]
   field_simp
 
-/--
-**`γ / r` decay.** If each per-sample mean-squared error is bounded by `γ`
-(`γ = trace(Σ)` in the iid case), then the sample-mean mean-squared error
-decays at rate `γ / r`: `∫ ‖r⁻¹ ∑ₖ Xₖ − μ‖² ≤ γ / r`.
--/
-theorem integral_norm_sq_average_sub_le_of_bound
-    (P : Measure Ω) [IsProbabilityMeasure P]
-    {r : ℕ} (hr : 0 < r) (X : Fin r → Ω → E) (μ : E)
-    (hL2 : ∀ k, MemLp (X k) 2 P)
-    (hmean : ∀ k, ∫ ω, X k ω ∂P = μ)
-    (hindep : Set.Pairwise (Set.univ : Set (Fin r))
-      fun i j => IndepFun (X i) (X j) P)
-    {γ : ℝ} (hbound : ∀ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P ≤ γ) :
-    ∫ ω, ‖(r : ℝ)⁻¹ • (∑ k, X k ω) - μ‖ ^ 2 ∂P ≤ γ / r := by
-  rw [integral_norm_sq_average_sub_eq_sum P hr X μ hL2 hmean hindep]
-  have hr0 : (0 : ℝ) < (r : ℝ) := by exact_mod_cast hr
-  have hsum_le : (∑ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P) ≤ (r : ℝ) * γ := by
-    calc (∑ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P)
-          ≤ ∑ _k : Fin r, γ := Finset.sum_le_sum fun k _ => hbound k
-      _ = (r : ℝ) * γ := by
-            simp [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-  calc (r : ℝ)⁻¹ ^ 2 * ∑ k, ∫ ω, ‖X k ω - μ‖ ^ 2 ∂P
-        ≤ (r : ℝ)⁻¹ ^ 2 * ((r : ℝ) * γ) :=
-          mul_le_mul_of_nonneg_left hsum_le (by positivity)
-    _ = γ / r := by
-          rw [sq, mul_assoc, inv_mul_cancel_left₀ hr0.ne', div_eq_inv_mul]
+/-- If, in addition to the hypotheses of `TauCeti.integral_norm_finiteMean_sub_sq`, every sample
+has mean-square error at most `γ`, then the sample mean has mean-square error at most `γ / r`,
+where `r` is the number of samples. -/
+theorem integral_norm_finiteMean_sub_sq_le_of_forall_le [IsProbabilityMeasure μ]
+    {X : ι → Ω → E} {m : E} (hX : ∀ i, MemLp (X i) 2 μ) (hmean : ∀ i, μ[X i] = m)
+    (hindep : Pairwise fun i j ↦ X i ⟂ᵢ[μ] X j) {γ : ℝ}
+    (hγ : ∀ i, ∫ ω, ‖X i ω - m‖ ^ 2 ∂μ ≤ γ) :
+    ∫ ω, ‖finiteMean ℝ (X · ω) - m‖ ^ 2 ∂μ ≤ γ / Fintype.card ι := by
+  have hr : (0 : ℝ) < Fintype.card ι := Nat.cast_pos.2 Fintype.card_pos
+  rw [integral_norm_finiteMean_sub_sq hX hmean hindep]
+  calc ((Fintype.card ι : ℝ) ^ 2)⁻¹ * ∑ i, ∫ ω, ‖X i ω - m‖ ^ 2 ∂μ
+      ≤ ((Fintype.card ι : ℝ) ^ 2)⁻¹ * ∑ _i : ι, γ := by gcongr with i; exact hγ i
+    _ = γ / Fintype.card ι := by
+        rw [sum_const, card_univ, nsmul_eq_mul]
+        field_simp
 
 end TauCeti

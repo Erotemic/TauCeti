@@ -7,12 +7,14 @@ module
 
 public import Mathlib.Analysis.InnerProductSpace.Positive
 public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import TauCeti.Analysis.Convex.FiniteMean
 
 /-!
-# Finite means and centered scatter operators
+# Centered scatter operators
 
-For a finite family `z : Fin n → E` in an inner-product space, `finiteMean` is its
-arithmetic mean (zero for the empty family). The unnormalized centered scatter is
+For a finite family `z : Fin n → E` in an inner-product space, the canonical
+`TauCeti.finiteMean` from `Analysis.Convex.FiniteMean` is its arithmetic mean
+(zero for the empty family). The unnormalized centered scatter is
 
 `centeredScatter 𝕜 z = ∑ i, rankOne 𝕜 (z i - finiteMean 𝕜 z) (z i - finiteMean 𝕜 z)`.
 
@@ -26,7 +28,6 @@ no completeness assumption on `E` is needed.
 
 ## Main results
 
-* `TauCeti.finiteMean_append`: mean after appending an observation.
 * `TauCeti.centeredScatter_append`: the exact add-one operator identity.
 * `TauCeti.re_inner_centeredScatter_self`: the scatter quadratic form.
 * `TauCeti.centeredScatter_isPositive` and `TauCeti.centeredScatter_le_append`:
@@ -39,6 +40,7 @@ Adapted from the Apache-2.0 DKPS formalization
 (https://github.com/AIQ-Kitware/aiq-dkps-formalization), originally
 `ForMathlib/Analysis/InnerProductSpace/CenteredScatter.lean` at commit `fc38eb4`.
 The author and copyright attribution is retained above.
+The finite-mean identities are reused from `TauCeti.Analysis.Convex.FiniteMean`.
 -/
 
 public section
@@ -51,54 +53,12 @@ open scoped BigOperators
 variable (𝕜 : Type*) {E : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 
-/-- Arithmetic mean of a `Fin n` family. At `n = 0`, Mathlib's total inverse convention makes
-this zero. -/
-noncomputable def finiteMean {n : ℕ} (z : Fin n → E) : E :=
-  ((n : 𝕜)⁻¹) • ∑ i, z i
-
 /-- Unnormalized centered scatter operator `∑ i, (zᵢ - mean z) ⊗ (zᵢ - mean z)`.
 
 The rank-one convention is chosen so its quadratic form is
 `∑ i, ‖⟪zᵢ - mean z, x⟫‖²`. -/
 noncomputable def centeredScatter {n : ℕ} (z : Fin n → E) : E →L[𝕜] E :=
   ∑ i, rankOne 𝕜 (z i - finiteMean 𝕜 z) (z i - finiteMean 𝕜 z)
-
-/-- The centered residuals sum to zero. -/
-theorem sum_sub_finiteMean_eq_zero {n : ℕ} (z : Fin n → E) :
-    ∑ i, (z i - finiteMean 𝕜 z) = 0 := by
-  rcases Nat.eq_zero_or_pos n with hn | hn
-  · subst hn; simp
-  · have hn0 : (n : 𝕜) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
-    rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-      sub_eq_zero, finiteMean]
-    rw [← Nat.cast_smul_eq_nsmul 𝕜, smul_smul, mul_inv_cancel₀ hn0, one_smul]
-
-/-- Mean after appending one point: the mean moves toward the new point by the fraction
-`1/(n+1)` of the deviation `y - mean z`.  The formula also holds at `n = 0`, where the old
-mean is the junk value `0` and the new mean is `y`. -/
-theorem finiteMean_append {n : ℕ} (z : Fin n → E) (y : E) :
-    finiteMean 𝕜 (Fin.snoc z y) =
-      finiteMean 𝕜 z + ((n : 𝕜) + 1)⁻¹ • (y - finiteMean 𝕜 z) := by
-  have hsum : ∑ i, Fin.snoc z y i = (∑ i, z i) + y := by
-    rw [Fin.sum_univ_castSucc]
-    simp
-  rcases Nat.eq_zero_or_pos n with hn | hn
-  · subst hn
-    -- The old mean is the junk value `0` and the new family sums to `y`.
-    unfold finiteMean
-    rw [hsum]
-    simp
-  · have hn0 : (n : 𝕜) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
-    have hn1 : (n : 𝕜) + 1 ≠ 0 := by
-      have : ((n + 1 : ℕ) : 𝕜) ≠ 0 := Nat.cast_ne_zero.mpr (Nat.succ_ne_zero n)
-      push_cast at this
-      exact this
-    unfold finiteMean
-    rw [hsum]
-    push_cast
-    match_scalars
-    all_goals field_simp
-    all_goals ring
 
 /-- **Exact add-one centered-scatter identity**:
 `S(z ++ [y]) = S(z) + n/(n+1) • ((y - mean z) ⊗ (y - mean z))`. -/
@@ -115,9 +75,10 @@ theorem centeredScatter_append {n : ℕ} (z : Fin n → E) (y : E) :
   set c : 𝕜 := ((n : 𝕜) + 1)⁻¹ with hc
   have hconjc : (starRingEnd 𝕜) c = c := by
     simp [hc]
-  have hmean' : finiteMean 𝕜 (Fin.snoc z y) = m + c • δ := finiteMean_append 𝕜 z y
+  have hmean' : finiteMean 𝕜 (Fin.snoc z y) = m + c • δ := by
+    simpa only [hm, hc, hδ] using (finiteMean_snoc (R := 𝕜) z y)
   have hzero : ∑ i, (z i - m) = 0 := by
-    rw [hm]; exact sum_sub_finiteMean_eq_zero 𝕜 z
+    simpa only [hm] using (sum_sub_finiteMean (R := 𝕜) z)
   apply ContinuousLinearMap.ext
   intro x
   have hterm : ∀ a : E,

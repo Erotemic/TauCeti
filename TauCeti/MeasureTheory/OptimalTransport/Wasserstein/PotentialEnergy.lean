@@ -7,6 +7,7 @@ module
 
 public import TauCeti.Analysis.GradientFlow.GeodesicConvex
 public import TauCeti.MeasureTheory.OptimalTransport.Wasserstein.Geodesic
+public import TauCeti.MeasureTheory.OptimalTransport.Wasserstein.GeneralizedGeodesic.Convex
 
 /-!
 # Potential energy and its displacement convexity
@@ -38,7 +39,10 @@ The geodesic used is the interpolation of an optimal plan
 (`TauCeti.WassersteinSpace.exists_isGeodesicSegment_map_smul_add_smul`), so this is the weak form of
 displacement convexity: two laws are joined by some geodesic along which the inequality holds. The
 plan-level inequality does not need the plan to be optimal, so it also applies to interpolations
-along non-optimal plans, such as generalized geodesics.
+along non-optimal plans: applied to generalized geodesics, it makes the potential energy `m`-convex
+along generalized geodesics based at every law of `P₂(E)`
+(`StrongConvexOn.generalizedGeodesicallyConvex_potentialEnergy`), the convexity under which the
+Jordan–Kinderlehrer–Otto step is unique.
 
 ## Main definitions
 
@@ -51,6 +55,7 @@ along non-optimal plans, such as generalized geodesics.
 * `TauCeti.integrable_iff_potentialEnergy_ne_top_and_ne_bot`: an almost everywhere strongly
   measurable potential is integrable exactly when its potential energy is finite.
 * `TauCeti.potentialEnergy_mono`: the potential energy is monotone in the potential.
+* `TauCeti.potentialEnergy_add_of_integrable`: adding an integrable function adds its integral.
 * `TauCeti.potentialEnergy_dirac`: the potential energy of a Dirac mass at `x` is `V x`.
 * `TauCeti.potentialEnergy_ne_bot_of_hasFiniteMoment`: a potential with at most quadratic negative
   part has potential energy `≠ ⊥` against every finite measure with finite second moment.
@@ -59,6 +64,8 @@ along non-optimal plans, such as generalized geodesics.
 * `StrongConvexOn.geodesicallyConvex_potentialEnergy`: the potential energy of an `m`-strongly
   convex potential with at most quadratic negative part is `m`-geodesically convex on the
   `2`-Wasserstein space of a separable Banach space.
+* `StrongConvexOn.generalizedGeodesicallyConvex_potentialEnergy`: the same potential energy is
+  `m`-convex along generalized geodesics based at every law of finite second moment.
 
 ## References
 
@@ -156,12 +163,48 @@ theorem potentialEnergy_mono (h : V ≤ᵐ[μ] W) : potentialEnergy V μ ≤ pot
     (EReal.coe_ennreal_le_coe_ennreal_iff.2
       (lintegral_mono_ae (h.mono fun x hx ↦ ENNReal.ofReal_le_ofReal (neg_le_neg hx))))
 
+/-- The potential energy depends on the potential only up to `μ`-almost everywhere equality. -/
+theorem potentialEnergy_congr_ae (h : V =ᵐ[μ] W) : potentialEnergy V μ = potentialEnergy W μ :=
+  le_antisymm (potentialEnergy_mono h.le) (potentialEnergy_mono h.symm.le)
+
 /-- A potential bounded below by an integrable function has potential energy `≠ ⊥`. -/
 theorem potentialEnergy_ne_bot_of_le (hW : Integrable W μ) (h : W ≤ᵐ[μ] V) :
     potentialEnergy V μ ≠ ⊥ := fun hV ↦ by
   have := potentialEnergy_mono h
   rw [hV, potentialEnergy_of_integrable hW, le_bot_iff] at this
   exact EReal.coe_ne_bot _ this
+
+/-- Adding an integrable function to a potential adds its integral to the potential energy. The
+potential itself need not be integrable: if its energy is `⊤` or `⊥`, then so is the energy of the
+sum. -/
+theorem potentialEnergy_add_of_integrable (hV : AEStronglyMeasurable V μ) (hW : Integrable W μ) :
+    potentialEnergy (fun x ↦ V x + W x) μ = potentialEnergy V μ + ((∫ x, W x ∂μ : ℝ) : EReal) := by
+  by_cases hVi : Integrable V μ
+  · rw [potentialEnergy_of_integrable (V := fun x ↦ V x + W x) (hVi.add hW),
+      potentialEnergy_of_integrable hVi, integral_add hVi hW, EReal.coe_add]
+  have hVWi : ¬ Integrable (fun x ↦ V x + W x) μ := fun h ↦
+    hVi ((h.sub hW).congr (ae_of_all _ fun x ↦ by simp))
+  -- Adding an integrable function changes the integral of the positive part by a finite amount.
+  have hpos : ∀ {F G : X → ℝ}, Integrable G μ → ∫⁻ x, ENNReal.ofReal (F x + G x) ∂μ = ∞ →
+      ∫⁻ x, ENNReal.ofReal (F x) ∂μ = ∞ := fun {F G} hG h ↦ by
+    by_contra hF
+    refine (lt_of_le_of_lt (lintegral_mono fun x ↦ ENNReal.ofReal_add_le) ?_).ne h
+    rw [lintegral_add_right' _ hG.aemeasurable.ennreal_ofReal]
+    exact ENNReal.add_lt_top.2 ⟨lt_top_iff_ne_top.2 hF, hG.lintegral_lt_top⟩
+  have htop : potentialEnergy (fun x ↦ V x + W x) μ = ⊤ ↔ potentialEnergy V μ = ⊤ := by
+    rw [potentialEnergy_eq_top_iff, potentialEnergy_eq_top_iff]
+    refine ⟨hpos hW, fun h ↦ hpos (F := fun x ↦ V x + W x) hW.neg ?_⟩
+    simpa using h
+  by_cases hT : potentialEnergy V μ = ⊤
+  · rw [hT, htop.2 hT, EReal.top_add_coe]
+  have hB : potentialEnergy V μ = ⊥ := by
+    by_contra hB
+    exact hVi ((integrable_iff_potentialEnergy_ne_top_and_ne_bot hV).2 ⟨hT, hB⟩)
+  have hB' : potentialEnergy (fun x ↦ V x + W x) μ = ⊥ := by
+    by_contra hB'
+    exact hVWi ((integrable_iff_potentialEnergy_ne_top_and_ne_bot
+      (hV.add hW.aestronglyMeasurable)).2 ⟨mt htop.1 hT, hB'⟩)
+  rw [hB, hB', EReal.bot_add]
 
 /-- The potential energy of the zero measure is `0`. -/
 @[simp]
@@ -300,6 +343,37 @@ theorem _root_.StrongConvexOn.geodesicallyConvex_potentialEnergy (hV : StrongCon
     (hπ.snd_eq ▸ potentialEnergy_ne_bot_of_hasFiniteMoment (WassersteinSpace.hasFiniteMoment μ₁)
       hVAB)
     ((memLp_two_iff_integrable_sq_norm (by fun_prop)).1 hmem) ht
+
+/-- **Convexity of the potential energy along generalized geodesics.** On a separable Banach space
+`E`, the potential energy of an `m`-strongly convex measurable potential `V` whose negative part
+grows at most quadratically is `m`-convex along generalized geodesics based at every `μ ∈ P₂(E)`:
+any two laws `ν₀` and `ν₁` of `P₂(E)` carry some quadratic generalized-geodesic plan `γ` from `ν₀`
+to `ν₁` based at `μ` along whose generalized geodesic `ν_t`, for `t ∈ [0, 1]`,
+`∫ V dν_t ≤ (1 - t) ∫ V dν₀ + t ∫ V dν₁ - (m / 2) t (1 - t) ∫ ‖y₀ - y₁‖² dγ`. -/
+theorem _root_.StrongConvexOn.generalizedGeodesicallyConvex_potentialEnergy
+    (hV : StrongConvexOn univ m V) (hVm : Measurable V) {A B : ℝ}
+    (hVAB : ∀ x, -(A + B * ‖x‖ ^ 2) ≤ V x) (μ : WassersteinSpace 2 E) :
+    GeneralizedGeodesicallyConvex m
+      (fun ν : WassersteinSpace 2 E ↦ potentialEnergy V ((ν : ProbabilityMeasure E) : Measure E))
+      μ := by
+  rw [generalizedGeodesicallyConvex_def]
+  intro ν₀ ν₁ _ _
+  obtain ⟨γ, hγ⟩ := exists_isGeneralizedGeodesicPlan two_ne_zero
+    ((μ : ProbabilityMeasure E) : Measure E) ((ν₀ : ProbabilityMeasure E) : Measure E)
+    ((ν₁ : ProbabilityMeasure E) : Measure E) ⟨_, isCoupling_prod _ _⟩ ⟨_, isCoupling_prod _ _⟩
+  refine ⟨γ, hγ, fun t ht ν hν ↦ ?_⟩
+  -- The generalized geodesic is the interpolation of the coupling `γ.snd` of `ν₀` and `ν₁`.
+  have hπ := hγ.isCoupling_snd
+  have : IsProbabilityMeasure γ.snd := hπ.isProbabilityMeasure
+  have hmap : generalizedGeodesic γ t = γ.snd.map fun z ↦ (1 - t) • z.1 + t • z.2 := by
+    rw [generalizedGeodesic_def, Measure.snd, Measure.map_map (by fun_prop) measurable_snd]
+    rfl
+  have h₀ := hπ.fst_eq ▸ WassersteinSpace.hasFiniteMoment ν₀
+  have h₁ := hπ.snd_eq ▸ WassersteinSpace.hasFiniteMoment ν₁
+  rw [hν, hmap, ← hπ.fst_eq, ← hπ.snd_eq]
+  exact hV.potentialEnergy_map_le hVm (potentialEnergy_ne_bot_of_hasFiniteMoment h₀ hVAB)
+    (potentialEnergy_ne_bot_of_hasFiniteMoment h₁ hVAB)
+    (integrable_norm_sub_sq_of_hasFiniteMoment h₀ h₁) ht
 
 end Convexity
 
