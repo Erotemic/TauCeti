@@ -15,8 +15,8 @@ public import Mathlib.Topology.Bases
 
 Two facts, in increasing specificity.
 
-* `TauCeti.countable_of_pairwise_dist_le`: a uniformly separated set in a separable metric
-  space is countable.
+* `TauCeti.countable_of_pairwise_dist_le`: a uniformly separated set in a separable
+  pseudometric space is countable.
 * `TauCeti.countable_of_orthonormal`: an orthonormal set in a separable inner
   product space is countable, because distinct orthonormal vectors are `√2` apart.
 
@@ -25,47 +25,36 @@ at separable scope needs first: it is what turns "the space is separable" into "
 basis is indexed by a countable set", after which two infinite-dimensional separable Hilbert
 spaces can be compared through `HilbertBasis.repr`.
 
-Davis and Kahan work throughout on a separable Hilbert space, so this is the scope in which
-their condition (3.5) -- equality of the Hilbert dimensions of two crossed defect spaces -- can
-be connected to this repository's `CrossedDefectsEquivalent`, which asserts a linear isometric
-equivalence.  In finite dimension the two readings are already proved equal
-(`crossedDefectsEquivalent_iff_finrank_eq`); the separable infinite-dimensional half is what
-remains, and it starts here.
+The main classification result says that two complete, separable, infinite-dimensional
+inner-product spaces over the same `RCLike` field are linearly isometric.
+The classification follows by reindexing their `ℓ²` representations through an
+equivalence of countably infinite Hilbert-basis index types.
 
 ## Provenance
 
 * Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-  `TauCeti.countable_of_pairwise_dist_le` was previously stated inside
-  `ForTauCeti/Analysis/InnerProductSpace/BorelCalculus/SeparableCyclic.lean`, which is a
-  consumer rather than its owner; it moved here with its orthonormal corollary, and that module
-  now imports this one.
-* Spectra influence: **none** -- this module imports only Mathlib.
+* The results are general separable-Hilbert-space infrastructure, depending on
+  Mathlib and `TauCeti.Analysis.InnerProductSpace.LpIndexCongr`.
+* Spectra influence: **none**.
 -/
 
 namespace TauCeti
 
-/-- **A uniformly separated set in a separable metric space is countable.**
+/-- **A uniformly separated set in a separable pseudometric space is countable.**
 
-Each member is tagged by a point of a fixed countable dense set within `δ / 2` of it, and the
-tag determines the member because two members sharing a tag would be within `δ`. -/
-public theorem countable_of_pairwise_dist_le {M : Type*} [MetricSpace M]
+The balls of radius `δ / 2` about distinct points are disjoint, nonempty, and open;
+separability bounds the size of any such family. -/
+public theorem countable_of_pairwise_dist_le {M : Type*} [PseudoMetricSpace M]
     [TopologicalSpace.SeparableSpace M] {s : Set M} {δ : ℝ} (hδ : 0 < δ)
     (h : ∀ x ∈ s, ∀ y ∈ s, x ≠ y → δ ≤ dist x y) : s.Countable := by
-  classical
-  obtain ⟨t, htc, htd⟩ := TopologicalSpace.exists_countable_dense M
-  have hchoice : ∀ x : M, ∃ y, y ∈ t ∧ dist x y < δ / 2 := fun x =>
-    Metric.mem_closure_iff.mp (htd x) (δ / 2) (by positivity)
-  choose g hgt hgd using hchoice
-  refine Set.MapsTo.countable_of_injOn (f := g) (fun x _ => hgt x) ?_ htc
-  intro x hx y hy hxy
-  by_contra hne
-  have hlt : dist x y < δ := by
-    calc dist x y ≤ dist x (g x) + dist (g x) y := dist_triangle _ _ _
-      _ = dist x (g x) + dist y (g y) := by rw [hxy, dist_comm (g y) y]
-      _ < δ / 2 + δ / 2 := add_lt_add (hgd x) (hgd y)
-      _ = δ := by ring
-  exact absurd (h x hx y hy hne) (not_le.mpr hlt)
+  refine Set.PairwiseDisjoint.countable_of_isOpen
+    (a := s) (s := fun x : M => Metric.ball x (δ / 2)) ?_ ?_ ?_
+  · intro x hx y hy hxy
+    exact Metric.ball_disjoint_ball (by linarith [h x hx y hy hxy])
+  · intro x hx
+    exact Metric.isOpen_ball
+  · intro x hx
+    exact Metric.nonempty_ball.2 (half_pos hδ)
 
 variable {𝕜 : Type*} [RCLike 𝕜]
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
@@ -108,24 +97,33 @@ the index set is countable, so two separable Hilbert spaces whose bases are both
 infinite are isometric, by `TauCeti.nonempty_linearIsometryEquiv_of_hilbertBasis` through the
 `ℓ²` reindexing.
 
-This is the half of Davis--Kahan's condition (3.5) that the finite-dimensional bridge
-`crossedDefectsEquivalent_iff_finrank_eq` does not reach. -/
+The classification proceeds by identifying each space with its `ℓ²` model and
+reindexing those models through an equivalence of countably infinite sets. -/
 
 section Classification
 
 variable {F : Type*} [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
 
+/-- The index type of a Hilbert basis of a separable inner-product space is countable.
+
+The basis is an orthonormal family, so its range is a countable orthonormal set;
+linearly independent basis vectors have distinct indices. -/
+public theorem countable_of_hilbertBasis [TopologicalSpace.SeparableSpace E]
+    {ι : Type*} (b : HilbertBasis ι 𝕜 E) : Countable ι := by
+  classical
+  have hcount : (Set.range (b : ι → E)).Countable :=
+    countable_of_orthonormal b.orthonormal.toSubtypeRange
+  exact (Equiv.ofInjective (b : ι → E)
+    b.orthonormal.linearIndependent.injective).countable_iff.mpr hcount.to_subtype
+
 /-- **A separable Hilbert space has a countably indexed Hilbert basis.**
 
-`exists_hilbertBasis` produces one indexed by a set of vectors that is orthonormal; separability
-makes that set countable. -/
+`exists_hilbertBasis` supplies the basis and `countable_of_hilbertBasis` bounds its index set. -/
 public theorem exists_countable_hilbertBasis [CompleteSpace E]
     [TopologicalSpace.SeparableSpace E] :
     ∃ (w : Set E) (_b : HilbertBasis w 𝕜 E), w.Countable := by
-  obtain ⟨w, b, hb⟩ := exists_hilbertBasis 𝕜 E
-  refine ⟨w, b, countable_of_orthonormal (𝕜 := 𝕜) ?_⟩
-  have := b.orthonormal
-  rwa [hb] at this
+  obtain ⟨w, b, _⟩ := exists_hilbertBasis 𝕜 E
+  exact ⟨w, b, Set.countable_coe_iff.mpr (countable_of_hilbertBasis b)⟩
 
 /-- **Two Hilbert spaces with countably infinite Hilbert bases are isometric.**
 
@@ -137,27 +135,6 @@ public theorem nonempty_linearIsometryEquiv_of_countable_infinite_hilbertBasis
     (b : HilbertBasis ι 𝕜 E) (b' : HilbertBasis ι' 𝕜 F) :
     Nonempty (E ≃ₗᵢ[𝕜] F) :=
   nonempty_linearIsometryEquiv_of_hilbertBasis b b' nonempty_equiv_of_countable.some
-
-/-- **Two separable Hilbert spaces with infinite Hilbert bases are isometric.**
-
-The form the classification is actually used in: `exists_hilbertBasis` hands back a basis indexed
-by an orthonormal *set* of vectors, so `hb` is the identification it comes with, separability
-makes that set countable, and the hypothesis is only that it is infinite. -/
-public theorem nonempty_linearIsometryEquiv_of_separable_of_infinite_hilbertBasis
-    [TopologicalSpace.SeparableSpace E]
-    [TopologicalSpace.SeparableSpace F]
-    {w : Set E} {b : HilbertBasis w 𝕜 E} (hb : ⇑b = ((↑) : w → E)) (hw : w.Infinite)
-    {w' : Set F} {b' : HilbertBasis w' 𝕜 F} (hb' : ⇑b' = ((↑) : w' → F)) (hw' : w'.Infinite) :
-    Nonempty (E ≃ₗᵢ[𝕜] F) := by
-  have hcw : w.Countable := countable_of_orthonormal (𝕜 := 𝕜) (by
-    have h := b.orthonormal; rwa [hb] at h)
-  have hcw' : w'.Countable := countable_of_orthonormal (𝕜 := 𝕜) (by
-    have h := b'.orthonormal; rwa [hb'] at h)
-  have := hcw.to_subtype
-  have := hcw'.to_subtype
-  have := hw.to_subtype
-  have := hw'.to_subtype
-  exact nonempty_linearIsometryEquiv_of_countable_infinite_hilbertBasis b b'
 
 /-- **A finitely indexed Hilbert basis makes the space finite-dimensional.**
 
@@ -171,20 +148,17 @@ public theorem finiteDimensional_of_finite_hilbertBasis {ι : Type*} [Finite ι]
 /-- **Any two infinite-dimensional separable Hilbert spaces over the same field are
 isometrically isomorphic.**
 
-This is the classification the paper's separable scope permits, in the form Davis--Kahan's
-condition (3.5) needs: the two crossed defect spaces have "the same Hilbert dimension" exactly
-when they are both finite-dimensional of equal `finrank` or both infinite-dimensional, and in
-the second case they are isometric with no further data.
-
-The first case is `crossedDefectsEquivalent_iff_finrank_eq`; this is the second. -/
+Every Hilbert basis is countable by separability and must be infinite by the
+infinite-dimensionality hypothesis. Thus the two bases have equivalent index types,
+and their `ℓ²` representations induce a linear isometric equivalence. -/
 public theorem nonempty_linearIsometryEquiv_of_separable_of_infiniteDimensional
     [CompleteSpace E] [TopologicalSpace.SeparableSpace E]
     [CompleteSpace F] [TopologicalSpace.SeparableSpace F]
     (hE : ¬ FiniteDimensional 𝕜 E) (hF : ¬ FiniteDimensional 𝕜 F) :
     Nonempty (E ≃ₗᵢ[𝕜] F) := by
   classical
-  obtain ⟨w, b, hb⟩ := exists_hilbertBasis 𝕜 E
-  obtain ⟨w', b', hb'⟩ := exists_hilbertBasis 𝕜 F
+  obtain ⟨w, b, _⟩ := exists_hilbertBasis 𝕜 E
+  obtain ⟨w', b', _⟩ := exists_hilbertBasis 𝕜 F
   have hw : w.Infinite := by
     by_contra hfin
     rw [Set.not_infinite] at hfin
@@ -195,7 +169,12 @@ public theorem nonempty_linearIsometryEquiv_of_separable_of_infiniteDimensional
     rw [Set.not_infinite] at hfin
     have : Finite w' := hfin
     exact hF (finiteDimensional_of_finite_hilbertBasis b')
-  exact nonempty_linearIsometryEquiv_of_separable_of_infinite_hilbertBasis hb hw hb' hw'
+  have hcw : Countable w := countable_of_hilbertBasis b
+  have hcw' : Countable w' := countable_of_hilbertBasis b'
+  have hiw : Infinite w := hw.to_subtype
+  have hiw' : Infinite w' := hw'.to_subtype
+  exact @nonempty_linearIsometryEquiv_of_countable_infinite_hilbertBasis
+    𝕜 _ E _ _ F _ _ w w' hcw hiw hcw' hiw' b b'
 
 end Classification
 
