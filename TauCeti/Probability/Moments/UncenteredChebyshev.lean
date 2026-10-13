@@ -4,43 +4,32 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Fable 5
 -/
 
-/-
-Provenance: staged for Tau Ceti, roadmap topic T20. Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on the closed
-Mathlib track — additions to `Mathlib/Probability/Moments/Variance.lean`. The TauCeti module
-lives at `Probability/Moments/UncenteredChebyshev.lean`, because upstream `main` already
-provides `Probability/Moments/Variance.lean`.
-
-Formalized by Claude Fable 5 (claude-fable-5[1m]).
--/
-
 module
 
 public import Mathlib.Probability.Moments.Variance
 
+/-!
+# Uncentered second-moment Chebyshev inequality
 
-/-! # Uncentered second-moment Chebyshev inequality
+For a real random variable `Y` whose square is integrable, a bound
+`∫ Y² ≤ v` gives
 
-`P {ω | η < Y ω} ≤ ENNReal.ofReal (v / η ^ 2)` from `∫ Y² ≤ v`, for a real
-random variable `Y` that need not be centered, nonnegative, or measurable
-(integrability of `Y ^ 2` suffices).
+`P {ω | η < Y ω} ≤ ENNReal.ofReal (v / η²)` for `η > 0`.
 
-Mathlib's `meas_ge_le_variance_div_sq` is the centered version and requires
-`MemLp Y 2`; concentration arguments routinely need the raw second-moment form
-below, applied to error norms `Y = ‖Xᵢ - μᵢ‖`.
+The variable need not be centered or nonnegative. Integrability of `Y²`
+supplies the measurability required by the proof; this is the raw
+second-moment form of Markov's inequality used for concentration estimates.
 
-## Provenance
+## Main result
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `ForMathlib.Probability.Moments.Variance`, moved to
-  `ForTauCeti` in the Wave-1 staging migration; introduced at Davis--Kahan
-  commit `56f7495`.
-* Extraction class: **moved**.  The Wave-1 migration renamed the namespace
-  `ForMathlib` to `TauCeti`; declaration names and proofs are unchanged.
-* Original authors / copyright: Jon Crall, Claude Fable 5; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+* `TauCeti.meas_gt_le_ofReal_integral_sq_div_sq`.
+
+## Source
+
+Adapted from the Apache-2.0 DKPS formalization
+(https://github.com/AIQ-Kitware/aiq-dkps-formalization), originally
+`ForMathlib.Probability.Moments.Variance` at commit `56f7495`.
+The author and copyright attribution is retained above.
 -/
 
 public section

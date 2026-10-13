@@ -11,64 +11,34 @@ public import Mathlib.Analysis.InnerProductSpace.PiL2
 /-!
 # Finite means and centered scatter operators
 
-For a finite family `z : Fin n → E` in an inner-product space, the centered scatter operator
-is `∑ i, (zᵢ - mean z) ⊗ (zᵢ - mean z)`.  The primary theorem is the exact add-one update
+For a finite family `z : Fin n → E` in an inner-product space, `finiteMean` is its
+arithmetic mean (zero for the empty family). The unnormalized centered scatter is
 
-`S(Fin.snoc z y) = S(z) + n/(n+1) • ((y - mean z) ⊗ (y - mean z))`,
+`centeredScatter 𝕜 z = ∑ i, rankOne 𝕜 (z i - finiteMean 𝕜 z) (z i - finiteMean 𝕜 z)`.
 
-from which Löwner monotonicity and quadratic-form growth are short corollaries.
+The exact add-one identity is
+
+`S(Fin.snoc z y) = S(z) + n/(n+1) • rankOne 𝕜 (y - mean z) (y - mean z)`.
+
+It implies monotonicity in the Löwner order and an explicit update of the
+quadratic form. The rank-one summands and their sum are continuous linear maps;
+no completeness assumption on `E` is needed.
 
 ## Main results
 
-* `TauCeti.centeredScatter_append`: the exact operator-level add-one identity;
-* `TauCeti.centeredScatter_le_append`: appending a point grows the scatter in Löwner order;
-* `TauCeti.re_inner_centeredScatter_append`: the quadratic-form version of the update;
-* `TauCeti.re_inner_centeredScatter_self`: the scatter quadratic form is the sum of
-  squared centered inner products.
+* `TauCeti.finiteMean_append`: mean after appending an observation.
+* `TauCeti.centeredScatter_append`: the exact add-one operator identity.
+* `TauCeti.re_inner_centeredScatter_self`: the scatter quadratic form.
+* `TauCeti.centeredScatter_isPositive` and `TauCeti.centeredScatter_le_append`:
+  positivity and monotonicity.
+* `TauCeti.re_inner_centeredScatter_append`: the quadratic-form add-one identity.
 
-## Implementation notes
+## Source
 
-`centeredScatter` is a `ContinuousLinearMap`. Its summands `rankOne 𝕜 a a` are continuous
-already, so taking the bundled linear map would discard continuity for nothing; the
-`IsPositive` and Löwner-order API used below exists at both levels and needs no
-completeness assumption.
-
-`finiteMean` is *not* an instance of an existing Mathlib average.
-
-* `Finset.expect`, the canonical finite average, requires `Module ℚ≥0 E`. That instance does
-  not resolve for a general `𝕜`-inner-product space: `NormedSpace ℝ E` is reachable only
-  through `InnerProductSpace.rclikeToReal` / `NormedSpace.restrictScalars`, which are
-  deliberately definitions rather than instances.
-* `Finset.centroid` does typecheck here, but `Finset.affineCombination` is defined against
-  `Classical.arbitrary`, so the centroid of the empty family is nonconstructive junk.
-  `finiteMean` instead returns `0` there, by Mathlib's total-inverse convention, and
-  `finiteMean_append` is deliberately stated to hold *at* `n = 0`.
-
-See backlog §8.1.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `ForMathlib/Analysis/InnerProductSpace/CenteredScatter.lean`
-  at Davis--Kahan commit `fc38eb4`.
-* Original declarations: `centeredScatter`, `finiteMean`, `appendFin` and the
-  add-one / Löwner / quadratic-form API (namespace renamed here
-  `ForMathlib` → `TauCeti`).
-* Original authors / copyright: Jon Crall, GPT-5.6 High, Claude Fable 5;
-  Copyright (c) 2026 Kitware, Inc.; Apache 2.0.
-* Extraction class: **copied**, converted to the Tau Ceti module system, then polished
-  against the reuse rubric (backlog §8.1): `appendFin` was deleted in favour of
-  `Fin.snoc`, and `centeredScatter` moved from `E →ₗ[𝕜] E` to `E →L[𝕜] E`.
-* Spectra influence: **none** (imports only Mathlib).
-
-Moved from
-`ForTauCeti/Analysis/InnerProductSpace/CenteredScatter.lean` to
-`ForTauCeti/Probability/Moments/CenteredScatter.lean`, beside `SampleMean`,
-`SampleSecondMoment`, `Variance` and `MatrixConcentration`.  Finite means and
-centered scatter operators are the content of roadmap topic T20, where this
-module was already assigned; only its path disagreed.  Path change and
-repointing of one import in `DkpsQuench2026/Spectral/GramSpectrum.lean` — no
-statement, signature, proof, attribute, declaration name or namespace changed.
+Adapted from the Apache-2.0 DKPS formalization
+(https://github.com/AIQ-Kitware/aiq-dkps-formalization), originally
+`ForMathlib/Analysis/InnerProductSpace/CenteredScatter.lean` at commit `fc38eb4`.
+The author and copyright attribution is retained above.
 -/
 
 public section

@@ -4,64 +4,38 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 4.8
 -/
 
-/-
-Provenance: staged for Tau Ceti, roadmap topic T20. Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on the closed
-Mathlib track — additions to `Mathlib/Probability/Moments/` (new file `SampleMean.lean`).
-
-Formalized by Claude Opus 4.8 (claude-opus-4-8[1m]).
--/
-
 module
 
 public import Mathlib.Probability.Moments.Variance
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.MeasureTheory.Function.L2Space
 
+/-!
+# Mean-squared error of a sample mean
 
-/-! # Mean-squared error of the sample mean
+For pairwise-independent square-integrable random vectors sharing a common
+mean `μ`, the mean-square error of the average of `r > 0` observations is
+`r⁻²` times the sum of their individual mean-square errors. No identical-
+distribution hypothesis is needed for this identity.
 
-For a sample `X 0, …, X (r-1)` of square-integrable random vectors valued in a
-finite-dimensional real inner product space, with common mean `μ`, the
-mean-squared error of the sample mean `r⁻¹ ∑ₖ Xₖ` about `μ` is `r⁻²` times the
-sum of the individual mean-squared errors:
-
-`∫ ‖r⁻¹ ∑ₖ Xₖ − μ‖² = r⁻² ∑ₖ ∫ ‖Xₖ − μ‖²`.
-
-Only **pairwise** independence and a **common mean** are needed; the cross terms
-vanish by independence (no identical-distribution hypothesis). Specialized to an
-identically-distributed sample this is the classical `trace(Σ) / r` rate, and an
-upper bound on each individual error gives the `γ / r` decay used throughout
-concentration arguments.
-
-Mathlib's `ProbabilityTheory.variance` is `ℝ`-valued; the covariance API in
-`Mathlib/Probability/Moments/CovarianceBilin.lean` has no trace identity and no
-sample-mean lemmas. The scalar engine here is `IndepFun.variance_sum`; the work
-is the coordinatewise reduction over an orthonormal basis.
+The proof reduces to the scalar variance-of-a-sum identity, using an
+orthonormal basis for the finite-dimensional real inner-product-space case.
+Equal individual second moments yield the familiar `1/r` scale; a uniform
+upper bound `γ` yields the bound `γ / r`.
 
 ## Main results
 
-* `TauCeti.integral_sq_scaledSum_sub_of_pairwise_indep`: scalar identity
-  `∫ (r⁻¹ ∑ₖ Zₖ − c)² = r⁻² ∑ₖ ∫ (Zₖ − c)²` for pairwise-independent,
-  common-mean real random variables.
-* `TauCeti.integral_norm_sq_average_sub_eq_sum`: the vector identity above on
-  a finite-dimensional real inner product space.
-* `TauCeti.integral_norm_sq_average_sub_of_iid`: identically-distributed
-  collapse to `r⁻¹ ∫ ‖X 0 − μ‖²`.
-* `TauCeti.integral_norm_sq_average_sub_le_of_bound`: the `γ / r` bound.
+* `TauCeti.integral_sq_scaledSum_sub_of_pairwise_indep`: scalar mean-square identity.
+* `TauCeti.integral_norm_sq_average_sub_eq_sum`: finite-dimensional vector identity.
+* `TauCeti.integral_norm_sq_average_sub_of_iid`: equal-second-moment specialization.
+* `TauCeti.integral_norm_sq_average_sub_le_of_bound`: uniform `γ / r` bound.
 
-## Provenance
+## Source
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `ForMathlib.Probability.Moments.SampleMean`, moved to
-  `ForTauCeti` in the Wave-1 staging migration; introduced at Davis--Kahan
-  commit `e9379f2`.
-* Extraction class: **moved**.  The Wave-1 migration renamed the namespace
-  `ForMathlib` to `TauCeti`; declaration names and proofs are unchanged.
-* Original authors / copyright: Jon Crall, Claude Opus 4.8; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+Adapted from the Apache-2.0 DKPS formalization
+(https://github.com/AIQ-Kitware/aiq-dkps-formalization), originally
+`ForMathlib.Probability.Moments.SampleMean` at commit `e9379f2`.
+The author and copyright attribution is retained above.
 -/
 
 public section
