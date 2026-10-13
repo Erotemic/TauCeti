@@ -129,7 +129,6 @@ theorem isometry (e : RCLikeIso 𝕜 𝕂) : Isometry (e : 𝕜 → 𝕂) :=
   AddMonoidHomClass.isometry_of_norm (e.toRingEquiv : 𝕜 →+* 𝕂) e.norm_map
 
 /-- The field isomorphism is a homeomorphism. -/
-@[expose]
 noncomputable def homeomorph (e : RCLikeIso 𝕜 𝕂) : 𝕜 ≃ₜ 𝕂 where
   toEquiv := e.toRingEquiv.toEquiv
   continuous_toFun := e.isometry.continuous
@@ -139,7 +138,9 @@ noncomputable def homeomorph (e : RCLikeIso 𝕜 𝕂) : 𝕜 ≃ₜ 𝕂 where
     exact e.norm_symm_map' c
 
 /-- The homeomorphism is the isomorphism. -/
-@[simp] theorem coe_homeomorph (e : RCLikeIso 𝕜 𝕂) : (e.homeomorph : 𝕜 → 𝕂) = e := rfl
+@[simp] theorem coe_homeomorph (e : RCLikeIso 𝕜 𝕂) : (e.homeomorph : 𝕜 → 𝕂) = e := by
+  dsimp only [homeomorph]
+  rfl
 
 /-- The inverse homeomorphism is the inverse isomorphism. -/
 @[simp] theorem homeomorph_symm_apply (e : RCLikeIso 𝕜 𝕂) (c : 𝕂) :
@@ -226,7 +227,6 @@ omit [Module 𝕜 E] in
 /-! ### Submodules -/
 
 /-- A `𝕜`-subspace of `E`, as a `𝕂`-subspace of the transport, with the same carrier. -/
-@[expose]
 def submodule (S : Submodule 𝕜 E) : Submodule 𝕂 (ScalarTransport e E) where
   carrier := {x | out x ∈ S}
   add_mem' := S.add_mem
@@ -238,7 +238,6 @@ def submodule (S : Submodule 𝕜 E) : Submodule 𝕂 (ScalarTransport e E) wher
     x ∈ submodule (e := e) S ↔ out x ∈ S := Iff.rfl
 
 /-- Read a transported subspace back over the original field. -/
-@[expose]
 def submoduleSymm (S : Submodule 𝕂 (ScalarTransport e E)) : Submodule 𝕜 E where
   carrier := {x | of (e := e) x ∈ S}
   add_mem' := S.add_mem
@@ -253,11 +252,15 @@ def submoduleSymm (S : Submodule 𝕂 (ScalarTransport e E)) : Submodule 𝕜 E 
 
 /-- The submodule transports are mutually inverse. -/
 @[simp] theorem submoduleSymm_submodule (S : Submodule 𝕜 E) :
-    submoduleSymm (submodule (e := e) S) = S := rfl
+    submoduleSymm (submodule (e := e) S) = S := by
+  ext x
+  simp only [mem_submoduleSymm, mem_submodule, out_of]
 
 /-- The submodule transports are mutually inverse. -/
 @[simp] theorem submodule_submoduleSymm (S : Submodule 𝕂 (ScalarTransport e E)) :
-    submodule (e := e) (submoduleSymm S) = S := rfl
+    submodule (e := e) (submoduleSymm S) = S := by
+  ext x
+  simp only [mem_submodule, mem_submoduleSymm, of_out]
 
 /-- The transport commutes with intersection of subspaces. -/
 theorem submodule_inf (S T : Submodule 𝕜 E) :
@@ -270,7 +273,6 @@ theorem submodule_inf (S T : Submodule 𝕜 E) :
 /-! ### Additive equivalence and rank -/
 
 /-- The additive identity `E ≃+ ScalarTransport e E`. -/
-@[expose]
 def addEquiv : E ≃+ ScalarTransport e E where
   toFun := of
   invFun := out
@@ -280,25 +282,31 @@ def addEquiv : E ≃+ ScalarTransport e E where
 
 omit [Module 𝕜 E] in
 /-- Applying the additive transport is the `of` embedding. -/
-@[simp] theorem addEquiv_apply (x : E) : addEquiv (e := e) x = of (e := e) x := rfl
+@[simp] theorem addEquiv_apply (x : E) : addEquiv (e := e) x = of (e := e) x := by
+  dsimp only [addEquiv]
+  rfl
 
 omit [Module 𝕜 E] in
 /-- The inverse additive transport reads the vector back out. -/
 @[simp] theorem addEquiv_symm_apply (x : ScalarTransport e E) :
-    (addEquiv (e := e)).symm x = out (e := e) x := rfl
+    (addEquiv (e := e)).symm x = out (e := e) x := by
+  dsimp only [addEquiv, AddEquiv.symm]
+  rfl
 
 /-- The additive identity intertwines the two scalar actions through `e`. -/
 theorem addEquiv_smul (r : 𝕜) (x : E) :
     addEquiv (e := e) (r • x) = e r • addEquiv (e := e) x := by
-  exact of_smul (e := e) r x
+  simpa only [addEquiv_apply] using (of_smul (e := e) r x)
 
 /-- Rank is unchanged by the transport: the scalar action is the same up to `e`. -/
 theorem rank_eq (S : Submodule 𝕜 E) :
     Module.rank 𝕜 S = Module.rank 𝕂 (submodule (e := e) S) :=
   rank_eq_of_equiv_equiv (R := 𝕜) (R' := 𝕂) (M := S) (M₁ := submodule (e := e) S)
     (fun r => e r)
-    { toFun := fun x => ⟨of (e := e) (x : E), x.2⟩
-      invFun := fun x => ⟨out (x : ScalarTransport e E), x.2⟩
+    { toFun := fun x => ⟨of (e := e) (x : E), by
+          simpa only [mem_submodule, out_of] using x.2⟩
+      invFun := fun x => ⟨out (x : ScalarTransport e E), by
+          simpa only [mem_submodule] using x.2⟩
       left_inv := fun _ => rfl
       right_inv := fun _ => rfl
       map_add' := fun _ _ => rfl }
@@ -322,7 +330,6 @@ instance : AddCommGroup (ScalarTransport e E) :=
   inferInstanceAs (AddCommGroup E)
 
 /-- A point of the transported domain, read back in `A.domain`. -/
-@[expose]
 def domainOut (A : E →ₗ.[𝕜] F) (x : submodule (e := e) A.domain) : A.domain :=
   ⟨out (x : ScalarTransport e E), x.2⟩
 
@@ -333,13 +340,6 @@ def domainOut (A : E →ₗ.[𝕜] F) (x : submodule (e := e) A.domain) : A.doma
 
 /-- A `𝕜`-linear partial map, as a `𝕂`-linear one on the transports:
 the same domain and the same function. -/
--- `pmap` (like `domainOut`, `clm`, `clmEquiv`, `homeomorph`, and
--- `addEquiv`) remains exposed: its `domain` field is referenced
--- definitionally in the statements of the characteristic lemmas
--- `pmap_apply` and `pmap_domain`, and its body is required by the
--- `rfl`-style proofs elsewhere in this module, so the bundle cannot be
--- made opaque without changing the public API.
-@[expose]
 def pmap (A : E →ₗ.[𝕜] F) : ScalarTransport e E →ₗ.[𝕂] ScalarTransport e F where
   domain := submodule (e := e) A.domain
   toFun :=
@@ -356,11 +356,29 @@ def pmap (A : E →ₗ.[𝕜] F) : ScalarTransport e E →ₗ.[𝕂] ScalarTrans
 
 /-- The transported partial map has the transported domain. -/
 @[simp] theorem pmap_domain (A : E →ₗ.[𝕜] F) :
-    (pmap (e := e) A).domain = submodule (e := e) A.domain := rfl
+    (pmap (e := e) A).domain = submodule (e := e) A.domain := by
+  dsimp only [pmap]
 
-/-- and the original function. -/
+/-- Read a point of the transported partial map's domain back into the original domain.
+The domain equality is transported explicitly so that `pmap` need not be exposed. -/
+def pmapDomainOut (A : E →ₗ.[𝕜] F) (x : (pmap (e := e) A).domain) : A.domain :=
+  ⟨out (x : ScalarTransport e E), by
+    have hx : (x : ScalarTransport e E) ∈ submodule (e := e) A.domain := by
+      rw [← pmap_domain]
+      exact x.property
+    exact (mem_submodule).mp hx⟩
+
+/-- Reading a transported-domain point back preserves its ambient vector. -/
+@[simp] theorem pmapDomainOut_coe (A : E →ₗ.[𝕜] F)
+    (x : (pmap (e := e) A).domain) :
+    (pmapDomainOut (e := e) A x : E) = out (e := e) (x : ScalarTransport e E) := by
+  dsimp only [pmapDomainOut]
+
+/-- The transported partial map has the original function. -/
 @[simp] theorem pmap_apply (A : E →ₗ.[𝕜] F) (x : (pmap (e := e) A).domain) :
-    pmap (e := e) A x = of (e := e) (A (domainOut (e := e) A x)) := rfl
+    pmap (e := e) A x = of (e := e) (A (pmapDomainOut (e := e) A x)) := by
+  unfold pmap pmapDomainOut
+  all_goals rfl
 
 /-- The transport of partial maps is injective. -/
 theorem pmap_injective : Function.Injective (pmap (e := e) (E := E) (F := F)) := by
@@ -408,7 +426,6 @@ omit [NormedSpace 𝕜 E] in
 /-! ### Bounded operators -/
 
 /-- A `𝕜`-linear continuous map, as a `𝕂`-linear one on the transports. -/
-@[expose]
 def clm (T : E →L[𝕜] F) : ScalarTransport e E →L[𝕂] ScalarTransport e F where
   toFun x := of (e := e) (T (out x))
   map_add' _ _ := T.map_add _ _
@@ -417,11 +434,19 @@ def clm (T : E →L[𝕜] F) : ScalarTransport e E →L[𝕂] ScalarTransport e 
 
 /-- The transported operator is the original function. -/
 @[simp] theorem clm_apply (T : E →L[𝕜] F) (x : E) :
-    clm (e := e) T (of x) = of (T x) := rfl
+    clm (e := e) T (of x) = of (T x) := by
+  dsimp only [clm]
+  rfl
 
 /-- The transport of operators is subtractive: it does not change the functions. -/
 @[simp] theorem clm_sub (T R : E →L[𝕜] F) :
-    clm (e := e) (T - R) = clm (e := e) T - clm (e := e) R := rfl
+    clm (e := e) (T - R) = clm (e := e) T - clm (e := e) R := by
+  ext x
+  -- Both transported continuous maps have the original pointwise actions.
+  change of (e := e) ((T - R) (out x)) =
+    of (e := e) (T (out x)) - of (e := e) (R (out x))
+  rw [sub_apply]
+  rfl
 
 /-- and has the same operator norm. -/
 @[simp] theorem clm_norm (T : E →L[𝕜] F) : ‖clm (e := e) T‖ = ‖T‖ := by
@@ -431,7 +456,6 @@ def clm (T : E →L[𝕜] F) : ScalarTransport e E →L[𝕂] ScalarTransport e 
   · exact (clm (e := e) T).le_opNorm (of x)
 
 /-- The transport of a bounded operator is a bijection onto the `𝕂`-operators. -/
-@[expose]
 def clmEquiv : (E →L[𝕜] F) ≃ (ScalarTransport e E →L[𝕂] ScalarTransport e F) where
   toFun := clm
   invFun T :=
@@ -450,12 +474,16 @@ def clmEquiv : (E →L[𝕜] F) ≃ (ScalarTransport e E →L[𝕂] ScalarTransp
 
 /-- Applying the operator equivalence is transport of the operator. -/
 @[simp] theorem clmEquiv_apply (T : E →L[𝕜] F) :
-    (clmEquiv (e := e)) T = clm (e := e) T := rfl
+    (clmEquiv (e := e)) T = clm (e := e) T := by
+  dsimp only [clmEquiv]
+  rfl
 
 /-- Applying the inverse operator equivalence recovers the original vector action. -/
 @[simp] theorem clmEquiv_symm_apply_apply
     (T : ScalarTransport e E →L[𝕂] ScalarTransport e F) (x : E) :
-    ((clmEquiv (e := e)).symm T) x = out (e := e) (T (of (e := e) x)) := rfl
+    ((clmEquiv (e := e)).symm T) x = out (e := e) (T (of (e := e) x)) := by
+  dsimp only [clmEquiv, Equiv.symm]
+  rfl
 
 
 /-! ### Operator rank -/
@@ -472,8 +500,17 @@ theorem rank_clm_eq (T : E →L[𝕜] F) :
     ext y
     simp only [LinearMap.mem_range, mem_submodule]
     constructor
-    · rintro ⟨x, rfl⟩; exact ⟨out x, rfl⟩
-    · rintro ⟨x, hx⟩; exact ⟨of (e := e) x, congrArg (of (e := e)) hx⟩
+    · rintro ⟨x, rfl⟩
+      refine ⟨out x, ?_⟩
+      -- The underlying linear map is the same continuous map.
+      change T (out x) = out (clm (e := e) T x)
+      have h := congrArg (out (e := e)) (clm_apply (e := e) T (out x))
+      simpa only [of_out, out_of] using h.symm
+    · rintro ⟨x, hx⟩
+      refine ⟨of (e := e) x, ?_⟩
+      change clm (e := e) T (of (e := e) x) = of (e := e) y
+      rw [clm_apply]
+      exact congrArg (of (e := e)) hx
   rw [LinearMap.rank, LinearMap.rank, hrange, ← rank_eq]
 
 
@@ -482,7 +519,14 @@ theorem rank_clm_eq (T : E →L[𝕜] F) :
 /-- Density of the domain is unchanged: the carrier and the topology are. -/
 theorem dense_pmap_domain_iff (A : E →ₗ.[𝕜] F) :
     Dense ((pmap (e := e) A).domain : Set (ScalarTransport e E)) ↔
-      Dense (A.domain : Set E) := Iff.rfl
+      Dense (A.domain : Set E) := by
+  have hcarrier :
+      ((submodule (e := e) A.domain : Submodule 𝕂 (ScalarTransport e E)) :
+          Set (ScalarTransport e E)) = (A.domain : Set E) := by
+    ext x
+    exact mem_submodule
+  rw [pmap_domain, hcarrier]
+  rfl
 
 
 end Normed
@@ -528,11 +572,13 @@ noncomputable instance : InnerProductSpace 𝕂 (ScalarTransport e E) where
   simp only [Submodule.mem_orthogonal, mem_submodule]
   constructor
   · intro h y hy
-    have h2 : inner 𝕂 (of (e := e) y) x = 0 := h (of (e := e) y) hy
+    have h2 : inner 𝕂 (of (e := e) y) x = 0 :=
+      h (of (e := e) y) (by simpa only [mem_submodule, out_of] using hy)
     have h3 : e (inner 𝕜 y (out x)) = 0 := h2
     simpa using congrArg e.toRingEquiv.symm h3
   · intro h y hy
-    have h2 : inner 𝕜 (out y) (out x) = 0 := h (out y) hy
+    have h2 : inner 𝕜 (out y) (out x) = 0 :=
+      h (out y) (by simpa only [mem_submodule] using hy)
     -- Coercion to the ambient transported type is the identity on vectors.
     change e (inner 𝕜 (out y) (out x)) = 0
     rw [h2, map_zero]
@@ -546,7 +592,14 @@ instance hasOrthogonalProjection (S : Submodule 𝕜 E) [S.HasOrthogonalProjecti
   exists_orthogonal x := by
     obtain ⟨w, hw, hsub⟩ :=
       Submodule.HasOrthogonalProjection.exists_orthogonal (K := S) (out x)
-    exact ⟨of (e := e) w, hw, by rw [submodule_orthogonal]; exact hsub⟩
+    exact ⟨of (e := e) w,
+      (mem_submodule (e := e)).mpr (by simpa only [out_of] using hw),
+      by
+        rw [submodule_orthogonal]
+        exact (mem_submodule (e := e)).mpr (by
+          -- The metric/additive structure is unchanged by scalar transport.
+          change out x - w ∈ Sᗮ
+          exact hsub)⟩
 
 /-- and the projection is the original projection. -/
 @[simp] theorem starProjection_of (S : Submodule 𝕜 E) [S.HasOrthogonalProjection] (x : E) :
@@ -554,9 +607,11 @@ instance hasOrthogonalProjection (S : Submodule 𝕜 E) [S.HasOrthogonalProjecti
   have hmem : S.starProjection x ∈ S := S.starProjection_apply_mem x
   have hperp : x - S.starProjection x ∈ Sᗮ := S.sub_starProjection_mem_orthogonal x
   refine Submodule.eq_starProjection_of_mem_of_inner_eq_zero (K := submodule (e := e) S)
-    (u := of (e := e) x) (v := of (e := e) (S.starProjection x)) hmem fun w hw => ?_
+    (u := of (e := e) x) (v := of (e := e) (S.starProjection x))
+    (by simpa only [mem_submodule, out_of] using hmem) fun w hw => ?_
   have hinner : inner 𝕜 (x - S.starProjection x) (out w) = 0 :=
-    (Submodule.mem_orthogonal' _ _).mp hperp (out w) hw
+    (Submodule.mem_orthogonal' _ _).mp hperp (out w)
+      (by simpa only [mem_submodule] using hw)
   -- The transported subtraction and coercion to the ambient space do not
   -- change underlying vectors; the inner-product output is mapped by `e`.
   change e (inner 𝕜 (x - S.starProjection x) (out w)) = 0
@@ -574,7 +629,10 @@ theorem mem_pmap_adjointDomain_iff (A : E →ₗ.[𝕜] F) (y : ScalarTransport 
       inner 𝕂 y ((pmap (e := e) A) x)) ↔
     Continuous (fun x : A.domain => inner 𝕜 (out y) (A x))
   rw [← e.homeomorph.comp_continuous_iff]
-  rfl
+  -- Compare the continuous functions after unfolding only the definitions
+  -- being constructed in this file; callers use their public application lemmas.
+  dsimp only [pmap, domainOut, submodule, RCLikeIso.homeomorph]
+  all_goals rfl
 
 /-- The transported adjoint domain is the transport of the adjoint domain. -/
 @[simp] theorem pmap_adjointDomain (A : E →ₗ.[𝕜] F) :
@@ -595,9 +653,12 @@ variable [CompleteSpace E] [CompleteSpace F]
   refine ContinuousLinearMap.ext fun y => ?_
   refine ext_inner_left 𝕂 fun x => ?_
   rw [ContinuousLinearMap.adjoint_inner_right]
-  -- The bundled operators act on the same underlying vectors.
-  change e (inner 𝕜 (T (out x)) (out y)) = e (inner 𝕜 (out x) (T.adjoint (out y)))
-  rw [ContinuousLinearMap.adjoint_inner_right]
+  -- Read both transported arguments through `of` and apply the public
+  -- continuous-operator and inner-product transport laws.
+  rw [← of_out (e := e) x, ← of_out (e := e) y]
+  simp only [clm_apply, inner_of]
+  exact congrArg e.toRingEquiv
+    (ContinuousLinearMap.adjoint_inner_right T (out x) (out y)).symm
 
 /-- Self-adjointness is preserved and reflected by the transport. -/
 theorem isSelfAdjoint_clm_iff {T : E →L[𝕜] E} :
@@ -617,16 +678,22 @@ omit [CompleteSpace F] in
 /-- The adjoint of a transported partial map is the transport of its adjoint. -/
 theorem pmap_adjoint (A : E →ₗ.[𝕜] F) (hA : Dense (A.domain : Set E)) :
     (pmap (e := e) A).adjoint = pmap (e := e) A.adjoint := by
-  have hA' : Dense ((pmap (e := e) A).domain : Set (ScalarTransport e E)) := hA
+  have hA' : Dense ((pmap (e := e) A).domain : Set (ScalarTransport e E)) :=
+    (dense_pmap_domain_iff (e := e) A).mpr hA
   refine LinearPMap.ext (by simp [LinearPMap.adjoint]) fun y hf hg => ?_
   refine LinearPMap.adjoint_apply_eq hA' ⟨y, hf⟩
     (x₀ := of (e := e) (A.adjoint ⟨out y, hg⟩))
     fun x => ?_
   -- The transported domain subtype and the original have identical
   -- underlying vectors; this conversion exposes the defining inner product.
-  change e (inner 𝕜 (A.adjoint ⟨out y, hg⟩) (out ((x : ScalarTransport e E)))) =
-    e (inner 𝕜 (out y) (A (domainOut (e := e) A x)))
-  exact congrArg e.toRingEquiv (LinearPMap.adjoint_isFormalAdjoint hA ⟨out y, hg⟩ _)
+  rw [pmap_apply (e := e) A x]
+  -- Coercing the dependent adjoint-domain argument to its ambient space
+  -- avoids rewriting inside `⟨y, hf⟩`, whose proof depends on `y`.
+  change e (inner 𝕜 (A.adjoint ⟨out y, hg⟩) (out (x : ScalarTransport e E))) =
+    e (inner 𝕜 (out y) (A (pmapDomainOut (e := e) A x)))
+  exact congrArg e.toRingEquiv
+    (LinearPMap.adjoint_isFormalAdjoint hA ⟨out y, hg⟩
+      (pmapDomainOut (e := e) A x))
 
 variable (e) in
 /-- Self-adjointness is preserved and reflected by the transport. -/

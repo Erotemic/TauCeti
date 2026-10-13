@@ -78,8 +78,10 @@ transported ambient space, without changing underlying vectors. -/
 noncomputable def submoduleSubtypeEquiv (S : Submodule 𝕜 X) :
     ScalarTransport e S ≃ₗᵢ[𝕂]
       (submodule (e := e) S : Submodule 𝕂 (ScalarTransport e X)) where
-  toFun x := ⟨of (e := e) ((out (e := e) x : S) : X), (out (e := e) x : S).2⟩
-  invFun y := of (e := e) (⟨out (e := e) (y : ScalarTransport e X), y.2⟩ : S)
+  toFun x := ⟨of (e := e) ((out (e := e) x : S) : X),
+    by simpa only [mem_submodule, out_of] using (out (e := e) x : S).2⟩
+  invFun y := of (e := e) (⟨out (e := e) (y : ScalarTransport e X),
+    by simpa only [mem_submodule] using y.2⟩ : S)
   left_inv _ := rfl
   right_inv _ := rfl
   map_add' _ _ := rfl
@@ -98,7 +100,8 @@ noncomputable def submoduleSubtypeEquiv (S : Submodule 𝕜 X) :
 @[simp] theorem submoduleSubtypeEquiv_symm_coe_apply (S : Submodule 𝕜 X)
     (x : submodule (e := e) S) :
     out (e := e) ((submoduleSubtypeEquiv (e := e) S).symm x) =
-      (⟨out (e := e) (x : ScalarTransport e X), x.2⟩ : S) := by
+      (⟨out (e := e) (x : ScalarTransport e X),
+        by simpa only [mem_submodule] using x.2⟩ : S) := by
   dsimp only [submoduleSubtypeEquiv, Equiv.symm]
   rfl
 
@@ -119,12 +122,12 @@ noncomputable def orthogonalSubmoduleSubtypeEquiv (S : Submodule 𝕜 X) :
       ((submodule (e := e) S)ᗮ : Submodule 𝕂 (ScalarTransport e X)) where
   toFun x := ⟨of (e := e) ((out (e := e) x : Sᗮ) : X), by
     rw [submodule_orthogonal]
-    exact (out (e := e) x : Sᗮ).2⟩
+    simpa only [mem_submodule, out_of] using (out (e := e) x : Sᗮ).2⟩
   invFun y := of (e := e) (⟨out (e := e) (y : ScalarTransport e X), by
     have hy : (y : ScalarTransport e X) ∈ submodule (e := e) Sᗮ := by
       rw [← submodule_orthogonal]
       exact y.2
-    exact hy⟩ : Sᗮ)
+    exact (mem_submodule (e := e)).mp hy⟩ : Sᗮ)
   -- The transport changes only scalar actions, not the carrier or norm.
   -- Both directions erase to the original vector, so these laws are reflexivity.
   left_inv _ := rfl
