@@ -6,6 +6,7 @@ Authors: The Tau Ceti contributors
 module
 
 public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
 /-!
 # Parseval's identity in norm-square form
@@ -22,8 +23,11 @@ for the Hermite basis is `TauCeti.tsum_norm_sq_inner_hermiteFunctionLp`.
 ## Main declarations
 
 * `HilbertBasis.hasSum_norm_sq_inner` — Parseval in norm-square form, as a `HasSum` statement.
+* `HilbertBasis.tsum_enorm_inner_sq` - the extended-real version.
 * `HilbertBasis.tsum_norm_sq_inner` — the same identity as an equation between a `tsum` and `‖x‖²`.
 -/
+
+open scoped ENNReal InnerProductSpace
 
 public section
 
@@ -49,5 +53,17 @@ theorem _root_.HilbertBasis.tsum_norm_sq_inner (b : _root_.HilbertBasis ι 𝕜 
 theorem _root_.HilbertBasis.summable_norm_sq_inner (b : _root_.HilbertBasis ι 𝕜 E) (x : E) :
     Summable fun i => ‖inner 𝕜 (b i) x‖ ^ 2 :=
   (b.hasSum_norm_sq_inner x).summable
+
+/-- **Parseval's identity** in `ℝ≥0∞`.  Unlike the real form this is an unconditional
+equation between extended reals, which is what lets it be substituted under a `tsum`
+without a summability hypothesis. -/
+theorem _root_.HilbertBasis.tsum_enorm_inner_sq (b : HilbertBasis ι 𝕜 E) (v : E) :
+    ∑' i, ‖⟪b i, v⟫_𝕜‖ₑ ^ 2 = ‖v‖ₑ ^ 2 := by
+  have hnn : HasSum (fun i => ‖⟪b i, v⟫_𝕜‖₊ ^ 2) (‖v‖₊ ^ 2) := by
+    rw [← NNReal.hasSum_coe]
+    push_cast
+    exact b.hasSum_norm_sq_inner v
+  simp only [enorm_eq_nnnorm, ← ENNReal.coe_pow]
+  rw [← ENNReal.coe_tsum hnn.summable, hnn.tsum_eq]
 
 end TauCeti

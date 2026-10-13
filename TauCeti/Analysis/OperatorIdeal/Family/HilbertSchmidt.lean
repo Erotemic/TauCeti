@@ -7,116 +7,43 @@ module
 
 public import TauCeti.Analysis.InnerProductSpace.HilbertSchmidt.Energy
 public import TauCeti.Analysis.OperatorIdeal.Family.Basic
-public import Mathlib.Analysis.MeanInequalities
+public import TauCeti.Topology.Algebra.InfiniteSum.ENNReal
 
 /-!
-# The Hilbert--Schmidt operator ideal
+# Hilbert--Schmidt operator ideal
 
-The **Hilbert--Schmidt norm** of a bounded operator between Hilbert spaces is the square
-root of its Hilbert--Schmidt energy,
+The basis-independent extended Hilbert--Schmidt norm is finite exactly on
+Hilbert--Schmidt operators and supplies a symmetric operator ideal family.
+It obeys the triangle inequality, adjoint invariance, the two-sided ideal law,
+and Fatou lower semicontinuity under pointwise convergence on a Hilbert basis.
 
-```
-‖T‖_HS = (∑' i, ‖T (b i)‖ₑ ^ 2) ^ (1/2),
-```
+The genuine real norm of a Hilbert--Schmidt operator is inherited by the
+normed type `OperatorIdealFamily.Elem`. The auxiliary total function
+`ContinuousLinearMap.hilbertSchmidtNormToReal` is merely the `toReal` reading of
+the extended norm and equals zero outside the ideal.
 
-which by `ContinuousLinearMap.hilbertSchmidtEnergy_indep` does not depend on the Hilbert
-basis `b`.  Like the energy it takes values in `ℝ≥0∞` and is therefore defined for every
-bounded operator, being `∞` exactly off the ideal.
+The generic Minkowski and Fatou lemmas are imported from
+`TauCeti.Topology.Algebra.InfiniteSum.ENNReal`.
 
-The point of the file is the final construction: these operators form a
-`TauCeti.SymmetricOperatorIdealFamily`, the second concrete instance of that structure
-after the Ky Fan families.  Two instances built from genuinely different mathematics is
-what makes the structure worth having, and the Hilbert--Schmidt one is the instance the
-literature reaches for first.
-
-## Main definitions and results
-
-* `ContinuousLinearMap.hilbertSchmidtENorm`: the Hilbert--Schmidt norm, valued in `ℝ≥0∞`;
-* `ContinuousLinearMap.hilbertSchmidtENorm_add_le`: the triangle inequality, which is
-  Minkowski's inequality at `p = 2`;
-* `ContinuousLinearMap.enorm_le_hilbertSchmidtENorm`: it dominates the operator norm;
-* `ContinuousLinearMap.hilbertSchmidtENorm_comp_le`: the two-sided ideal bound;
-* `ContinuousLinearMap.hilbertSchmidtENorm_adjoint`: it is adjoint-invariant;
-* `TauCeti.hilbertSchmidtIdealFamily`: the resulting symmetric operator ideal family.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: none.  `vendor/Spectra` models Hilbert--Schmidt operators as a Hilbert
-  tensor product and does not build an operator ideal from them.
+Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
 
 open scoped ENNReal NNReal InnerProductSpace
 
 public section
 
-namespace ENNReal
-
-variable {ι : Type*}
-
-/-- **Minkowski's inequality in `ℓᵖ` for `tsum`, over `ℝ≥0∞`.**  Mathlib's
-`ENNReal.Lp_add_le` is stated for a `Finset`, and its `tsum` counterpart exists only over
-`ℝ≥0` (`NNReal.Lp_add_le_tsum`), where it carries summability hypotheses on both summands.
-This is the `ℝ≥0∞` version, which needs no summability hypothesis at all — that is exactly
-why the operator-ideal gauges are `ℝ≥0∞`-valued, since it lets their laws hold
-unconditionally at non-members.
-
-The proof is the standard supremum argument: the finite inequality bounds every partial sum
-of the left side by the `p`-th power of the right side, and `∑'` is the supremum of its
-partial sums. -/
-theorem tsum_rpow_add_le {p : ℝ} (hp : 1 ≤ p) (f g : ι → ℝ≥0∞) :
-    (∑' i, (f i + g i) ^ p) ^ p⁻¹ ≤
-      (∑' i, f i ^ p) ^ p⁻¹ + (∑' i, g i ^ p) ^ p⁻¹ := by
-  have hp0 : (0 : ℝ) < p := lt_of_lt_of_le zero_lt_one hp
-  set A := (∑' i, f i ^ p) ^ p⁻¹ with hA
-  set B := (∑' i, g i ^ p) ^ p⁻¹ with hB
-  have hpow : ∀ x : ℝ≥0∞, (x ^ p⁻¹) ^ p = x := fun x => by
-    rw [← ENNReal.rpow_mul, inv_mul_cancel₀ hp0.ne', ENNReal.rpow_one]
-  have key : ∀ s : Finset ι, ∑ i ∈ s, (f i + g i) ^ p ≤ (A + B) ^ p := by
-    intro s
-    have hfin := ENNReal.Lp_add_le (s := s) (f := f) (g := g) (p := p) hp
-    rw [one_div] at hfin
-    have hfA : (∑ i ∈ s, f i ^ p) ^ p⁻¹ ≤ A :=
-      ENNReal.rpow_le_rpow (ENNReal.sum_le_tsum s) (by positivity)
-    have hgB : (∑ i ∈ s, g i ^ p) ^ p⁻¹ ≤ B :=
-      ENNReal.rpow_le_rpow (ENNReal.sum_le_tsum s) (by positivity)
-    calc ∑ i ∈ s, (f i + g i) ^ p
-        = ((∑ i ∈ s, (f i + g i) ^ p) ^ p⁻¹) ^ p := (hpow _).symm
-      _ ≤ (A + B) ^ p :=
-          ENNReal.rpow_le_rpow (hfin.trans (add_le_add hfA hgB)) hp0.le
-  have hsum : ∑' i, (f i + g i) ^ p ≤ (A + B) ^ p :=
-    ENNReal.tsum_eq_iSup_sum.trans_le (iSup_le key)
-  calc (∑' i, (f i + g i) ^ p) ^ p⁻¹
-      ≤ ((A + B) ^ p) ^ p⁻¹ := ENNReal.rpow_le_rpow hsum (by positivity)
-    _ = A + B := by rw [← ENNReal.rpow_mul, mul_inv_cancel₀ hp0.ne', ENNReal.rpow_one]
-
-/-- **Minkowski's inequality at `p = 2` for `tsum`**, the instance the Hilbert--Schmidt
-energy uses.  Stated separately because its consumers carry the `^ 2` in `ℕ`-power form. -/
-theorem tsum_sq_add_rpow_le (f g : ι → ℝ≥0∞) :
-    (∑' i, (f i + g i) ^ 2) ^ (2 : ℝ)⁻¹ ≤
-      (∑' i, f i ^ 2) ^ (2 : ℝ)⁻¹ + (∑' i, g i ^ 2) ^ (2 : ℝ)⁻¹ := by
-  simpa only [← ENNReal.rpow_two] using tsum_rpow_add_le (p := 2) one_le_two f g
-
-end ENNReal
 
 namespace TauCeti
 
 variable (𝕜 : Type*) [RCLike 𝕜]
 
-/-- The index set of `TauCeti.chosenHilbertBasis`: a choice of Hilbert basis of `E`, used to
-give the Hilbert--Schmidt norm a definition that mentions no basis.  Nothing depends on
-*which* basis this is — every statement about it is proved from
-`ContinuousLinearMap.hilbertSchmidtEnergy_indep`. -/
-noncomputable def chosenHilbertBasisSet (E : Type*) [NormedAddCommGroup E]
+/-- Internal basis index chosen to define the basis-independent extended norm. -/
+private noncomputable def chosenHilbertBasisSet (E : Type*) [NormedAddCommGroup E]
     [InnerProductSpace 𝕜 E] [CompleteSpace E] : Set E :=
   Classical.choose (exists_hilbertBasis 𝕜 E)
 
-/-- A choice of Hilbert basis of `E`, indexed by `TauCeti.chosenHilbertBasisSet`. -/
-noncomputable def chosenHilbertBasis (E : Type*) [NormedAddCommGroup E]
+/-- Internal Hilbert basis; elimination uses `hilbertSchmidtENorm_eq`. -/
+private noncomputable def chosenHilbertBasis (E : Type*) [NormedAddCommGroup E]
     [InnerProductSpace 𝕜 E] [CompleteSpace E] :
     HilbertBasis (chosenHilbertBasisSet 𝕜 E) 𝕜 E :=
   Classical.choose (Classical.choose_spec (exists_hilbertBasis 𝕜 E))
@@ -179,7 +106,9 @@ theorem hilbertSchmidtENorm_smul (c : 𝕜) (T : E →L[𝕜] F) :
 theorem hilbertSchmidtENorm_add_le (S T : E →L[𝕜] F) :
     (S + T).hilbertSchmidtENorm ≤ S.hilbertSchmidtENorm + T.hilbertSchmidtENorm := by
   obtain ⟨w, b, -⟩ := exists_hilbertBasis 𝕜 E
-  rw [(S + T).hilbertSchmidtENorm_eq b, S.hilbertSchmidtENorm_eq b, T.hilbertSchmidtENorm_eq b]
+  rw [(S + T).hilbertSchmidtENorm_eq b, S.hilbertSchmidtENorm_eq b, T.hilbertSchmidtENorm_eq b,
+    (S + T).hilbertSchmidtEnergy_def b, S.hilbertSchmidtEnergy_def b,
+    T.hilbertSchmidtEnergy_def b]
   refine le_trans (ENNReal.rpow_le_rpow ?_ (by norm_num)) <|
     ENNReal.tsum_sq_add_rpow_le (fun i => ‖S (b i)‖ₑ) (fun i => ‖T (b i)‖ₑ)
   refine ENNReal.tsum_le_tsum fun i => ?_
@@ -243,7 +172,7 @@ theorem isHilbertSchmidt_iff_energy_ne_top (T : E →L[𝕜] F) (b : HilbertBasi
 summable in any — equivalently, some — Hilbert basis. -/
 theorem isHilbertSchmidt_iff_summable (T : E →L[𝕜] F) (b : HilbertBasis ι 𝕜 E) :
     T.IsHilbertSchmidt ↔ Summable fun i => ‖T (b i)‖ ^ 2 := by
-  rw [T.isHilbertSchmidt_iff_energy_ne_top b, hilbertSchmidtEnergy]
+  rw [T.isHilbertSchmidt_iff_energy_ne_top b, T.hilbertSchmidtEnergy_def b]
   have hcoe : ∀ i, ‖T (b i)‖ₑ ^ 2 = ((‖T (b i)‖₊ ^ 2 : ℝ≥0) : ℝ≥0∞) := fun i => by
     simp [enorm_eq_nnnorm]
   simp only [hcoe]
@@ -332,22 +261,8 @@ theorem isHilbertSchmidt_of_finiteDimensional [FiniteDimensional 𝕜 E] (T : E 
   (T.isHilbertSchmidt_iff_summable
     (stdOrthonormalBasis 𝕜 E).toHilbertBasis).2 (summable_of_hasFiniteSupport (Set.toFinite _))
 
-/-- **Fatou for the Hilbert--Schmidt gauge.**  The gauge is lower semicontinuous along
-operator-norm convergence: if `T i → T` pointwise on a basis, the limit's energy is at most
-the `liminf` of the energies.
-
-This is the step that replaces the Ky Fan shortcut.  `kyFanIdealFamily` gets completeness
-from `‖A‖ ≤ kyFanGauge k A ≤ k ‖A‖`, so a gauge-Cauchy sequence is norm-Cauchy *and* the
-norm limit is automatically a gauge limit.  The Hilbert--Schmidt gauge is not equivalent to
-the operator norm, so the second half fails and the limit has to be controlled term by term
-instead -- which is Fatou's lemma in the shape a `tsum` of `ℝ≥0∞` already provides.
-
-The proof is by finite sections rather than through `MeasureTheory.lintegral_liminf_le`
-against the counting measure.  The two are the same argument, but the measure route obliges
-the *basis index type* to carry `MeasurableSpace`, `MeasurableSingletonClass` and
-`DiscreteMeasurableSpace`, and the filter to be countably generated, none of which the
-statement is about; `∑'` over `ℝ≥0∞` is already a supremum of finite partial sums, so the
-same Fatou step is `Filter.liminf_le_liminf` on each section. -/
+/-- Fatou lower semicontinuity of squared Hilbert--Schmidt norms under
+pointwise convergence of the squared column norms in a Hilbert basis. -/
 theorem hilbertSchmidtENorm_le_liminf {ι : Type*} (b : HilbertBasis ι 𝕜 E)
     {u : Filter ℕ} [u.NeBot]
     {T : ℕ → E →L[𝕜] F} {L : E →L[𝕜] F}
@@ -355,91 +270,88 @@ theorem hilbertSchmidtENorm_le_liminf {ι : Type*} (b : HilbertBasis ι 𝕜 E)
       (nhds (‖L (b i)‖ₑ ^ 2))) :
     L.hilbertSchmidtENorm ^ (2 : ℝ) ≤
       Filter.liminf (fun n => (T n).hilbertSchmidtENorm ^ (2 : ℝ)) u := by
-  classical
-  have hT : ∀ n, (T n).hilbertSchmidtENorm ^ (2 : ℝ) = ∑' i, ‖T n (b i)‖ₑ ^ 2 :=
-    fun n => (T n).hilbertSchmidtENorm_rpow_two b
-  rw [L.hilbertSchmidtENorm_rpow_two b, L.hilbertSchmidtEnergy_eq_iSup_sum b]
-  refine iSup_le fun s => ?_
-  have hfin : Filter.Tendsto (fun n => ∑ i ∈ s, ‖T n (b i)‖ₑ ^ 2) u
-      (nhds (∑ i ∈ s, ‖L (b i)‖ₑ ^ 2)) :=
-    tendsto_finsetSum _ fun i _ => hptwise i
-  calc ∑ i ∈ s, ‖L (b i)‖ₑ ^ 2
-      = Filter.liminf (fun n => ∑ i ∈ s, ‖T n (b i)‖ₑ ^ 2) u := hfin.liminf_eq.symm
-    _ ≤ Filter.liminf (fun n => (T n).hilbertSchmidtENorm ^ (2 : ℝ)) u :=
-        Filter.liminf_le_liminf (Filter.Eventually.of_forall fun n => by
-          rw [hT n]; exact ENNReal.sum_le_tsum s)
+  calc
+    L.hilbertSchmidtENorm ^ (2 : ℝ)
+        = ∑' i, ‖L (b i)‖ₑ ^ 2 := by
+          rw [L.hilbertSchmidtENorm_rpow_two b, L.hilbertSchmidtEnergy_def]
+    _ ≤ Filter.liminf (fun n => ∑' i, ‖T n (b i)‖ₑ ^ 2) u :=
+      ENNReal.tsum_le_liminf_tsum hptwise
+    _ = Filter.liminf (fun n => (T n).hilbertSchmidtENorm ^ (2 : ℝ)) u := by
+      have hfun : (fun n : ℕ => ∑' i, ‖T n (b i)‖ₑ ^ 2) =
+          (fun n : ℕ => (T n).hilbertSchmidtENorm ^ (2 : ℝ)) := by
+        funext n
+        calc
+          (∑' i, ‖T n (b i)‖ₑ ^ 2) = (T n).hilbertSchmidtEnergy b := by
+            rw [(T n).hilbertSchmidtEnergy_def]
+          _ = (T n).hilbertSchmidtENorm ^ (2 : ℝ) :=
+            ((T n).hilbertSchmidtENorm_rpow_two b).symm
+      exact congrArg (fun f : ℕ → ℝ≥0∞ => Filter.liminf f u) hfun
 
 
-/-! ### The real-valued norm
+/-! ### The total real-valued reading of the extended norm
 
-The gauge of an operator ideal is `ℝ≥0∞`-valued, because a gauge has to be defined on
-operators outside the ideal.  An estimate *inside* the ideal is an inequality between real
-numbers, and stating it in `ℝ≥0∞` forces every consumer to carry finiteness through
-arithmetic that does not need it.  So the ideal keeps the extended norm and this is its
-real-valued reading, defined on all operators and equal to zero off the ideal.
+Outside the ideal this is zero, so it is *not* a norm on all bounded operators.
+Use `OperatorIdealFamily.Elem` and its norm for the actual Hilbert--Schmidt norm.
+-/
 
-The two are interchangeable exactly where it matters: `ofReal_hilbertSchmidtNorm` turns a
-real statement into the extended one for a Hilbert--Schmidt operator, and
-`hilbertSchmidtNorm_eq_toReal` is the definition. -/
-
-/-- The real-valued Hilbert--Schmidt norm.  Zero off the ideal. -/
-@[expose]
-noncomputable def hilbertSchmidtNorm (T : E →L[𝕜] F) : ℝ := T.hilbertSchmidtENorm.toReal
+/-- The total real-valued reading of the extended Hilbert--Schmidt norm.
+Zero off the ideal; not a norm on all bounded operators. -/
+noncomputable def hilbertSchmidtNormToReal (T : E →L[𝕜] F) : ℝ := T.hilbertSchmidtENorm.toReal
 
 omit [CompleteSpace F] in
 /-- The real norm is the extended one read in `ℝ`; this is the definition. -/
-theorem hilbertSchmidtNorm_eq_toReal (T : E →L[𝕜] F) :
-    T.hilbertSchmidtNorm = T.hilbertSchmidtENorm.toReal := by
-  rw [hilbertSchmidtNorm]
+theorem hilbertSchmidtNormToReal_eq_toReal (T : E →L[𝕜] F) :
+    T.hilbertSchmidtNormToReal = T.hilbertSchmidtENorm.toReal := by
+  rw [hilbertSchmidtNormToReal]
 
 omit [CompleteSpace F] in
 /-- On the ideal, the real norm determines the extended one. -/
-theorem ofReal_hilbertSchmidtNorm {T : E →L[𝕜] F} (hT : T.IsHilbertSchmidt) :
-    ENNReal.ofReal T.hilbertSchmidtNorm = T.hilbertSchmidtENorm :=
+theorem ofReal_hilbertSchmidtNormToReal {T : E →L[𝕜] F} (hT : T.IsHilbertSchmidt) :
+    ENNReal.ofReal T.hilbertSchmidtNormToReal = T.hilbertSchmidtENorm :=
   ENNReal.ofReal_toReal hT
 
 omit [CompleteSpace F] in
 /-- The real Hilbert--Schmidt norm is nonnegative, on and off the ideal. -/
-@[simp] theorem hilbertSchmidtNorm_nonneg (T : E →L[𝕜] F) : 0 ≤ T.hilbertSchmidtNorm :=
+@[simp] theorem hilbertSchmidtNormToReal_nonneg (T : E →L[𝕜] F) : 0 ≤ T.hilbertSchmidtNormToReal :=
   ENNReal.toReal_nonneg
 
 omit [CompleteSpace F] in
 /-- The zero operator has zero real Hilbert--Schmidt norm. -/
-@[simp] theorem hilbertSchmidtNorm_zero : (0 : E →L[𝕜] F).hilbertSchmidtNorm = 0 := by
-  simp [hilbertSchmidtNorm]
+@[simp] theorem hilbertSchmidtNormToReal_zero : (0 : E →L[𝕜] F).hilbertSchmidtNormToReal = 0 := by
+  simp [hilbertSchmidtNormToReal]
 
 omit [CompleteSpace F] in
 /-- The real Hilbert--Schmidt norm is unchanged by negation. -/
-@[simp] theorem hilbertSchmidtNorm_neg (T : E →L[𝕜] F) :
-    (-T).hilbertSchmidtNorm = T.hilbertSchmidtNorm := by
-  simp [hilbertSchmidtNorm]
+@[simp] theorem hilbertSchmidtNormToReal_neg (T : E →L[𝕜] F) :
+    (-T).hilbertSchmidtNormToReal = T.hilbertSchmidtNormToReal := by
+  simp [hilbertSchmidtNormToReal]
 
 omit [CompleteSpace F] in
 /-- **Absolute homogeneity**, in `ℝ`.  No finiteness is needed: both sides are `0`
 off the ideal, and `‖c‖ * 0 = 0`. -/
-theorem hilbertSchmidtNorm_smul (c : 𝕜) (T : E →L[𝕜] F) :
-    (c • T).hilbertSchmidtNorm = ‖c‖ * T.hilbertSchmidtNorm := by
-  rw [hilbertSchmidtNorm, hilbertSchmidtENorm_smul, ENNReal.toReal_mul,
-    hilbertSchmidtNorm, enorm_eq_nnnorm, ENNReal.coe_toReal, coe_nnnorm]
+theorem hilbertSchmidtNormToReal_smul (c : 𝕜) (T : E →L[𝕜] F) :
+    (c • T).hilbertSchmidtNormToReal = ‖c‖ * T.hilbertSchmidtNormToReal := by
+  rw [hilbertSchmidtNormToReal, hilbertSchmidtENorm_smul, ENNReal.toReal_mul,
+    hilbertSchmidtNormToReal, enorm_eq_nnnorm, ENNReal.coe_toReal, coe_nnnorm]
 
 /-- **Adjoint invariance**, in `ℝ`. -/
-theorem hilbertSchmidtNorm_adjoint (T : E →L[𝕜] F) :
-    T.adjoint.hilbertSchmidtNorm = T.hilbertSchmidtNorm := by
-  rw [hilbertSchmidtNorm, hilbertSchmidtNorm, hilbertSchmidtENorm_adjoint]
+theorem hilbertSchmidtNormToReal_adjoint (T : E →L[𝕜] F) :
+    T.adjoint.hilbertSchmidtNormToReal = T.hilbertSchmidtNormToReal := by
+  rw [hilbertSchmidtNormToReal, hilbertSchmidtNormToReal, hilbertSchmidtENorm_adjoint]
 
 /-- **The triangle inequality**, in `ℝ`, for two Hilbert--Schmidt operators.  Finiteness
 is needed: `ENNReal.toReal` sends `∞` to `0`, so the inequality is false without it. -/
-theorem hilbertSchmidtNorm_add_le {S T : E →L[𝕜] F}
+theorem hilbertSchmidtNormToReal_add_le {S T : E →L[𝕜] F}
     (hS : S.IsHilbertSchmidt) (hT : T.IsHilbertSchmidt) :
-    (S + T).hilbertSchmidtNorm ≤ S.hilbertSchmidtNorm + T.hilbertSchmidtNorm := by
-  rw [hilbertSchmidtNorm, hilbertSchmidtNorm, hilbertSchmidtNorm,
+    (S + T).hilbertSchmidtNormToReal ≤ S.hilbertSchmidtNormToReal + T.hilbertSchmidtNormToReal := by
+  rw [hilbertSchmidtNormToReal, hilbertSchmidtNormToReal, hilbertSchmidtNormToReal,
     ← ENNReal.toReal_add hS hT]
   exact ENNReal.toReal_mono (ENNReal.add_ne_top.2 ⟨hS, hT⟩) (hilbertSchmidtENorm_add_le S T)
 
 /-- **The two-sided ideal bound**, in `ℝ`. -/
-theorem hilbertSchmidtNorm_comp_le (L : F →L[𝕜] G) {T : E →L[𝕜] F}
+theorem hilbertSchmidtNormToReal_comp_le (L : F →L[𝕜] G) {T : E →L[𝕜] F}
     (hT : T.IsHilbertSchmidt) (R : H →L[𝕜] E) :
-    (L ∘L T ∘L R).hilbertSchmidtNorm ≤ ‖L‖ * T.hilbertSchmidtNorm * ‖R‖ := by
+    (L ∘L T ∘L R).hilbertSchmidtNormToReal ≤ ‖L‖ * T.hilbertSchmidtNormToReal * ‖R‖ := by
   have hfin : ‖L‖ₑ * T.hilbertSchmidtENorm * ‖R‖ₑ ≠ ∞ :=
     ENNReal.mul_ne_top (ENNReal.mul_ne_top (by simp) hT) (by simp)
   have h := ENNReal.toReal_mono hfin (hilbertSchmidtENorm_comp_le L T R)
@@ -448,18 +360,18 @@ theorem hilbertSchmidtNorm_comp_le (L : F →L[𝕜] G) {T : E →L[𝕜] F}
 
 /-- **Contractions do not enlarge the Hilbert--Schmidt norm.**  This is the
 two-sided ideal bound with both factors of norm at most one. -/
-theorem hilbertSchmidtNorm_comp_isometries_le (L : F →L[𝕜] G) {T : E →L[𝕜] F}
+theorem hilbertSchmidtNormToReal_comp_le_of_norm_le_one (L : F →L[𝕜] G) {T : E →L[𝕜] F}
     (hT : T.IsHilbertSchmidt) (R : H →L[𝕜] E) (hL : ‖L‖ ≤ 1) (hR : ‖R‖ ≤ 1) :
-    (L ∘L T ∘L R).hilbertSchmidtNorm ≤ T.hilbertSchmidtNorm := by
-  calc (L ∘L T ∘L R).hilbertSchmidtNorm
-      ≤ ‖L‖ * T.hilbertSchmidtNorm * ‖R‖ := hilbertSchmidtNorm_comp_le L hT R
-    _ ≤ 1 * T.hilbertSchmidtNorm * 1 := by
-        gcongr <;> simp [hilbertSchmidtNorm_nonneg T]
-    _ = T.hilbertSchmidtNorm := by ring
+    (L ∘L T ∘L R).hilbertSchmidtNormToReal ≤ T.hilbertSchmidtNormToReal := by
+  calc (L ∘L T ∘L R).hilbertSchmidtNormToReal
+      ≤ ‖L‖ * T.hilbertSchmidtNormToReal * ‖R‖ := hilbertSchmidtNormToReal_comp_le L hT R
+    _ ≤ 1 * T.hilbertSchmidtNormToReal * 1 := by
+        gcongr <;> simp [hilbertSchmidtNormToReal_nonneg T]
+    _ = T.hilbertSchmidtNormToReal := by ring
 
 /-- **The Hilbert--Schmidt norm dominates the operator norm**, in `ℝ`. -/
-theorem norm_le_hilbertSchmidtNorm {T : E →L[𝕜] F} (hT : T.IsHilbertSchmidt) :
-    ‖T‖ ≤ T.hilbertSchmidtNorm := by
+theorem norm_le_hilbertSchmidtNormToReal {T : E →L[𝕜] F} (hT : T.IsHilbertSchmidt) :
+    ‖T‖ ≤ T.hilbertSchmidtNormToReal := by
   have h := ENNReal.toReal_mono hT (enorm_le_hilbertSchmidtENorm T)
   rwa [enorm_eq_nnnorm, ENNReal.coe_toReal, coe_nnnorm] at h
 
@@ -470,13 +382,7 @@ namespace TauCeti
 
 universe u v
 
-/-- **The Hilbert--Schmidt operator ideal.**
-
-This is the second instance of `TauCeti.SymmetricOperatorIdealFamily`, after the Ky Fan
-families of `DavisKahan/OperatorIdeal/ApproximationNumbers/ScalarGeneric.lean`.  The two are
-built from unrelated mathematics — approximation numbers there, orthonormal expansions here
-— which is the evidence that the structure captures the right notion. -/
-@[expose]
+/-- The symmetric operator ideal gauged by the extended Hilbert--Schmidt norm. -/
 noncomputable def hilbertSchmidtIdealFamily (𝕜 : Type u) [RCLike 𝕜] :
     SymmetricOperatorIdealFamily.{u, v} 𝕜 where
   gauge A := A.hilbertSchmidtENorm
@@ -486,14 +392,17 @@ noncomputable def hilbertSchmidtIdealFamily (𝕜 : Type u) [RCLike 𝕜] :
   gauge_comp_le L A R := ContinuousLinearMap.hilbertSchmidtENorm_comp_le L A R
   gauge_adjoint A := A.hilbertSchmidtENorm_adjoint
 
-/-- **The Hilbert--Schmidt ideal is complete.**
+/-- The gauge of the Hilbert--Schmidt family is the Hilbert--Schmidt norm. -/
+@[simp] theorem hilbertSchmidtIdealFamily_gauge {𝕜 : Type u} [RCLike 𝕜] {E F : Type v}
+    [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
+    [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F] (A : E →L[𝕜] F) :
+    (hilbertSchmidtIdealFamily.{u, v} 𝕜).toOperatorIdealFamily.gauge A =
+      A.hilbertSchmidtENorm := by
+  unfold hilbertSchmidtIdealFamily
+  rfl
 
-The `kyFanIdealFamily` route is unavailable here -- that one gets completeness from
-`‖A‖ ≤ kyFanGauge k A ≤ k ‖A‖`, so its gauge limit *is* its operator-norm limit -- and the
-Hilbert--Schmidt gauge is not equivalent to the operator norm.  What replaces it is
-`ContinuousLinearMap.hilbertSchmidtENorm_le_liminf`: take the operator-norm limit, which
-exists because the gauge dominates the operator norm, then bound its energy, and the energy
-of each difference, by the `liminf` along the sequence. -/
+/-- Completeness of the Hilbert--Schmidt ideal in its ideal-element norm.
+Fatou's lemma ensures the ambient operator-norm limit stays in the ideal. -/
 instance isComplete_hilbertSchmidtIdealFamily {𝕜 : Type u} [RCLike 𝕜] :
     (hilbertSchmidtIdealFamily.{u, v} 𝕜).toOperatorIdealFamily.IsComplete where
   completeSpace := by
@@ -536,7 +445,8 @@ instance isComplete_hilbertSchmidtIdealFamily {𝕜 : Type u} [RCLike 𝕜] :
         have hd : ‖a m - a n‖ < ε := by simpa [dist_eq_norm] using hN m hm n hn
         have hgauge : ((a m).val - (a n).val).hilbertSchmidtENorm ≤ ENNReal.ofReal ε := by
           have heq : (hilbertSchmidtIdealFamily.{u, v} 𝕜).gauge (a m - a n).val
-              = ((a m).val - (a n).val).hilbertSchmidtENorm := rfl
+              = ((a m).val - (a n).val).hilbertSchmidtENorm := by
+            rw [hilbertSchmidtIdealFamily_gauge, TauCeti.OperatorIdealFamily.Elem.val_sub]
           rw [← heq, ← TauCeti.OperatorIdealFamily.Elem.enorm_eq_gauge, ← ofReal_norm]
           exact ENNReal.ofReal_le_ofReal hd.le
         exact ENNReal.rpow_le_rpow hgauge (by norm_num)
@@ -584,12 +494,9 @@ theorem mem_hilbertSchmidtIdealFamily_carrier_iff {𝕜 : Type u} [RCLike 𝕜] 
     [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
     [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F] (A : E →L[𝕜] F) :
     A ∈ (hilbertSchmidtIdealFamily.{u, v} 𝕜).toOperatorIdealFamily.carrier ↔
-      A.IsHilbertSchmidt := (Iff.rfl)
-/-- The gauge of the Hilbert--Schmidt family is the Hilbert--Schmidt norm. -/
-@[simp] theorem hilbertSchmidtIdealFamily_gauge {𝕜 : Type u} [RCLike 𝕜] {E F : Type v}
-    [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
-    [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F] (A : E →L[𝕜] F) :
-    (hilbertSchmidtIdealFamily.{u, v} 𝕜).toOperatorIdealFamily.gauge A =
-      A.hilbertSchmidtENorm := (rfl)
+      A.IsHilbertSchmidt := by
+  rw [OperatorIdealFamily.mem_carrier_iff, hilbertSchmidtIdealFamily_gauge]
+  rfl
+
 
 end TauCeti

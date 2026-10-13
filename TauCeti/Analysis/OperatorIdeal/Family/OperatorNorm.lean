@@ -6,41 +6,19 @@ Authors: Jon Crall, Claude Opus 5, OpenAI GPT-5.6 Thinking
 module
 
 public import TauCeti.Analysis.OperatorIdeal.Family.Basic
+public import TauCeti.Topology.Algebra.Module.ContinuousLinearMap.Norm
 
 /-!
-# The operator norm as an ideal family
+# Operator norm ideal families
 
-The largest operator ideal is the whole space of bounded operators, gauged by
-the operator norm.  It is the canonical example of
-`TauCeti.OperatorIdealFamily`, and — since the adjoint is an isometry — of
-`TauCeti.SymmetricOperatorIdealFamily`.
+The operator norm defines an operator ideal containing all bounded maps and a
+symmetric family on Hilbert spaces. The ideal-element norm agrees with the
+ordinary operator norm; completeness transfers from the bounded operators.
 
-This module also records the two facts that make the example useful as a
-sanity check on the abstract layer: the ideal is everything
-(`carrier_operatorNormFamily`), and the ideal norm on it is the operator norm
-(`operatorNormFamilyElemEquiv`, a linear isometry equivalence onto
-`E →L[𝕜] F`), from which completeness of the family is inherited from
-completeness of `E →L[𝕜] F`.
+The general two-sided composition bound is in
+`TauCeti.Topology.Algebra.Module.ContinuousLinearMap.Norm`.
 
-## Main definitions
-
-* `TauCeti.operatorNormIdealFamily`: the operator norm as an ideal family over a
-  general nontrivially normed field, with independent source and target
-  universes.
-* `TauCeti.operatorNormFamily`: its symmetric (Hilbert, adjoint-invariant)
-  refinement.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `b283d23`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, Claude Opus 5, OpenAI GPT-5.6 Thinking; Copyright (c)
-  2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
 
 public section
@@ -49,29 +27,6 @@ open scoped ENNReal
 
 universe u v w
 
-/-- Submultiplicativity of the operator norm across a **two-sided** composition.
-
-Mathlib has the two-fold `ContinuousLinearMap.opNorm_comp_le`; the two-sided
-form is what every ideal law is stated against, so it is worth a name.  Nothing
-here needs an inner product or completeness — it is a fact about normed spaces
-— but it is stated where its first consumer is rather than in a file of its own.
-
-`opNorm_comp_comp_le` in the legacy rectangular namespace was this same calc
-proof, verbatim; it now delegates here. -/
-theorem ContinuousLinearMap.opNorm_comp_comp_le
-    {𝕜 : Type*} [RCLike 𝕜]
-    {E F G H : Type*}
-    [NormedAddCommGroup E] [NormedSpace 𝕜 E]
-    [NormedAddCommGroup F] [NormedSpace 𝕜 F]
-    [NormedAddCommGroup G] [NormedSpace 𝕜 G]
-    [NormedAddCommGroup H] [NormedSpace 𝕜 H]
-    (L : F →L[𝕜] G) (A : E →L[𝕜] F) (R : H →L[𝕜] E) :
-    ‖L ∘L A ∘L R‖ ≤ ‖L‖ * ‖A‖ * ‖R‖ :=
-  calc ‖L ∘L A ∘L R‖ ≤ ‖L‖ * ‖A ∘L R‖ := ContinuousLinearMap.opNorm_comp_le _ _
-    _ ≤ ‖L‖ * (‖A‖ * ‖R‖) :=
-        mul_le_mul_of_nonneg_left
-          (ContinuousLinearMap.opNorm_comp_le A R) (norm_nonneg L)
-    _ = ‖L‖ * ‖A‖ * ‖R‖ := (mul_assoc _ _ _).symm
 
 namespace TauCeti
 
@@ -84,7 +39,6 @@ variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F]
 
 /-- The operator norm, as an operator ideal family: every bounded operator is a
 member, and the gauge is the operator norm. -/
-@[expose]
 noncomputable def operatorNormIdealFamily (𝕜 : Type u) [RCLike 𝕜] :
     OperatorIdealFamily.{u, v, w} 𝕜 where
   gauge A := ‖A‖ₑ
@@ -104,17 +58,15 @@ noncomputable def operatorNormIdealFamily (𝕜 : Type u) [RCLike 𝕜] :
           rw [Real.norm_eq_abs, abs_of_nonneg (by positivity),
             ENNReal.ofReal_mul (by positivity), ENNReal.ofReal_mul (norm_nonneg _)]
 
-/-- The gauge of the operator-norm family *is* the operator norm, definitionally.
-This is the lemma that lets the generic ideal-family API be read as ordinary
-operator-norm statements. -/
+/-- The operator-norm ideal gauge agrees with the extended operator norm. -/
 @[simp]
 theorem gauge_operatorNormIdealFamily (A : E →L[𝕜] F) :
-    (operatorNormIdealFamily.{u, v, w} 𝕜).gauge A = ‖A‖ₑ := (rfl)
+    (operatorNormIdealFamily.{u, v, w} 𝕜).gauge A = ‖A‖ₑ := by
+  unfold operatorNormIdealFamily
+  rfl
 
-/-- The operator-norm family is the *largest* ideal: every bounded operator
-belongs to it, because every bounded operator has finite operator norm.  It is
-the top element against which the other families (Ky Fan, Hilbert--Schmidt,
-trace class) are proper. -/
+/-- Every bounded operator belongs to the operator-norm ideal, because
+its norm is finite. -/
 @[simp]
 theorem carrier_operatorNormIdealFamily :
     (operatorNormIdealFamily.{u, v, w} 𝕜).carrier (E := E) (F := F) = ⊤ := by
@@ -156,7 +108,6 @@ variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F]
 
 /-- The operator norm, as a *symmetric* ideal family: the adjoint is an
 isometry, so the operator norm is adjoint-invariant. -/
-@[expose]
 noncomputable def operatorNormFamily (𝕜 : Type u) [RCLike 𝕜] :
     SymmetricOperatorIdealFamily.{u, v} 𝕜 where
   toOperatorIdealFamily := operatorNormIdealFamily 𝕜
@@ -176,7 +127,9 @@ instance : (operatorNormFamily.{u, v} 𝕜).toOperatorIdealFamily.IsComplete :=
 symmetric structure adds adjoint-invariance, not a different norm. -/
 @[simp]
 theorem gauge_operatorNormFamily (A : E →L[𝕜] F) :
-    (operatorNormFamily.{u, v} 𝕜).gauge A = ‖A‖ₑ := (rfl)
+    (operatorNormFamily.{u, v} 𝕜).gauge A = ‖A‖ₑ := by
+  unfold operatorNormFamily
+  exact gauge_operatorNormIdealFamily A
 end Symmetric
 
 end TauCeti

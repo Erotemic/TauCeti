@@ -6,61 +6,22 @@ Authors: Jon Crall, Claude Opus 5
 module
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
-public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import TauCeti.Analysis.InnerProductSpace.Parseval
 public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
 /-!
-# The Hilbert--Schmidt energy of a bounded operator
+# Hilbert--Schmidt energy of bounded operators
 
-For a bounded operator `T : E →L[𝕜] F` between Hilbert spaces and a Hilbert basis `b` of
-the domain, the **Hilbert--Schmidt energy** is the extended real number
+For a Hilbert basis `b` of the source of a bounded operator `T`, its extended-real
+energy is the sum of the squared norms of its columns. The energy is independent
+of `b`, invariant under adjoint, and satisfies two-sided composition estimates.
 
-```
-T.hilbertSchmidtEnergy b = ∑' i, ‖T (b i)‖ₑ ^ 2.
-```
+The Parseval identity used here is provided by
+`TauCeti.Analysis.InnerProductSpace.Parseval`.
 
-It is the square of the Hilbert--Schmidt norm, and `T` is a Hilbert--Schmidt operator
-exactly when the energy is finite.
-
-## Why `ℝ≥0∞`
-
-Taking values in `ℝ≥0∞` rather than `ℝ` is what makes this development
-hypothesis-free.  Every sum converges in `ℝ≥0∞`, so the energy is defined for *every*
-bounded operator with no summability side condition, and — this is the point — the
-Fubini exchange `ENNReal.tsum_comm` used in `hilbertSchmidtEnergy_adjoint` needs no
-integrability hypothesis either.  The same convention is used for the gauge of
-`TauCeti.OperatorIdealFamily`, whose Hilbert--Schmidt instance this file is groundwork
-for.
-
-## Main results
-
-* `HilbertBasis.tsum_enorm_inner_sq`: **Parseval** in `ℝ≥0∞`, `∑' i, ‖⟪b i, v⟫‖ₑ ^ 2 = ‖v‖ₑ ^ 2`;
-* `ContinuousLinearMap.hilbertSchmidtEnergy_adjoint`: the **adjoint swap**, the energy of
-  `T` in a basis of `E` equals the energy of `T⋆` in a basis of `F`.  Note that no
-  self-adjointness, and indeed no relation at all between `E` and `F`, is assumed;
-* `ContinuousLinearMap.hilbertSchmidtEnergy_indep`: consequently the energy does not depend
-  on the chosen basis, so it is an invariant of `T` alone;
-* `ContinuousLinearMap.enorm_apply_sq_le_hilbertSchmidtEnergy_mul`: the energy dominates the
-  operator norm, `‖T x‖ₑ ^ 2 ≤ (T.hilbertSchmidtEnergy b) * ‖x‖ₑ ^ 2`;
-* `ContinuousLinearMap.hilbertSchmidtEnergy_comp_left_le` and
-  `ContinuousLinearMap.hilbertSchmidtEnergy_comp_right_le`: the **ideal property**, the
-  energy is contracted by composition with bounded operators on either side.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: the two Parseval lemmas follow the shape of the `ℂ`-only versions in
-  `vendor/Spectra` (`Spectra.QuantumMechanics.Channels.{hasSum_norm_inner_sq,
-  tsum_enorm_inner_sq}`), which are themselves short consequences of Mathlib's
-  `HilbertBasis.hasSum_inner_mul_inner`; they are restated here for a general `RCLike`
-  scalar field.  The swap lemma is *not* a transcription: Spectra's
-  `tsum_enorm_apply_sq_comm` is stated for a self-adjoint endomorphism, while the
-  rectangular statement proved here needs no such hypothesis.  Everything downstream of the
-  swap is new.
+Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.). The rectangular
+adjoint-swap result generalizes the self-adjoint spectral calculation found in
+Spectra; the Parseval step reuses TauCeti's existing generic theorem.
 -/
 
 open scoped ENNReal InnerProductSpace
@@ -74,34 +35,6 @@ variable [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
 variable [NormedAddCommGroup G] [InnerProductSpace 𝕜 G]
 variable {ι κ : Type*}
 
-namespace HilbertBasis
-
-/-- **Parseval's identity**, real form: the squared moduli of the coordinates of `v` in a
-Hilbert basis sum to `‖v‖ ^ 2`. -/
-theorem hasSum_norm_inner_sq (b : HilbertBasis ι 𝕜 E) (v : E) :
-    HasSum (fun i => ‖⟪b i, v⟫_𝕜‖ ^ 2) (‖v‖ ^ 2) := by
-  have key : (fun i => ‖⟪b i, v⟫_𝕜‖ ^ 2) = fun i => RCLike.re (⟪v, b i⟫_𝕜 * ⟪b i, v⟫_𝕜) := by
-    funext i
-    rw [← inner_conj_symm v (b i), RCLike.conj_mul, ← RCLike.ofReal_pow, RCLike.ofReal_re]
-  have hsum : (‖v‖ ^ 2 : ℝ) = RCLike.re ⟪v, v⟫_𝕜 := by
-    rw [inner_self_eq_norm_sq_to_K, ← RCLike.ofReal_pow, RCLike.ofReal_re]
-  rw [key, hsum]
-  simpa only [RCLike.reCLM_apply] using
-    (b.hasSum_inner_mul_inner v v).mapL (RCLike.reCLM (K := 𝕜))
-
-/-- **Parseval's identity** in `ℝ≥0∞`.  Unlike the real form this is an unconditional
-equation between extended reals, which is what lets it be substituted under a `tsum`
-without a summability hypothesis. -/
-theorem tsum_enorm_inner_sq (b : HilbertBasis ι 𝕜 E) (v : E) :
-    ∑' i, ‖⟪b i, v⟫_𝕜‖ₑ ^ 2 = ‖v‖ₑ ^ 2 := by
-  have hnn : HasSum (fun i => ‖⟪b i, v⟫_𝕜‖₊ ^ 2) (‖v‖₊ ^ 2) := by
-    rw [← NNReal.hasSum_coe]
-    push_cast
-    exact b.hasSum_norm_inner_sq v
-  simp only [enorm_eq_nnnorm, ← ENNReal.coe_pow]
-  rw [← ENNReal.coe_tsum hnn.summable, hnn.tsum_eq]
-
-end HilbertBasis
 
 namespace ContinuousLinearMap
 
@@ -109,7 +42,6 @@ namespace ContinuousLinearMap
 the sum of the squared norms of the columns of `T`.  It is the square of the
 Hilbert--Schmidt norm, and by `hilbertSchmidtEnergy_indep` it does not in fact depend on
 `b`. -/
-@[expose]
 noncomputable def hilbertSchmidtEnergy (T : E →L[𝕜] F) (b : HilbertBasis ι 𝕜 E) : ℝ≥0∞ :=
   ∑' i, ‖T (b i)‖ₑ ^ 2
 
@@ -118,8 +50,9 @@ theorem hilbertSchmidtEnergy_def (T : E →L[𝕜] F) (b : HilbertBasis ι 𝕜 
     T.hilbertSchmidtEnergy b = ∑' i, ‖T (b i)‖ₑ ^ 2 := (rfl)
 /-- The energy is the supremum of its finite partial sums. -/
 theorem hilbertSchmidtEnergy_eq_iSup_sum (T : E →L[𝕜] F) (b : HilbertBasis ι 𝕜 E) :
-    T.hilbertSchmidtEnergy b = ⨆ s : Finset ι, ∑ i ∈ s, ‖T (b i)‖ₑ ^ 2 :=
-  ENNReal.tsum_eq_iSup_sum
+    T.hilbertSchmidtEnergy b = ⨆ s : Finset ι, ∑ i ∈ s, ‖T (b i)‖ₑ ^ 2 := by
+  rw [hilbertSchmidtEnergy_def]
+  exact ENNReal.tsum_eq_iSup_sum
 
 /-- The zero operator has zero energy. -/
 @[simp] theorem hilbertSchmidtEnergy_zero (b : HilbertBasis ι 𝕜 E) :
@@ -211,7 +144,10 @@ at most the square of its norm. -/
 theorem hilbertSchmidtEnergy_comp_left_le (A : F →L[𝕜] G) (T : E →L[𝕜] F)
     (b : HilbertBasis ι 𝕜 E) :
     (A ∘L T).hilbertSchmidtEnergy b ≤ ‖A‖ₑ ^ 2 * T.hilbertSchmidtEnergy b := by
-  calc (A ∘L T).hilbertSchmidtEnergy b = ∑' i, ‖A (T (b i))‖ₑ ^ 2 := (rfl)
+  calc (A ∘L T).hilbertSchmidtEnergy b = ∑' i, ‖(A ∘L T) (b i)‖ₑ ^ 2 :=
+          (A ∘L T).hilbertSchmidtEnergy_def b
+    _ = ∑' i, ‖A (T (b i))‖ₑ ^ 2 :=
+          tsum_congr fun _ => rfl
     _ ≤ ∑' i, ‖A‖ₑ ^ 2 * ‖T (b i)‖ₑ ^ 2 :=
         ENNReal.tsum_le_tsum fun i => by rw [← mul_pow]; gcongr; exact A.le_opENorm _
     _ = ‖A‖ₑ ^ 2 * T.hilbertSchmidtEnergy b := ENNReal.tsum_mul_left

@@ -9,123 +9,18 @@ public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.Normed.Module.Basic
 
 /-!
-# Operator ideal families
+# Operator ideal families and their normed elements
 
-An **operator ideal** in the sense of Pietsch is a rule assigning to every pair
-of spaces `E`, `F` a linear subspace of `E →L[𝕜] F` that is stable under
-composition with arbitrary bounded maps on either side, together with a norm on
-that subspace dominating the operator norm and submultiplicative against outer
-compositions.  Because Davis--Kahan compares operators *between different
-spaces*, the ideal must be handled as a coherent family across all pairs at
-once, not as a norm on a single endomorphism algebra.
+An operator ideal family assigns an extended-real gauge to each bounded operator
+between Hilbert spaces. The finite-gauge operators form a submodule; their
+normed element type carries the real-valued gauge as a genuine norm. The four
+gauge laws imply zero, addition, scalar, and composition stability.
 
-The families here range over **Hilbert** spaces, with source and target still in
-independent universes.  See "Why Hilbert and not Banach" below: the restriction
-is forced by the examples, not by the laws.
+`SymmetricOperatorIdealFamily` additionally requires invariance under adjoint.
+The rectangular family permits independent source and target universe levels.
 
-## The single-field representation
-
-The family is presented by exactly one datum, an extended-real-valued **gauge**
-
-```
-gauge : (E →L[𝕜] F) → ℝ≥0∞
-```
-
-defined on *all* operators, with the ideal recovered as its finiteness domain
-`OperatorIdealFamily.carrier`.  This is the classical presentation of a symmetric
-norming function (Gohberg--Krein): an operator lies in the ideal exactly when its
-ideal norm is finite.  Three things follow.
-
-* **Extensionality is structural.**  Two families with the same gauge are equal
-  (`OperatorIdealFamily.ext`), because the gauge is the only field.  A
-  representation carrying membership and a gauge as *independent* data cannot
-  have such a theorem: the gauge is then unconstrained off the ideal, so two
-  families can agree on every ideal element and still differ.
-* **Every law is unconditional.**  In `ℝ≥0∞` the triangle inequality, the
-  homogeneity `gauge (c • A) = ‖c‖ₑ * gauge A`, and the ideal bound
-  `gauge (L ∘L A ∘L R) ≤ ‖L‖ₑ * gauge A * ‖R‖ₑ` all hold verbatim at
-  non-members, so no law needs a membership hypothesis and no lemma needs to
-  carry one.
-* **The axiom list is short.**  Four laws suffice.  Closure of the ideal under
-  `0`, `+`, `•`, `-`, and finite sums is a *consequence* (it is
-  `Submodule` membership for `carrier`), `gauge 0 = 0` follows from homogeneity
-  at `c = 0`, and definiteness follows from `enorm_le_gauge`.
-
-## Why Hilbert and not Banach
-
-The four laws are statements about a norm, and every one of them is meaningful
-verbatim for Banach `E`, `F`.  The *examples* are not.  Of the five gauges this
-development has — the operator norm, the finite Ky Fan gauges, Schatten `p`,
-trace class and Hilbert--Schmidt — only the first survives outside Hilbert
-space, and the obstruction is `gauge_add_le`, not the definition.  Concretely,
-for the finite Ky Fan gauge `∑_{n < k} aₙ(A)` the *gauge* is defined at full
-Banach generality (`ContinuousLinearMap.approximationNumber` is stated for
-seminormed spaces over a `NontriviallyNormedField`) while its subadditivity is
-Hilbertian: the proof runs through singular values and majorization, and the
-classical additivity of approximation numbers,
-`a_{m+n}(S + T) ≤ aₘ(S) + aₙ(T)`, does **not** recover it — already at `k = 2`
-that bound only gives `a₀(S) + 2a₀(T) + a₁(S)`, which is not
-`∑_{n<2} aₙ(S) + ∑_{n<2} aₙ(T)`.
-
-So a Banach-wide version of this structure would be a notion with one instance
-and no way to acquire the motivating ones.  The parameters are therefore Hilbert
-throughout.  Re-widening is a purely mechanical edit should an instance ever
-appear: no proof in this file uses the inner product, only the norm.
-
-## Layering
-
-`OperatorIdealFamily` keeps **independent source and target universes**.  Adjoint
-symmetry cannot be added at that generality: `A✝` swaps the roles of source and
-target, so a family closed under adjoints must be defined on a single universe.
-That is `SymmetricOperatorIdealFamily`, which extends the diagonal
-instantiation.
-
-The two universes occur only through `max v w` in the type of the structure
-itself, so `linter.checkUnivs` flags them.  **They stay independent, and the
-argument is the layering itself rather than an appeal to generality**:
-
-* `SymmetricOperatorIdealFamily` extends `OperatorIdealFamily.{u, v, v}` — it
-  *is* the diagonal instantiation.  Collapse `v` and `w` and `.{u, v, v}` becomes
-  `.{u, v}`: the two structures acquire the same generality, and the distinction
-  this section is about stops existing.  The rectangular layer earns its second
-  universe by being the thing the symmetric layer specializes.
-* `Family/OperatorNorm.lean` carries a hand-written specialization of
-  `instIsCompleteOperatorNormIdealFamily` precisely because the general instance
-  is stated at three independent universes and instance search cannot see it once
-  the symmetric family equates the last two.
-
-So the independence is exercised, not merely declared; the linter's heuristic
-reads the structure's type, where it is invisible.
-
-## Main definitions
-
-* `TauCeti.OperatorIdealFamily`: the gauge and its four laws.
-* `TauCeti.OperatorIdealFamily.carrier`: the ideal, as a `Submodule`.
-* `TauCeti.OperatorIdealFamily.Elem`: the ideal as a normed space in its own
-  right — a type synonym for the carrier carrying the *ideal* norm rather than
-  the operator norm inherited from the ambient space.
-* `TauCeti.OperatorIdealFamily.IsComplete`: completeness of the ideal, expressed
-  as `CompleteSpace` for that norm rather than as a hand-rolled Cauchy criterion.
-* `TauCeti.SymmetricOperatorIdealFamily`: the adjoint-invariant diagonal layer.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: `DavisKahan/OperatorIdeal/UnitarilyInvariant/RectangularFamily.lean`
-  (`RectangularSymmetricIdealFamily`, Jon Crall / OpenAI GPT-5.6 Thinking); Apache 2.0.
-* Extraction class: **redesigned**.  Per the signature-polish backlog the free-data presentation
-  (`Mem` plus a total real gauge constrained only on members, one universe,
-  hand-rolled completeness, fourteen fields) is replaced here by the
-  single-gauge presentation above, and this is the only presentation of an
-  operator ideal in the library.  The legacy structure was retired downstream on
-  2026-08-27, together with both directions of the conversion between the two and
-  the four concrete ideals that were built by converting a canonical family into a
-  legacy record and back.  Its free data survives only as
-  `SymmetricOperatorIdealFamily.Core` in
-  `DavisKahan/OperatorIdeal/UnitarilyInvariant/FamilyCore.lean`: constructor
-  arguments for `ofCore`, carrying no gauge of their own and used by the two
-  source-facing Hilbert--Schmidt ideals, which are families from the moment they
-  are defined.
+This interface follows the operator-ideal viewpoint of Pietsch and Gohberg--Krein.
+Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
 
 public section
@@ -136,25 +31,8 @@ open scoped ENNReal
 
 universe u v w
 
--- What the linter reports, verbatim, with the suppression removed:
---   `OperatorIdealFamily`: universes `v`, `w` only occur together.  This usually
---   means there is a `max` expression in the type where none of these universes
---   appear on their own.
--- The observation is correct and the conclusion does not follow here.  `v` and `w`
--- are invisible apart *in this structure's type*, which is all the linter reads;
--- they are apart in its fields, and one consumer depends on exactly that:
--- `SymmetricOperatorIdealFamily` extends `OperatorIdealFamily.{u, v, v}`.  It is the
--- diagonal instantiation of this structure, so collapsing `v` and `w` would make the
--- two layers equally general and delete the distinction the module docstring calls
--- the point of the design.  `Family/OperatorNorm.lean`'s specialization of
--- `instIsCompleteOperatorNormIdealFamily` is a second place the independence bites:
--- it exists because instance search cannot find the three-universe instance once the
--- symmetric family equates the last two.
--- Decided after measuring both alternatives; the earlier
--- version of this comment said the fix was to collapse them and deferred to that lane.
--- Written here rather than left silent because this is the only one
--- of the library's ten linter suppressions with no reason at its site, and
--- `ForTauCeti/README.md` §207 forbids silencing a linter without one.
+-- Independent source and target universes distinguish the rectangular family
+-- from its diagonal adjoint-invariant specialization below.
 /-- A **rectangular operator ideal family** over `𝕜`, presented by its gauge.
 
 `gauge A` is the ideal norm of `A`, taken in `ℝ≥0∞` so that it is defined on
@@ -257,8 +135,7 @@ private theorem enorm_id_le : ‖ContinuousLinearMap.id 𝕜 E‖ₑ ≤ 1 := by
 
 /-- Subadditivity over a finite sum.
 
-Unlike its counterpart for the historical record, this needs no membership
-hypotheses: at a non-member the right-hand side is `∞`. -/
+This requires no membership assumptions: at a non-member the right-hand side is `∞`. -/
 theorem gauge_sum_le {ι : Type*} (s : Finset ι) (A : ι → E →L[𝕜] F) :
     N.gauge (∑ i ∈ s, A i) ≤ ∑ i ∈ s, N.gauge (A i) := by
   classical
@@ -311,7 +188,6 @@ theorem gauge_comp_le_of_norm_le_one {L : F →L[𝕜] G} {A : E →L[𝕜] F} {
 
 Closure under `0`, `+` and `•` is a consequence of the gauge laws, so the
 module structure of the ideal does not have to be assumed. -/
-@[expose]
 def carrier : Submodule 𝕜 (E →L[𝕜] F) where
   carrier := {A | N.gauge A ≠ ∞}
   zero_mem' := by simp
@@ -322,22 +198,25 @@ def carrier : Submodule 𝕜 (E →L[𝕜] F) where
     rw [Set.mem_ofPred_eq, N.gauge_smul]
     exact ENNReal.mul_ne_top (by simp) hA
 
-/-- Membership in the ideal is exactly finiteness of the gauge; the carrier is defined that way,
-so this is `Iff.rfl` and exists only to spare call sites the unfolding. -/
+/-- Membership in the ideal is equivalent to finiteness of its gauge. -/
 @[simp]
-theorem mem_carrier_iff {A : E →L[𝕜] F} : A ∈ N.carrier ↔ N.gauge A ≠ ∞ := (Iff.rfl)
+theorem mem_carrier_iff {A : E →L[𝕜] F} : A ∈ N.carrier ↔ N.gauge A ≠ ∞ := by
+  unfold carrier
+  rfl
 /-- Members of the ideal have finite gauge. -/
-theorem gauge_ne_top_of_mem {A : E →L[𝕜] F} (hA : A ∈ N.carrier) : N.gauge A ≠ ∞ := hA
+theorem gauge_ne_top_of_mem {A : E →L[𝕜] F} (hA : A ∈ N.carrier) : N.gauge A ≠ ∞ :=
+  N.mem_carrier_iff.mp hA
 
 /-- Members of the ideal have gauge `< ∞`, the strict form. -/
 theorem gauge_lt_top_of_mem {A : E →L[𝕜] F} (hA : A ∈ N.carrier) : N.gauge A < ∞ :=
-  lt_top_iff_ne_top.mpr hA
+  lt_top_iff_ne_top.mpr (N.mem_carrier_iff.mp hA)
 
 /-- Membership in the ideal is stable under outer composition. -/
 theorem comp_mem_carrier (L : F →L[𝕜] G) {A : E →L[𝕜] F} (R : H →L[𝕜] E)
     (hA : A ∈ N.carrier) : L ∘L A ∘L R ∈ N.carrier := by
+  rw [N.mem_carrier_iff]
   refine ne_top_of_le_ne_top ?_ (N.gauge_comp_le L A R)
-  exact ENNReal.mul_ne_top (ENNReal.mul_ne_top (by simp) hA) (by simp)
+  exact ENNReal.mul_ne_top (ENNReal.mul_ne_top (by simp) (N.gauge_ne_top_of_mem hA)) (by simp)
 
 /-- The ideal is closed under finite sums — `Submodule.sum_mem` for the
 carrier, with no separate closure axiom. -/
@@ -380,7 +259,8 @@ theorem val_mem (A : N.Elem E F) : A.val ∈ N.carrier := Subtype.property (p :=
 
 /-- An ideal element has finite gauge -- the fact that makes `toReal` lossless on it, and hence
 the reason the ideal norm can be real-valued while the gauge is `ℝ≥0∞`-valued. -/
-theorem gauge_val_ne_top (A : N.Elem E F) : N.gauge A.val ≠ ∞ := A.val_mem
+theorem gauge_val_ne_top (A : N.Elem E F) : N.gauge A.val ≠ ∞ :=
+  N.mem_carrier_iff.mp A.val_mem
 
 /-- An operator of finite gauge, as an element of the ideal. -/
 -- `@[expose]` forced by the same compiler limitation as `Elem`: constructors and accessors
@@ -472,10 +352,8 @@ theorem norm_val_le (A : N.Elem E F) : ‖A.val‖ ≤ ‖A‖ := by
 /-- **A gauge-Cauchy sequence is operator-norm Cauchy**, because the ideal norm
 dominates the operator norm.
 
-This is the first step of every `IsComplete` proof: get a limit in the ambient
-bounded operators, then show it stays in the ideal.  It was written out
-identically in all four of `HilbertSchmidt`, `KyFan`, `Schatten` and
-`TraceClass`, three of them character for character. -/
+A gauge-Cauchy sequence has an operator-norm limit in the ambient space;
+showing that the limit stays in the ideal is a separate step. -/
 theorem cauchySeq_val {a : ℕ → N.Elem E F} (ha : CauchySeq a) :
     CauchySeq fun n => (a n).val := by
   rw [Metric.cauchySeq_iff] at ha ⊢
@@ -527,15 +405,11 @@ theorem gauge_blockSum_le {T : E →L[𝕜] F} {P₁ P₂ : E →L[𝕜] E} {Q�
   have hcomp : ∀ (Q : F →L[𝕜] F) (P : E →L[𝕜] E), ‖Q‖ ≤ 1 → ‖P‖ ≤ 1 →
       N.gauge (Q ∘L T ∘L P) ≤ N.gauge T := by
     intro Q P hQ hP
-    refine (N.gauge_comp_le Q T P).trans ?_
-    have h1 : ‖Q‖ₑ ≤ 1 := by
-      rw [← ofReal_norm, ← ENNReal.ofReal_one]
+    apply N.gauge_comp_le_of_norm_le_one
+    · rw [← ofReal_norm, ← ENNReal.ofReal_one]
       exact ENNReal.ofReal_le_ofReal hQ
-    have h2 : ‖P‖ₑ ≤ 1 := by
-      rw [← ofReal_norm, ← ENNReal.ofReal_one]
+    · rw [← ofReal_norm, ← ENNReal.ofReal_one]
       exact ENNReal.ofReal_le_ofReal hP
-    calc ‖Q‖ₑ * N.gauge T * ‖P‖ₑ ≤ 1 * N.gauge T * 1 := by gcongr
-      _ = N.gauge T := by simp
   refine ⟨max_le (hcomp Q₁ P₁ hQ₁ hP₁) (hcomp Q₂ P₂ hQ₂ hP₂), ?_⟩
   calc N.gauge T = N.gauge (Q₁ ∘L T ∘L P₁ + Q₂ ∘L T ∘L P₂) := by rw [hsplit]
     _ ≤ N.gauge (Q₁ ∘L T ∘L P₁) + N.gauge (Q₂ ∘L T ∘L P₂) := N.gauge_add_le _ _
