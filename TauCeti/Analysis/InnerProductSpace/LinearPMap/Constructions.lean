@@ -15,20 +15,23 @@ documentation below.
 module
 
 public import Mathlib.Analysis.InnerProductSpace.LinearPMap
-public import Mathlib.Analysis.InnerProductSpace.Adjoint
 
 /-!
-# Two elementary constructions on partial linear maps
+# Domain perturbations and unitary conjugation of partial linear maps
 
 * `LinearPMap.perturb A V`: add a map defined on `dom A` to `A`, keeping
   the domain.  This is the domain-preserving perturbation that Kato--Rellich
   arguments start from, before any relative-boundedness hypothesis appears.
 * `LinearPMap.isSelfAdjoint_toPMap_top`: a bounded self-adjoint operator,
-  viewed as a partial map on all of `H`, is self-adjoint in the `LinearPMap`
-  sense.
+  viewed as a partial map on the full domain, is self-adjoint.
+* `LinearPMap.isSelfAdjoint_perturb_bounded`: adding a bounded self-adjoint
+  operator to a self-adjoint partial map preserves self-adjointness.
+* `LinearPMap.unitaryConj`: transports a partial map, including its domain,
+  along a linear isometric equivalence. Self-adjointness is preserved by this
+  conjugation.
 
-Neither has any spectral content; they are here so that the Davis--Kahan bridges
-that used them do not need a spectral-theory dependency for bookkeeping.
+The domain-defined perturbation is distinct from Mathlib's `VAdd` of an
+*ambient* linear map: its added term need not extend outside the domain.
 
 ## Provenance
 
@@ -40,45 +43,45 @@ that used them do not need a spectral-theory dependency for bookkeeping.
 * **Original authors / copyright / licence:** Copyright (c) 2026 Spectra
   Formalization Project, Apache 2.0.  Apache 2.0 §4(b): **modified** — see below.
   §4(c): notices retained here and in the file header.
-* **Extraction class:** *adapted* for `perturb` (the definition is Spectra's,
-  renamed); *generalized* for the self-adjointness lemma.
-* **Semantic differences:**
-  1. `perturb` is stated over `RCLike 𝕜`, not just `ℂ`, and drops the ambient
-     `[CompleteSpace H]` that Spectra's section carried and its statement did
-     not use.
-  2. Spectra's `ofBounded` produces its bundled `SelfAdjointOperator` structure.
-     Only the self-adjointness *fact* is ported, over the raw `LinearPMap`,
-     because the DKPS `U1` migration is removing bundled closed-operator
-     wrappers rather than adding one.
+* **Adaptation:** `perturb` accepts a domain-defined linear map and works over
+  general commutative rings and modules; the bounded self-adjointness result
+  is stated directly for Mathlib's `LinearPMap` and its `VAdd` operation.
 -/
 
 public section
 
--- These declarations extend Mathlib's root `LinearPMap` namespace, not a mirror nested
--- in `TauCeti`: dot notation on a `LinearPMap` value resolves through the type's root
--- namespace, so consumers find them without opening anything extra.
 namespace LinearPMap
 
 open scoped InnerProductSpace
 
-variable {𝕜 : Type*} [RCLike 𝕜]
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
+section Algebraic
+
+variable {R E F : Type*} [CommRing R]
+variable [AddCommGroup E] [AddCommGroup F] [Module R E] [Module R F]
 
 /-- Add a map defined on `dom A` to `A`, keeping the domain unchanged. -/
 -- `@[expose]` is needed here: the `_apply` lemma below cannot be *stated* without
 -- `.domain` reducing, since it indexes its argument by this map's domain.
 @[expose]
-def perturb (A : H →ₗ.[𝕜] H) (V : A.domain →ₗ[𝕜] H) : H →ₗ.[𝕜] H where
+def perturb (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F) : E →ₗ.[R] F where
   domain := A.domain
   toFun := A.toFun + V
 
 /-- Perturbing leaves the domain alone — that is the point of `perturb`, and
 what lets a perturbed operator be compared with the original on the nose. -/
-@[simp] theorem perturb_domain (A : H →ₗ.[𝕜] H) (V : A.domain →ₗ[𝕜] H) :
+@[simp] theorem perturb_domain (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F) :
     (perturb A V).domain = A.domain := (rfl)
 /-- The perturbed map acts by `A + V` pointwise on the shared domain. -/
-@[simp] theorem perturb_apply (A : H →ₗ.[𝕜] H) (V : A.domain →ₗ[𝕜] H)
+@[simp] theorem perturb_apply (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F)
     (ψ : A.domain) : perturb A V ψ = A ψ + V ψ := (rfl)
+
+end Algebraic
+
+section HilbertSpace
+
+variable {𝕜 : Type*} [RCLike 𝕜]
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace 𝕜 H]
+
 section Bounded
 
 variable [CompleteSpace H]
@@ -106,6 +109,12 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
     {T : H →L[𝕜] H} (hT : IsSelfAdjoint T) :
     IsSelfAdjoint (T.toLinearMap +ᵥ A) := by
   set B := T.toLinearMap +ᵥ A with hB
+  have hB_apply (x : A.domain) : B x = T (x : H) + A x := by
+    -- The argument type depends on the partial map's domain. Rewriting `hB`
+    -- under the application is not well-typed; unfold the local abbreviation
+    -- without rewriting the dependent argument, then use the public law.
+    change (T.toLinearMap +ᵥ A) x = T (x : H) + A x
+    exact LinearPMap.vadd_apply T.toLinearMap A x
   have hdense : Dense (A.domain : Set H) := hA.dense_domain
   have hsymA : A.IsFormalAdjoint A := by
     have h := _root_.LinearPMap.adjoint_isFormalAdjoint (T := A) hdense
@@ -118,9 +127,8 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
   -- `B` is symmetric
   have hsymB : B.IsFormalAdjoint B := by
     intro x y
-    -- states the goal as the inner-product identity the structure lemma expects.
-    change ⟪T (x : H) + A x, (y : H)⟫_𝕜 = ⟪(x : H), T (y : H) + A y⟫_𝕜
-    rw [inner_add_left, inner_add_right, hsymA x y, hTsym (x : H) (y : H)]
+    rw [hB_apply x, hB_apply y, inner_add_left, inner_add_right,
+      hsymA x y, hTsym (x : H) (y : H)]
   -- `T` contributes a continuous term, so `B` and `A` have the same adjoint domain
   have hsub : ∀ y : H, y ∈ (_root_.LinearPMap.adjoint B).domain → y ∈ A.domain := by
     intro y hy
@@ -132,9 +140,9 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
           = fun x : A.domain =>
               ((innerₛₗ 𝕜 y).comp B.toFun) x - ⟪y, T (x : H)⟫_𝕜 := by
         funext x
-        -- states the goal as the inner-product identity the structure lemma expects.
-        change ⟪y, A x⟫_𝕜 = ⟪y, T (x : H) + A x⟫_𝕜 - ⟪y, T (x : H)⟫_𝕜
-        rw [inner_add_right]
+        simp only [LinearMap.comp_apply, LinearPMap.toFun_eq_coe,
+          innerₛₗ_apply_apply]
+        rw [hB_apply x, inner_add_right]
         abel
       have hcont : Continuous fun x : A.domain => ((innerₛₗ 𝕜 y).comp A.toFun) x := by
         rw [hsplit]; exact hy.sub hTcont
@@ -188,7 +196,7 @@ noncomputable def unitaryConj (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H)
 `x` lies in it exactly when `U.symm x` lies in `A.domain`.  Stated as an `Iff`
 on the preimage because that is the form the definition produces and the one
 `rw` can use in either direction. -/
-theorem mem_unitaryConj_domain_iff {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜] H} {x : H'} :
+@[simp] theorem mem_unitaryConj_domain_iff {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜] H} {x : H'} :
     x ∈ (unitaryConj U A).domain ↔ U.symm x ∈ A.domain := Iff.rfl
 
 /-- `U A U⁻¹` acting on a vector of the conjugated domain: pull back by `U.symm`,
@@ -208,7 +216,7 @@ theorem map_mem_unitaryConj_domain (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[�
 /-- **The intertwining law**, in the form consumers want: conjugation composed
 with `U` is `U` composed with `A`, indexed by the *original* domain rather than
 the conjugated one. -/
-theorem unitaryConj_apply_map (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) (y : A.domain) :
+@[simp] theorem unitaryConj_apply_map (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) (y : A.domain) :
     unitaryConj U A ⟨U (y : H), map_mem_unitaryConj_domain U A y⟩ = U (A y) := by
   rw [unitaryConj_apply]
   congr 1
@@ -228,6 +236,9 @@ and symmetry closes it. -/
 theorem isSelfAdjoint_unitaryConj {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜] H}
     (hA : IsSelfAdjoint A) : IsSelfAdjoint (unitaryConj U A) := by
   set B := unitaryConj U A with hB
+  have hB_apply (x : B.domain) :
+      B x = U (A ⟨U.symm (x : H'), x.2⟩) := by
+    simpa only [hB] using (unitaryConj_apply U A x)
   have hdenseA : Dense (A.domain : Set H) := hA.dense_domain
   have hsymA : A.IsFormalAdjoint A := by
     have h := _root_.LinearPMap.adjoint_isFormalAdjoint (T := A) hdenseA
@@ -245,13 +256,14 @@ theorem isSelfAdjoint_unitaryConj {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜
     have hy : U.symm (y : H') ∈ A.domain := y.2
     calc ⟪B x, (y : H')⟫_𝕜
         = ⟪U (A ⟨U.symm (x : H'), hx⟩), U (U.symm (y : H'))⟫_𝕜 := by
-          rw [U.apply_symm_apply]; rfl
+          rw [U.apply_symm_apply, hB_apply x]
       _ = ⟪A ⟨U.symm (x : H'), hx⟩, U.symm (y : H')⟫_𝕜 := U.inner_map_map _ _
       _ = ⟪U.symm (x : H'), A ⟨U.symm (y : H'), hy⟩⟫_𝕜 :=
           hsymA ⟨U.symm (x : H'), hx⟩ ⟨U.symm (y : H'), hy⟩
       _ = ⟪U (U.symm (x : H')), U (A ⟨U.symm (y : H'), hy⟩)⟫_𝕜 :=
           (U.inner_map_map _ _).symm
-      _ = ⟪(x : H'), B y⟫_𝕜 := by rw [U.apply_symm_apply]; rfl
+      _ = ⟪(x : H'), B y⟫_𝕜 := by
+          rw [U.apply_symm_apply, hB_apply y]
   -- the adjoint domain of `B` sits inside `B`'s domain
   have hsub : ∀ y : H', y ∈ (_root_.LinearPMap.adjoint B).domain → y ∈ B.domain := by
     intro y hy
@@ -282,5 +294,7 @@ theorem isSelfAdjoint_unitaryConj {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜
 end UnitaryConjSelfAdjoint
 
 end UnitaryConj
+
+end HilbertSpace
 
 end LinearPMap
