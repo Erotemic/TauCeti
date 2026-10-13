@@ -5,7 +5,7 @@ Authors: Jon Crall, Claude Fable 5, Claude Opus 4.8, Claude Opus 5
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.LinearIsometryFromBasis
+public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.FromBasis
 public import TauCeti.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Spectrum

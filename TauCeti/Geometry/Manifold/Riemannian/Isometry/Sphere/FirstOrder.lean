@@ -5,7 +5,7 @@ Authors: The Tau Ceti contributors
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.LinearIsometry
+public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.Basic
 public import TauCeti.Geometry.Manifold.Riemannian.Isometry.Sphere.Basic
 public import TauCeti.Geometry.Manifold.Riemannian.Isometry.Tangent
 import TauCeti.Geometry.Manifold.VectorField.Regularity

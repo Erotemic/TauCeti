@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Geometry.Manifold.Instances.Sphere
 public import Mathlib.Geometry.Manifold.SmoothEmbedding
-public import TauCeti.Analysis.InnerProductSpace.LinearIsometry
+public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.Basic
 public import TauCeti.Geometry.Manifold.Immersion
 public import TauCeti.Geometry.Sphere.LinearIsometry
 

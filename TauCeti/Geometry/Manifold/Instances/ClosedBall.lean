@@ -8,7 +8,7 @@ module
 public import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
 public import Mathlib.Geometry.Manifold.Instances.Real
 public import Mathlib.Geometry.Manifold.SmoothEmbedding
-public import TauCeti.Analysis.InnerProductSpace.LinearIsometry
+public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.Basic
 public import TauCeti.Analysis.Normed.Module.Ball.LinearIsometry
 public import TauCeti.Geometry.Euclidean.Inversion
 public import TauCeti.Geometry.Manifold.Boundary.Basic
