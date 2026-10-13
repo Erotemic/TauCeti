@@ -1,7 +1,5 @@
 /-
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
-Portions adapted from Copyright (c) 2026 Kitware, Inc. and
-Copyright (c) 2026 Spectra Formalization Project (Apache-2.0).
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: The Tau Ceti contributors, Jon Crall, Claude Opus 5, Adam Bornemann
 -/
@@ -61,6 +59,11 @@ linear maps used by the semigroup development.
   the adjoint; `dense_domain_of_adjoint_eq_neg` and `isSelfAdjoint_smul_of_adjoint_eq_neg`: a
   skew-adjoint partial linear map has dense domain, and its multiple by a nonzero purely imaginary
   scalar is self-adjoint.
+
+## Provenance
+
+Portions adapted from works copyright (c) 2026 Kitware, Inc. and
+copyright (c) 2026 Spectra Formalization Project (Apache-2.0).
 
 ## References
 
