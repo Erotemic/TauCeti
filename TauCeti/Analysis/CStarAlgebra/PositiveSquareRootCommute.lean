@@ -37,17 +37,11 @@ Davis--Kahan's Proposition 3.1 is proved that way in
 `DavisKahan/Geometry/Polar/DirectRotationSquare.lean`, so no rectangular functional-calculus
 intertwiner is needed.
 
-## Provenance
+## Origin
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored here, for the third clause of Davis--Kahan (1970),
-  Proposition 3.1 ("the direct rotation is characterized by property (i) alone"), whose
-  printed proof is exactly this step at `f = √`.
-* Extraction class: **authored in place**, for Tau Ceti.
-* Proposed Mathlib destination:
-  `Mathlib/Analysis/SpecialFunctions/ContinuousFunctionalCalculus/Rpow/Basic.lean`,
-  beside `CFC.sqrt_mul_self`.
-* Spectra influence: **none** — imports only Mathlib.
+This commutation lemma was developed in the Davis--Kahan / DKPS formalization in
+connection with the direct rotation in Davis--Kahan (1970), Proposition 3.1.
+It uses Mathlib's `Commute.cfcₙ_nnreal` and `CFC.sqrt_mul_self`.
 -/
 
 public section

@@ -57,32 +57,19 @@ are what make the definition usable from consumers already phrased over `spectru
   theorem, each inherited across the transport;
 * `TauCeti.realSpectrumCfcHom_isSelfAdjoint`: a real-valued symbol has self-adjoint image.
 
-Every statement is generic in the C⋆-algebra. The intended instance is `A := H →L[ℂ] H` for a
-complex Hilbert space `H`, which the final section records.
+Every statement is generic in the C⋆-algebra. The final section establishes compatibility
+with Mathlib's real-valued calculus when a real-spectrum symbol is complexified.
 
-## A note on `@[expose]`
+## Characteristic equations
 
-The characteristic lemmas `realSpectrumCfcHom_apply`, `realSpectrumId_apply` and the
-`realSpectrumHomeomorph` coercion lemmas hold by `rfl`, but a `rfl` proof in an *exported*
-theorem would force `@[expose]` on each definition, against `ForTauCeti/README.md`. Each is
-therefore proved by a `private` lemma, which may unfold the body, and re-exported. Downstream
-consumers get the equations and never the bodies, which is what the `api-design` rubric asks
-for.
+Public application lemmas expose the transport through `realSpectrumHomeomorph` and
+`realSpectrumCfcHom`.  Their private proofs can unfold the constructors, allowing exported
+results to state the equations without making the constructor bodies reducible.
 
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.); written here, new for
-  this library.
-* Extraction class: **new**. The transport is standard C⋆-algebra practice and nothing was
-  copied; `SpectrumRestricts.homeomorph` and `ContinuousMap.compStarAlgHom'` are the Mathlib
-  ingredients, and Mathlib's `SpectrumRestricts.starAlgHom` is the sibling construction that
-  lowers the codomain as well.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib.
-* Proposed Mathlib destination:
-  `Mathlib/Analysis/CStarAlgebra/ContinuousFunctionalCalculus/Restrict.lean`, beside
-  `SpectrumRestricts.starAlgHom`, of which it is the domain-only analogue.
+Developed for the Davis--Kahan / DKPS formalization (Kitware, Inc.) as the
+real-spectrum, complex-valued-symbol counterpart of Mathlib's
+`SpectrumRestricts.starAlgHom`.  The transport retains complex scalar values while
+using the real spectrum as the symbol domain.
 -/
 
 public section

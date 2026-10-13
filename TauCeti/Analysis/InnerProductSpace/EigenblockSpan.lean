@@ -5,13 +5,9 @@ Authors: Jon Crall, Claude Opus 5
 -/
 module
 
-/-
-Staged for Tau Ceti: additions to `Mathlib/Analysis/InnerProductSpace/Spectrum.lean`,
-next to `LinearMap.IsSymmetric.eigenvectorBasis`.
--/
-
 public import TauCeti.Analysis.InnerProductSpace.BasisSpan
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Data.Fintype.Fin
 
 /-! # Identifying spans of the sorted eigenvector basis with eigenspaces
 
@@ -30,11 +26,18 @@ multiplicity (`eigenvalues_top_level_eq_Iio`).  Together these identify the
 paper-facing "top-`d` eigenspace" with a `spanIndices` block
 (`spanIndices_Iio_eq_topEigenspace`).
 
-Sorting says more than that.  *Every* level set is a contiguous range of
+The general result is stronger: *every* level set is a contiguous range of
 indices, beginning where the eigenvalues above it stop
 (`eigenvalues_level_eq_Ico`), so a block in the *middle* of the spectrum is a
 `spanIndices` block as well.  That is what a concrete example needs when its
 block of interest is not the leading one.
+
+The finite-order argument is Mathlib's `Fin.lt_card_filter_univ_iff_apply_of_imp`:
+a downward-closed predicate on `Fin n` holds exactly on the first `k` indices,
+where `k` is the number of indices satisfying it.
+
+Source: [Davis--Kahan / DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization),
+`ForTauCeti/Analysis/InnerProductSpace/EigenblockSpan.lean`.
 
 ## Main results
 
@@ -93,62 +96,6 @@ theorem spanIndices_eigenvalueLevel (hT : T.IsSymmetric) (hn : finrank 𝕜 E = 
   ext i
   simp
 
-/-- **A downward-closed subset of `Fin n` is the initial segment of its own
-length.**  The counting step behind `eigenvalues_top_level_eq_Iio`, isolated
-because it has nothing to do with operators. -/
-private theorem mem_iff_lt_card_of_lower {n : ℕ} {s : Finset (Fin n)}
-    (hs : ∀ {i j : Fin n}, i ≤ j → j ∈ s → i ∈ s) (i : Fin n) :
-    i ∈ s ↔ (i : ℕ) < s.card := by
-  classical
-  constructor
-  · intro hi
-    -- Everything at or below `i` lies in `s`, and there are `i + 1` such indices.
-    have hIic : Finset.Iic i ⊆ s := fun j hj => hs (Finset.mem_Iic.mp hj) hi
-    have := Finset.card_le_card hIic
-    rw [Fin.card_Iic] at this
-    omega
-  · intro hlt
-    by_contra hi
-    -- If `i ∉ s` then `s` cannot reach `i`, so `s ⊆ Iio i`.
-    have hIio : s ⊆ Finset.Iio i := by
-      intro j hj
-      rw [Finset.mem_Iio]
-      by_contra hji
-      exact hi (hs (not_lt.mp hji) hj)
-    have := Finset.card_le_card hIio
-    rw [Fin.card_Iio] at this
-    omega
-
-/-- **The largest eigenvalue occupies an initial segment of indices.**
-
-`hT.eigenvalues hn` is antitone, so the level set of a value that no eigenvalue
-exceeds is downward closed; a downward-closed subset of `Fin n` is determined by
-its cardinality, which `card_filter_eigenvalues_eq` identifies as the geometric
-multiplicity. -/
-theorem eigenvalues_top_level_eq_Iio (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
-    {μ : ℝ} (hmax : ∀ i, hT.eigenvalues hn i ≤ μ) :
-    {i : Fin n | hT.eigenvalues hn i = μ} =
-      {i : Fin n | (i : ℕ) < finrank 𝕜 (eigenspace T (μ : 𝕜))} := by
-  classical
-  -- The level set, as a `Finset`, has cardinality the geometric multiplicity.
-  have hcard : ({i : Fin n | hT.eigenvalues hn i = μ} : Finset (Fin n)).card =
-      finrank 𝕜 (eigenspace T (μ : 𝕜)) := by
-    rw [← hT.card_filter_eigenvalues_eq hn (μ : 𝕜)]
-    congr 1
-    ext i
-    simp
-  -- It is downward closed: below a maximizer the antitone function cannot drop.
-  have hlower : ∀ {i j : Fin n}, i ≤ j →
-      j ∈ ({i : Fin n | hT.eigenvalues hn i = μ} : Finset (Fin n)) →
-      i ∈ ({i : Fin n | hT.eigenvalues hn i = μ} : Finset (Fin n)) := by
-    intro i j hij hj
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hj ⊢
-    exact le_antisymm (hmax i) (hj ▸ hT.eigenvalues_antitone hn hij)
-  ext i
-  have := mem_iff_lt_card_of_lower hlower i
-  rw [hcard] at this
-  simpa using this
-
 /-- **Every eigenvalue level set is a contiguous block of indices.**
 
 Sorting places the level set of `μ` at the interval `[m, m + d)`, where `m` is
@@ -171,15 +118,23 @@ theorem eigenvalues_level_eq_Ico (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
   set Sge : Finset (Fin n) := {j | μ ≤ hT.eigenvalues hn j} with hSge
   -- Both sets are downward closed, hence initial segments of their own length.
   have hmemgt : ∀ i : Fin n, i ∈ Sgt ↔ (i : ℕ) < Sgt.card := by
-    refine mem_iff_lt_card_of_lower ?_
-    intro i j hij hj
-    simp only [hSgt, Finset.mem_filter, Finset.mem_univ, true_and] at hj ⊢
-    exact lt_of_lt_of_le hj (hT.eigenvalues_antitone hn hij)
+    intro i
+    have hmono : ∀ j k : Fin n, k ≤ j → μ < hT.eigenvalues hn j →
+        μ < hT.eigenvalues hn k := by
+      intro j k hkj hj
+      exact lt_of_lt_of_le hj (hT.eigenvalues_antitone hn hkj)
+    simpa only [hSgt, Finset.mem_filter, Finset.mem_univ, true_and] using
+      (Fin.lt_card_filter_univ_iff_apply_of_imp
+        (p := fun j : Fin n => μ < hT.eigenvalues hn j) hmono (j := i)).symm
   have hmemge : ∀ i : Fin n, i ∈ Sge ↔ (i : ℕ) < Sge.card := by
-    refine mem_iff_lt_card_of_lower ?_
-    intro i j hij hj
-    simp only [hSge, Finset.mem_filter, Finset.mem_univ, true_and] at hj ⊢
-    exact le_trans hj (hT.eigenvalues_antitone hn hij)
+    intro i
+    have hmono : ∀ j k : Fin n, k ≤ j → μ ≤ hT.eigenvalues hn j →
+        μ ≤ hT.eigenvalues hn k := by
+      intro j k hkj hj
+      exact le_trans hj (hT.eigenvalues_antitone hn hkj)
+    simpa only [hSge, Finset.mem_filter, Finset.mem_univ, true_and] using
+      (Fin.lt_card_filter_univ_iff_apply_of_imp
+        (p := fun j : Fin n => μ ≤ hT.eigenvalues hn j) hmono (j := i)).symm
   -- `Sge` splits as `Sgt` together with the level set itself.
   have hsplit : Sge.card = Sgt.card + finrank 𝕜 (eigenspace T (μ : 𝕜)) := by
     have hlevel : ({j | hT.eigenvalues hn j = μ} : Finset (Fin n)).card =
@@ -218,6 +173,20 @@ theorem eigenvalues_level_eq_Ico (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
     have h1 : μ ≤ hT.eigenvalues hn i := hge.mpr hhi
     have h2 : ¬ μ < hT.eigenvalues hn i := fun h => absurd (hgt.mp h) (by omega)
     exact le_antisymm (not_lt.mp h2) h1
+
+/-- **The largest eigenvalue occupies an initial segment of indices.**
+
+This is the zero-offset specialization of `eigenvalues_level_eq_Ico`: if no eigenvalue
+exceeds `μ`, then the count of strictly larger eigenvalues is zero. -/
+theorem eigenvalues_top_level_eq_Iio (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
+    {μ : ℝ} (hmax : ∀ i, hT.eigenvalues hn i ≤ μ) :
+    {i : Fin n | hT.eigenvalues hn i = μ} =
+      {i : Fin n | (i : ℕ) < finrank 𝕜 (eigenspace T (μ : 𝕜))} := by
+  classical
+  have hzero : ({j : Fin n | μ < hT.eigenvalues hn j} : Finset (Fin n)) = ∅ := by
+    ext i
+    simp [not_lt.mpr (hmax i)]
+  simpa [hzero] using hT.eigenvalues_level_eq_Ico hn μ
 
 /-- **The middle block of the sorted eigenbasis is an eigenspace.**
 
