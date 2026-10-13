@@ -6,7 +6,6 @@ Authors: Jon Crall, Claude Fable 5
 module
 
 public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
-public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometric
 
 /-!
 # Spectral-gap inverse of a self-adjoint element
