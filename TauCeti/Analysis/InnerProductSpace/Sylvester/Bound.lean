@@ -81,10 +81,10 @@ theorem norm_le_of_abs_re_inner_map_self_le {C : E →L[𝕜] E} (hC : C.IsSymme
 
 section SylvesterBound
 
-variable {A : E →L[𝕜] E} {B : F →L[𝕜] F} {X Y : F →L[𝕜] E}
+variable {A : E →L[𝕜] E}
 
 /-- The quadratic form of the real shift `(r : 𝕜) • 1 - A`.  Auxiliary. -/
-private theorem re_inner_ofReal_smul_one_sub_apply_self (A : E →L[𝕜] E) (r : ℝ) (x : E) :
+theorem re_inner_ofReal_smul_one_sub_apply_self (A : E →L[𝕜] E) (r : ℝ) (x : E) :
     RCLike.re ⟪((r : 𝕜) • (1 : E →L[𝕜] E) - A) x, x⟫_𝕜
       = r * ‖x‖ ^ 2 - RCLike.re ⟪A x, x⟫_𝕜 := by
   simp only [sub_apply, smul_apply,
@@ -93,7 +93,7 @@ private theorem re_inner_ofReal_smul_one_sub_apply_self (A : E →L[𝕜] E) (r 
 
 /-- The real shift `(r : 𝕜) • 1 - A` of a symmetric operator is symmetric.
 Auxiliary. -/
-private theorem isSymmetric_ofReal_smul_one_sub (hA : A.IsSymmetric) (r : ℝ) :
+theorem isSymmetric_ofReal_smul_one_sub (hA : A.IsSymmetric) (r : ℝ) :
     (((r : 𝕜) • (1 : E →L[𝕜] E) - A)).IsSymmetric := fun x y => by
   simp only [ContinuousLinearMap.coe_coe, sub_apply,
     smul_apply, one_apply_eq_self, inner_sub_left,
@@ -103,7 +103,7 @@ private theorem isSymmetric_ofReal_smul_one_sub (hA : A.IsSymmetric) (r : ℝ) :
 
 /-- Coercivity forces the norm from below: if `δ * ‖x‖ ^ 2 ≤ re ⟪A x, x⟫` and
 some vector is nonzero, then `δ ≤ ‖A‖`.  Auxiliary. -/
-private theorem le_opNorm_of_le_re_inner_map_self {δ : ℝ}
+theorem le_opNorm_of_le_re_inner_map_self {δ : ℝ}
     (hAc : ∀ x, δ * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) {x₀ : E} (hx₀ : x₀ ≠ 0) : δ ≤ ‖A‖ := by
   have hupper : RCLike.re ⟪A x₀, x₀⟫_𝕜 ≤ ‖A‖ * ‖x₀‖ ^ 2 :=
     calc RCLike.re ⟪A x₀, x₀⟫_𝕜 ≤ ‖⟪A x₀, x₀⟫_𝕜‖ := RCLike.re_le_norm _
@@ -117,7 +117,7 @@ private theorem le_opNorm_of_le_re_inner_map_self {δ : ℝ}
 contraction up to `‖A‖ - δ`: if the quadratic form of the symmetric `A` is at
 least `δ * ‖·‖ ^ 2`, its operator norm is at most `‖A‖ - δ`.  Auxiliary for the
 Sylvester bounds. -/
-private theorem norm_opNorm_smul_one_sub_le (hA : A.IsSymmetric) {δ : ℝ} (hδA : δ ≤ ‖A‖)
+theorem norm_opNorm_smul_one_sub_le (hA : A.IsSymmetric) {δ : ℝ} (hδA : δ ≤ ‖A‖)
     (hAc : ∀ x, δ * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) :
     ‖(‖A‖ : 𝕜) • (1 : E →L[𝕜] E) - A‖ ≤ ‖A‖ - δ := by
   refine norm_le_of_abs_re_inner_map_self_le (isSymmetric_ofReal_smul_one_sub hA ‖A‖)
@@ -134,111 +134,24 @@ private theorem norm_opNorm_smul_one_sub_le (hA : A.IsSymmetric) {δ : ℝ} (hδ
 /-- The correction term in the absorption identity is small: if the quadratic
 form of `A` is at least `δ * ‖·‖ ^ 2`, then `(‖A‖ : 𝕜) • w - A w` has norm at
 most `(‖A‖ - δ) * ‖w‖`.  Auxiliary for the Sylvester bound. -/
-private theorem norm_opNorm_smul_sub_apply_le (hA : A.IsSymmetric) {δ : ℝ} (hδA : δ ≤ ‖A‖)
+theorem norm_opNorm_smul_sub_apply_le (hA : A.IsSymmetric) {δ : ℝ} (hδA : δ ≤ ‖A‖)
     (hAc : ∀ x, δ * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) (w : E) :
     ‖(‖A‖ : 𝕜) • w - A w‖ ≤ (‖A‖ - δ) * ‖w‖ :=
   calc ‖(‖A‖ : 𝕜) • w - A w‖ = ‖((‖A‖ : 𝕜) • (1 : E →L[𝕜] E) - A) w‖ := rfl
     _ ≤ ‖(‖A‖ : 𝕜) • (1 : E →L[𝕜] E) - A‖ * ‖w‖ := ContinuousLinearMap.le_opNorm _ w
     _ ≤ (‖A‖ - δ) * ‖w‖ := by gcongr; exact norm_opNorm_smul_one_sub_le hA hδA hAc
 
-/-- **Polar-absorption Sylvester bound.**  Let `H` be symmetric and
-coercive by `r + g`, let `T` have operator norm at most `r`, and suppose
-
-`H X - Z T = Y`
-
-where `Z` has the same operator norm as `X`.  Then `g ‖X‖ ≤ ‖Y‖`.
-
-This is the dimension-free analytic core of the sharp interval/exterior
-Davis--Kahan theorem.  In the finite spectral specialization, `H = |A-mI|`,
-`Z = U⁻¹X`, and `U` is the unitary polar factor of `A-mI`.  The theorem itself
-uses neither finite dimensionality nor a spectral theorem. -/
-theorem gap_mul_opNorm_le_of_comp_sub_comp_eq
-    {H : E →L[𝕜] E} {T : F →L[𝕜] F} {X Z Y : F →L[𝕜] E}
-    (hH : H.IsSymmetric) {r g : ℝ} (_hr : 0 ≤ r) (_hg : 0 < g)
-    (hHc : ∀ x, (r + g) * ‖x‖ ^ 2 ≤ RCLike.re ⟪H x, x⟫_𝕜)
-    (hT : ‖T‖ ≤ r) (hZX : ‖Z‖ = ‖X‖)
-    (hEq : H ∘L X - Z ∘L T = Y) :
-    g * ‖X‖ ≤ ‖Y‖ := by
-  rcases eq_or_ne X 0 with rfl | hX
-  · simp
-  obtain ⟨v₀, hv₀⟩ := DFunLike.ne_iff.mp hX
-  simp only [zero_apply] at hv₀
-  have hrgH : r + g ≤ ‖H‖ :=
-    le_opNorm_of_le_re_inner_map_self hHc hv₀
-  have hcorr : ‖(‖H‖ : 𝕜) • (1 : E →L[𝕜] E) - H‖ ≤ ‖H‖ - (r + g) :=
-    norm_opNorm_smul_one_sub_le hH hrgH hHc
-  have habsorb : ((‖H‖ : ℝ) : 𝕜) • X =
-      Y + (((‖H‖ : 𝕜) • (1 : E →L[𝕜] E) - H) ∘L X) + Z ∘L T := by
-    ext v
-    have hv : H (X v) - Z (T v) = Y v := by
-      simpa [sub_apply, ContinuousLinearMap.comp_apply] using
-        congrArg (fun W : F →L[𝕜] E => W v) hEq
-    simp only [add_apply, smul_apply, ContinuousLinearMap.comp_apply,
-      sub_apply, one_apply_eq_self]
-    rw [← hv]
-    module
-  have hmain : ‖H‖ * ‖X‖ ≤
-      ‖Y‖ + (‖H‖ - (r + g)) * ‖X‖ + ‖X‖ * r := by
-    calc
-      ‖H‖ * ‖X‖ = ‖((‖H‖ : ℝ) : 𝕜) • X‖ := by
-        rw [norm_smul, RCLike.norm_ofReal, abs_of_nonneg (norm_nonneg H)]
-      _ = ‖Y + (((‖H‖ : 𝕜) • (1 : E →L[𝕜] E) - H) ∘L X) + Z ∘L T‖ := by
-        rw [habsorb]
-      _ ≤ ‖Y‖ + ‖((‖H‖ : 𝕜) • (1 : E →L[𝕜] E) - H) ∘L X‖ + ‖Z ∘L T‖ :=
-        norm_add₃_le
-      _ ≤ ‖Y‖ + ‖(‖H‖ : 𝕜) • (1 : E →L[𝕜] E) - H‖ * ‖X‖ + ‖Z‖ * ‖T‖ := by
-        gcongr
-        · exact ContinuousLinearMap.opNorm_comp_le _ _
-        · exact ContinuousLinearMap.opNorm_comp_le _ _
-      _ ≤ ‖Y‖ + (‖H‖ - (r + g)) * ‖X‖ + ‖X‖ * r := by
-        rw [hZX]
-        exact add_le_add
-          (add_le_add_right (mul_le_mul_of_nonneg_right hcorr (norm_nonneg X)) ‖Y‖)
-          (mul_le_mul_of_nonneg_left hT (norm_nonneg X))
-  linarith
-
-
 end SylvesterBound
 
 /-! ### Rectangular abstract Sylvester bounds
 
-## Staging note
+The correction-operator bounds above give a polar-absorption estimate in
+any operator size satisfying subadditivity, absolute homogeneity, and
+two-sided ideal inequalities. Specializing the size to the ordinary norm
+gives the Hilbert-space operator-norm statement below.
 
-Staged for Tau Ceti, roadmap topic T16.  Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on
-the closed Mathlib track —
-additions to `Mathlib/Analysis/InnerProductSpace/SylvesterBound.lean`
-(new file).
-Formalized by Claude Fable 5 (claude-fable-5[1m]).  The classical proofs of
-this bound run through an operator-valued integral `∫₀^∞ e^{−tA} Y e^{−tB} dt`
-(Bhatia VII.2) or a contour integral (Sylvester–Rosenblum); the proof here is
-a purely algebraic absorption argument discovered while planning: writing
-`(a + b) • X = Y + (a • 1 − A) X + X (b • 1 − B)` with `a = ‖A‖`, `b = ‖B‖`
-and bounding the two correction terms by `(a − δ)‖X‖` and `(b − δ)‖X‖` lets
-the operator norm of `X` be solved for directly.  No integrals, no spectral
-theorem, no finite-dimensionality, no completeness.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForMathlib` at Davis--Kahan commit
-  `5c65c95`; it has had no prior home.
-* Extraction class: **authored in place**, for Tau Ceti — `ForMathlib` was
-  retired on 2026-07-29 and `ForTauCeti` is the single staging library, whose
-  destination is Tau Ceti and not Mathlib (`ForTauCeti/README.md`).
-* Intended Mathlib home: additions to `Mathlib/Analysis/InnerProductSpace/SylvesterBound.
-* Original authors / copyright: Jon Crall, Claude Fable 5; Copyright (c) 2026
-  Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — the `ForTauCeti` import firewall admits only
-  Mathlib, `TauCeti` and `ForTauCeti` (enforced by `scripts/check_dependency_layers.py`).
-
-Moved from
-`ForTauCeti/Analysis/InnerProductSpace/SylvesterBound.lean` to
-`ForTauCeti/Analysis/InnerProductSpace/Sylvester/Bound.lean`.  The `Sylvester/`
-directory already held `Basic`, `Interval`, `SpectralDistance` and `Internal/`, while
-six siblings of the same family used a flat `Sylvester*` prefix in the directory above;
-one family now has one convention.  Path change and import repoint only — no statement,
-signature, proof, attribute, declaration name or namespace changed.
+Source: `AIQ-Kitware/aiq-dkps-formalization`,
+`ForTauCeti/Analysis/InnerProductSpace/Sylvester/Bound.lean` (Apache-2.0).
 -/
 
 section RectangularAbstractSylvesterBound
@@ -253,13 +166,13 @@ variable {N : (E →L[𝕜] F) → ℝ}
     N (f ∘L C) ≤ N f * ‖C‖)
 
 include hadd hsmul in
-private theorem rectangular_nonneg_of_add_le_of_smul (f : E →L[𝕜] F) : 0 ≤ N f := by
+theorem rectangular_nonneg_of_add_le_of_smul (f : E →L[𝕜] F) : 0 ≤ N f := by
   have hN0 : N 0 = 0 := by
     have h := hsmul 0 0
     rwa [zero_smul, norm_zero, zero_mul] at h
   have hneg : N (-f) = N f := by
-    rw [show -f = (-1 : 𝕜) • f by rw [neg_one_smul], hsmul,
-      norm_neg, norm_one, one_mul]
+    have hneg_smul : -f = (-1 : 𝕜) • f := by rw [neg_one_smul]
+    rw [hneg_smul, hsmul, norm_neg, norm_one, one_mul]
   have h := hadd f (-f)
   rw [add_neg_cancel, hN0, hneg] at h
   linarith
@@ -273,14 +186,13 @@ operator norm at most `r`, and suppose
 
 where `Z` has the same seminorm as `X`.  Then `g * N X ≤ N Y`.
 
-This is the operator-ideal generalization of
-`gap_mul_opNorm_le_of_comp_sub_comp_eq`.  Its hypotheses are exactly the
-subadditivity, absolute homogeneity, and two-sided ideal inequalities carried
-by every rectangular unitarily invariant norm.  No finite-dimensionality,
+This is the underlying operator-size estimate; the operator-norm statement
+is its specialization at `N = ‖·‖`. Its hypotheses are subadditivity,
+absolute homogeneity, and the two-sided ideal inequalities.  No finite-dimensionality,
 spectral theorem, completeness, or singular-value argument is used. -/
 theorem gap_mul_le_of_comp_sub_comp_eq_rectangular
     {H : F →L[𝕜] F} {T : E →L[𝕜] E} {X Z Y : E →L[𝕜] F}
-    (hH : H.IsSymmetric) {r g : ℝ} (_hr : 0 ≤ r) (_hg : 0 < g)
+    (hH : H.IsSymmetric) {r g : ℝ}
     (hHc : ∀ x, (r + g) * ‖x‖ ^ 2 ≤ RCLike.re ⟪H x, x⟫_𝕜)
     (hT : ‖T‖ ≤ r) (hZX : N Z = N X)
     (hEq : H ∘L X - Z ∘L T = Y) :
@@ -449,23 +361,36 @@ theorem le_div_of_comp_sub_comp_eq_rectangular
     module
   have hfin := le_div_of_comp_add_comp_eq_rectangular hadd hsmul hidealL hidealR
     hA' hB' (by linarith : (0 : ℝ) < g / 2) hAc' hBc' hXY'
-  rwa [show 2 * (g / 2) = g by ring] at hfin
+  have hhalf : 2 * (g / 2) = g := by ring
+  rwa [hhalf] at hfin
 
 end RectangularAbstractSylvesterBound
 
-/-! ### The operator-norm case
+/-! ### Operator-norm specializations
 
-The operator-norm bounds are the rectangular abstract bounds at `N = ‖·‖`,
-whose four hypotheses are `norm_add_le`, `norm_smul` and `opNorm_comp_le`
-twice.  Two of the three are stated below as exactly that instantiation.
-
-The third, `gap_mul_opNorm_le_of_comp_sub_comp_eq`, stays a direct proof above
-because the abstract bounds *use* it: the polar absorption is where the
-operator norm is genuinely needed, and the seminorm `N` never enters it. -/
+The polar-absorption, coercive and separated bounds follow from the rectangular
+abstract results by taking `N X = ‖X‖` and using the standard two-sided
+composition estimates.
+-/
 
 section OperatorNormSylvesterBound
 
 variable {A : E →L[𝕜] E} {B : F →L[𝕜] F} {X Y : F →L[𝕜] E}
+
+/-- The polar-absorption bound at the usual operator norm. No separate
+absorption argument is required beyond the rectangular seminorm estimate. -/
+theorem gap_mul_opNorm_le_of_comp_sub_comp_eq
+    {H : E →L[𝕜] E} {T : F →L[𝕜] F} {X Z Y : F →L[𝕜] E}
+    (hH : H.IsSymmetric) {r g : ℝ}
+    (hHc : ∀ x, (r + g) * ‖x‖ ^ 2 ≤ RCLike.re ⟪H x, x⟫_𝕜)
+    (hT : ‖T‖ ≤ r) (hZX : ‖Z‖ = ‖X‖)
+    (hEq : H ∘L X - Z ∘L T = Y) :
+    g * ‖X‖ ≤ ‖Y‖ :=
+  gap_mul_le_of_comp_sub_comp_eq_rectangular (N := fun f : F →L[𝕜] E => ‖f‖)
+    (fun f g => norm_add_le f g) (fun a f => norm_smul a f)
+    (fun C f => ContinuousLinearMap.opNorm_comp_le C f)
+    (fun f C => ContinuousLinearMap.opNorm_comp_le f C)
+    hH hHc hT hZX hEq
 
 /-- **Operator-norm bound for the Sylvester equation, coercive (Lyapunov)
 form.**  If `A` and `B` are symmetric with quadratic forms at least
@@ -506,46 +431,5 @@ theorem opNorm_le_div_of_comp_sub_comp_eq (hA : A.IsSymmetric) (hB : B.IsSymmetr
     hA hB hg hAc hBc hXY
 
 end OperatorNormSylvesterBound
-
-/-! ### The square case
-
-`E →L[𝕜] E` is the rectangular case at `F = E`, and these three declarations are
-exactly that instantiation.  They existed as independent proofs — the same
-`set r := c + g/2`, the same symmetry computation, the same absorption — until
-2026-07-30, when the two sections were found to be character-for-character
-identical modulo the letter `F`.  They keep their names because callers use
-them and because the square case is the one a reader looks for first. -/
-
-section AbstractSylvesterBound
-
-variable {A B X Y : E →L[𝕜] E} {N : (E →L[𝕜] E) → ℝ}
-  (hadd : ∀ f g : E →L[𝕜] E, N (f + g) ≤ N f + N g)
-  (hsmul : ∀ (a : 𝕜) (f : E →L[𝕜] E), N (a • f) = ‖a‖ * N f)
-  (hidealL : ∀ C f : E →L[𝕜] E, N (C ∘L f) ≤ ‖C‖ * N f)
-  (hidealR : ∀ f C : E →L[𝕜] E, N (f ∘L C) ≤ N f * ‖C‖)
-
-include hadd hsmul in
-/-- An operator seminorm is nonnegative.  From subadditivity and absolute
-homogeneity alone. -/
-private theorem nonneg_of_add_le_of_smul (f : E →L[𝕜] E) : 0 ≤ N f :=
-  rectangular_nonneg_of_add_le_of_smul hadd hsmul f
-
-include hadd hsmul hidealL hidealR in
-/-- **Abstract Sylvester bound, separated (Davis–Kahan) form.**  For any
-operator seminorm `N` with the two-sided ideal property, if the quadratic form
-of `A` is at least `c + g` and that of `B` at most `c`, then `A X - X B = Y`
-forces `N X ≤ N Y / g`.
-
-The square case of `le_div_of_comp_sub_comp_eq_rectangular`. -/
-theorem le_div_of_comp_sub_comp_eq (hA : A.IsSymmetric) (hB : B.IsSymmetric)
-    {c g : ℝ} (hg : 0 < g)
-    (hAc : ∀ x, (c + g) * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜)
-    (hBc : ∀ x, RCLike.re ⟪B x, x⟫_𝕜 ≤ c * ‖x‖ ^ 2)
-    (hXY : A ∘L X - X ∘L B = Y) : N X ≤ N Y / g :=
-  le_div_of_comp_sub_comp_eq_rectangular hadd hsmul hidealL hidealR
-    hA hB hg hAc hBc hXY
-
-end AbstractSylvesterBound
-
 
 end ContinuousLinearMap

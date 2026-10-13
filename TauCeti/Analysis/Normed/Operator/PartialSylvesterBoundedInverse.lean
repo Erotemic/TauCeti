@@ -15,8 +15,12 @@ The Banach-space estimate for `A X - X B = C` only needs the left block to be
 defined on the range of `X` and to have an everywhere-defined bounded inverse.
 This module states that domain-aware form directly for Mathlib `LinearPMap`.
 
-The proof is the same fixed-point estimate as for a bounded left block.  No
+The proof uses the fixed-point estimate for a bounded left block. No
 inner product, completeness, closedness, or spectral theory enters the bound.
+
+Source: `AIQ-Kitware/aiq-dkps-formalization`,
+`ForTauCeti/Analysis/Normed/Operator/PartialSylvesterBoundedInverse.lean`
+(Apache-2.0); adapted for Mathlib's `LinearPMap` API.
 -/
 
 public section
@@ -73,6 +77,8 @@ theorem eq_leftInverse_comp_add_of_boundedRight_sylvester
   intro x
   let u : A.domain := ⟨X x, hEq.mapsTo_domain x⟩
   have heq : A u = C x + X (B x) := sub_eq_iff_eq_add.mp (hEq.equation x)
+  -- Expose the application of the bundled operator identity. The remaining
+  -- equality is pointwise on `F`, where the partial-map equation is stated.
   change X x = hA.inv (C x) + hA.inv (X (B x))
   calc
     X x = hA.inv (A u) := by simpa [u] using (hA.inv_apply u).symm
@@ -92,7 +98,7 @@ theorem eq_inverse_comp_add_of_boundedRight_sylvester
 
 /-- The partial-left Banach Sylvester estimate for any compatible operator
 size, assuming only an everywhere-defined bounded left inverse. -/
-theorem opNorm_le_of_boundedRight_sylvester_of_everywhereLeftInverse
+theorem mul_le_of_boundedRight_sylvester_of_everywhereLeftInverse
     {N : (F →L[𝕜] E) → ℝ}
     (hadd : ∀ f g : F →L[𝕜] E, N (f + g) ≤ N f + N g)
     (hidealL : ∀ (D : E →L[𝕜] E) (f : F →L[𝕜] E), N (D ∘L f) ≤ ‖D‖ * N f)
@@ -104,12 +110,12 @@ theorem opNorm_le_of_boundedRight_sylvester_of_everywhereLeftInverse
     (hInvNorm : ‖hA.inv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : BoundedRightSylvesterEquation A B X C) :
     δ * N X ≤ N C :=
-  ContinuousLinearMap.opNorm_le_of_leftInverse_fixedPoint
+  ContinuousLinearMap.mul_le_of_leftInverse_fixedPoint
     hadd hidealL hidealR hNnonneg hρ hδ hInvNorm hB
       (eq_leftInverse_comp_add_of_boundedRight_sylvester hA hEq)
 
 /-- The partial-left Banach Sylvester estimate for any compatible operator size. -/
-theorem opNorm_le_of_boundedRight_sylvester_of_everywhereInverse
+theorem mul_le_of_boundedRight_sylvester_of_everywhereInverse
     {N : (F →L[𝕜] E) → ℝ}
     (hadd : ∀ f g : F →L[𝕜] E, N (f + g) ≤ N f + N g)
     (hidealL : ∀ (D : E →L[𝕜] E) (f : F →L[𝕜] E), N (D ∘L f) ≤ ‖D‖ * N f)
@@ -121,7 +127,7 @@ theorem opNorm_le_of_boundedRight_sylvester_of_everywhereInverse
     (hInvNorm : ‖hA.inv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : BoundedRightSylvesterEquation A B X C) :
     δ * N X ≤ N C :=
-  opNorm_le_of_boundedRight_sylvester_of_everywhereLeftInverse
+  mul_le_of_boundedRight_sylvester_of_everywhereLeftInverse
     hadd hidealL hidealR hNnonneg hA.toBoundedEverywhereLeftInverseData
       hρ hδ hInvNorm hB hEq
 
@@ -133,7 +139,7 @@ theorem norm_le_of_boundedRight_sylvester_of_everywhereInverse
     (hInvNorm : ‖hA.inv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : BoundedRightSylvesterEquation A B X C) :
     δ * ‖X‖ ≤ ‖C‖ :=
-  opNorm_le_of_boundedRight_sylvester_of_everywhereInverse
+  mul_le_of_boundedRight_sylvester_of_everywhereInverse
     (fun f g => norm_add_le f g)
     (fun D f => ContinuousLinearMap.opNorm_comp_le D f)
     (fun f D => ContinuousLinearMap.opNorm_comp_le f D)

@@ -18,33 +18,11 @@ operator `N` is invertible in `E →L[𝕜] E`.  This is the operator-level
 Lax–Milgram lemma; the inverse is then available through `Ring.inverse` or
 through `IsUnit.unit`.
 
-## Staging note
+No self-adjointness is required for invertibility: coercivity yields a
+lower bound on `‖N z‖`, closed range, and trivial orthogonal complement.
 
-Staged for Tau Ceti, roadmap topic T16.  Mathlib is not the destination
-(`ForTauCeti/README.md`); what follows is where this material would have gone on
-the closed Mathlib track —
-additions to `Mathlib/Analysis/InnerProductSpace/CoerciveUnit.lean`
-(new file).
-Formalized by Claude Fable 5 (claude-fable-5[1m]) while closing the graph
-projection formula of the Davis–Kahan graph-subspace correspondence.  This is
-the operator form of the Lax–Milgram lemma on a Hilbert space: a uniformly
-coercive bounded operator is invertible in the algebra of bounded operators.
-No self-adjointness is required — coercivity alone forces injectivity, a
-closed range, and a trivial orthogonal complement of the range.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForMathlib` at Davis--Kahan commit
-  `00ca5e1`; it has had no prior home.
-* Extraction class: **authored in place**, for Tau Ceti — `ForMathlib` was
-  retired on 2026-07-29 and `ForTauCeti` is the single staging library, whose
-  destination is Tau Ceti and not Mathlib (`ForTauCeti/README.md`).
-* Intended Mathlib home: additions to `Mathlib/Analysis/InnerProductSpace/CoerciveUnit.
-* Original authors / copyright: Jon Crall, Claude Fable 5; Copyright (c) 2026
-  Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — the `ForTauCeti` import firewall admits only
-  Mathlib, `TauCeti` and `ForTauCeti` (enforced by `scripts/check_dependency_layers.py`).
+Source: `AIQ-Kitware/aiq-dkps-formalization`,
+`ForTauCeti/Analysis/InnerProductSpace/CoerciveUnit.lean` (Apache-2.0).
 -/
 
 public section
@@ -60,7 +38,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 omit [CompleteSpace E] in
 /-- A uniformly coercive bounded operator on a Hilbert space is bounded
 below. -/
-theorem norm_smul_le_norm_apply_of_coercive {N : E →L[𝕜] E} {c : ℝ}
+theorem mul_norm_le_norm_apply_of_coercive {N : E →L[𝕜] E} {c : ℝ}
     (hcoer : ∀ z, c * ‖z‖ ^ 2 ≤ RCLike.re ⟪N z, z⟫_𝕜) (z : E) :
     c * ‖z‖ ≤ ‖N z‖ := by
   rcases eq_or_ne z 0 with hz | hz
@@ -77,7 +55,7 @@ theorem norm_smul_le_norm_apply_of_coercive {N : E →L[𝕜] E} {c : ℝ}
 space is a unit of the algebra of bounded operators. -/
 theorem isUnit_of_coercive {N : E →L[𝕜] E} {c : ℝ} (hc : 0 < c)
     (hcoer : ∀ z, c * ‖z‖ ^ 2 ≤ RCLike.re ⟪N z, z⟫_𝕜) : IsUnit N := by
-  have hlow := norm_smul_le_norm_apply_of_coercive hcoer
+  have hlow := mul_norm_le_norm_apply_of_coercive hcoer
   rw [ContinuousLinearMap.isUnit_iff_bijective]
   constructor
   · intro a b hab
@@ -371,24 +349,6 @@ theorem norm_one_sub_inverse_one_add {B : E →L[𝕜] E} (hB : IsSelfAdjoint B)
       linarith
     exact div_one_add_le_of_forall_sub_sq_le hs hstep2
   exact le_antisymm hupper hlower
-
-/-! ## `Ring.inverse` and semiconjugation
-
-This module's own summary says the inverse of a coercive operator "is then
-available through `Ring.inverse` or through `IsUnit.unit`".  These two lemmas are
-about that choice.  **Mathlib states the semiconjugation-respects-inverses fact
-only in the `Units` spelling** (`SemiconjBy.units_inv_right`), and every
-operator-algebra argument here gets its invertibility as `IsUnit` and its inverse
-through `Ring.inverse`, so using the Mathlib lemma means unfolding by hand at
-every site.  That unfolding was written out as the same six-line `calc` in
-**three** theorems of `DavisKahan/SpectralTheory/GraphSubspace.lean`, which is
-the file this module was written to support.
-
-They are stated for a `MonoidWithZero` and mention no inner product; they live
-here because this is where the `IsUnit`-to-`Ring.inverse` seam is already
-documented, and because `ForTauCeti`'s module-to-topic partition is total, so a
-general-algebra subtree would need a new roadmap topic.  See
-`{lane:ALG-PROMOTE-SEMICONJ}`. -/
 
 end ContinuousLinearMap
 

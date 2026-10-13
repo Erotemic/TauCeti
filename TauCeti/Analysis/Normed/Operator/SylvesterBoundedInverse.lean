@@ -3,10 +3,6 @@ Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5
 -/
-/-
-Provenance: staged for Tau Ceti (roadmap topic T16) — the Banach-space
-Sylvester lower bound.
--/
 module
 
 public import Mathlib.Analysis.Normed.Operator.Basic
@@ -42,28 +38,26 @@ This one is the source statement.
 
 ## "Any compatible operator norm"
 
-`opNorm_le_of_sylvester_of_leftInverse` is stated for an arbitrary function
-`N` on `F →L[𝕜] E` subject to exactly the three properties the proof consumes:
-subadditivity and the two one-sided ideal bounds.  Those are what "compatible
-operator norm" means, and they are also what a symmetric-norm-ideal gauge
-supplies, so the same theorem covers the unitarily-invariant-norm reading of
-Theorem 5.1.  `norm_le_of_sylvester_of_leftInverse` is the specialisation to
+`mul_le_of_sylvester_of_leftInverse` is stated for an arbitrary function
+`N` on `F →L[𝕜] E` subject to subadditivity, nonnegativity and the
+two one-sided ideal bounds. Compatible operator norms and symmetric-norm-ideal
+gauges satisfy these properties, so the theorem includes unitarily invariant
+operator sizes when the stated ideal inequalities hold.
+`norm_le_of_sylvester_of_leftInverse` is the specialisation to
 the operator norm itself.
 
 ## Main results
 
-* `TauCeti.ContinuousLinearMap.opNorm_le_of_sylvester_of_leftInverse`
-* `TauCeti.ContinuousLinearMap.norm_le_of_sylvester_of_leftInverse`
+* `ContinuousLinearMap.mul_le_of_sylvester_of_leftInverse`: any compatible size.
+* `ContinuousLinearMap.norm_le_of_sylvester_of_leftInverse`: operator norm.
+* `ContinuousLinearMap.mul_le_of_sylvester_of_rightInverse`: right-inverse bound.
 
-## Provenance
+## Source
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026
-  Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — the `ForTauCeti` import firewall admits only
-  Mathlib, `TauCeti` and `ForTauCeti`.
+Adapted from `AIQ-Kitware/aiq-dkps-formalization`,
+`ForTauCeti/Analysis/Normed/Operator/SylvesterBoundedInverse.lean` (Apache-2.0).
+The Banach-space estimate is the norm-general version of the Davis--Kahan
+fixed-point argument; the source-file author attribution is retained.
 -/
 
 public section
@@ -98,7 +92,7 @@ theorem eq_leftInverse_comp_add_of_sylvester
 This is the analytic core of the bounded and partial-map Sylvester estimates.  It
 only uses the fixed-point identity `X = L C + L X B`, the inverse norm bound, and
 the two ideal inequalities for the chosen size function. -/
-theorem opNorm_le_of_leftInverse_fixedPoint
+theorem mul_le_of_leftInverse_fixedPoint
     {N : (F →L[𝕜] E) → ℝ}
     (hadd : ∀ f g : F →L[𝕜] E, N (f + g) ≤ N f + N g)
     (hidealL : ∀ (C : E →L[𝕜] E) (f : F →L[𝕜] E), N (C ∘L f) ≤ ‖C‖ * N f)
@@ -131,14 +125,14 @@ theorem opNorm_le_of_leftInverse_fixedPoint
 
 /-- **Davis--Kahan 1970 Theorem 5.1, for any compatible operator norm.**
 
-`N` is an arbitrary size function on `F →L[𝕜] E` subject to the three
-properties the proof uses: subadditivity, and the two one-sided ideal bounds.
+`N` is an arbitrary nonnegative size function on `F →L[𝕜] E` subject to
+subadditivity and the two one-sided ideal bounds.
 An operator norm has them, and so does a symmetric-norm-ideal gauge, so this one
 statement covers both readings of the source theorem.
 
 The hypotheses are the source's: a bounded left inverse of `A` with
 `‖A⁻¹‖ ≤ (ρ + δ)⁻¹`, and `‖B‖ ≤ ρ`. -/
-theorem opNorm_le_of_sylvester_of_leftInverse
+theorem mul_le_of_sylvester_of_leftInverse
     {N : (F →L[𝕜] E) → ℝ}
     (hadd : ∀ f g : F →L[𝕜] E, N (f + g) ≤ N f + N g)
     (hidealL : ∀ (C : E →L[𝕜] E) (f : F →L[𝕜] E), N (C ∘L f) ≤ ‖C‖ * N f)
@@ -150,30 +144,9 @@ theorem opNorm_le_of_sylvester_of_leftInverse
     (hρ : 0 ≤ ρ) (hδ : 0 < δ)
     (hAinv : ‖Ainv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : A ∘L X - X ∘L B = C) :
-    δ * N X ≤ N C := by
-  have hρδ : 0 < ρ + δ := by linarith
-  have hX : X = Ainv ∘L C + Ainv ∘L (X ∘L B) :=
-    eq_leftInverse_comp_add_of_sylvester hinv hEq
-  -- `N X ≤ ‖A⁻¹‖ N C + ‖A⁻¹‖ (N X) ‖B‖`.
-  have hstep : N X ≤ ‖Ainv‖ * N C + ‖Ainv‖ * (N X * ‖B‖) := by
-    calc N X = N (Ainv ∘L C + Ainv ∘L (X ∘L B)) := by rw [← hX]
-      _ ≤ N (Ainv ∘L C) + N (Ainv ∘L (X ∘L B)) := hadd _ _
-      _ ≤ ‖Ainv‖ * N C + ‖Ainv‖ * N (X ∘L B) :=
-          add_le_add (hidealL _ _) (hidealL _ _)
-      _ ≤ ‖Ainv‖ * N C + ‖Ainv‖ * (N X * ‖B‖) :=
-          add_le_add le_rfl
-            (mul_le_mul_of_nonneg_left (hidealR _ _) (norm_nonneg _))
-  -- Insert the two hypotheses on `‖A⁻¹‖` and `‖B‖`.
-  have hbound : N X ≤ (ρ + δ)⁻¹ * N C + (ρ + δ)⁻¹ * (N X * ρ) := by
-    refine hstep.trans (add_le_add ?_ ?_)
-    · exact mul_le_mul_of_nonneg_right hAinv (hNnonneg C)
-    · exact mul_le_mul hAinv (mul_le_mul_of_nonneg_left hB (hNnonneg X))
-        (mul_nonneg (hNnonneg X) (norm_nonneg B)) (inv_nonneg.mpr hρδ.le)
-  -- Clear the inverse and cancel `ρ * N X`.
-  have hmul : (ρ + δ) * N X ≤ N C + N X * ρ := by
-    have h := mul_le_mul_of_nonneg_left hbound hρδ.le
-    rwa [mul_add, ← mul_assoc, ← mul_assoc, mul_inv_cancel₀ hρδ.ne', one_mul, one_mul] at h
-  nlinarith [hmul]
+    δ * N X ≤ N C :=
+  mul_le_of_leftInverse_fixedPoint hadd hidealL hidealR hNnonneg
+    hρ hδ hAinv hB (eq_leftInverse_comp_add_of_sylvester hinv hEq)
 
 /-- **Davis--Kahan 1970 Theorem 5.1** at the operator norm: with a bounded left
 inverse satisfying `‖A⁻¹‖ ≤ (ρ + δ)⁻¹` and `‖B‖ ≤ ρ`, any solution of
@@ -188,7 +161,7 @@ theorem norm_le_of_sylvester_of_leftInverse
     (hAinv : ‖Ainv‖ ≤ (ρ + δ)⁻¹) (hB : ‖B‖ ≤ ρ)
     (hEq : A ∘L X - X ∘L B = C) :
     δ * ‖X‖ ≤ ‖C‖ :=
-  opNorm_le_of_sylvester_of_leftInverse
+  mul_le_of_sylvester_of_leftInverse
     (fun f g => norm_add_le f g)
     (fun C f => ContinuousLinearMap.opNorm_comp_le C f)
     (fun f C => ContinuousLinearMap.opNorm_comp_le f C)
@@ -221,7 +194,7 @@ inverse of the right block.
 
 The size function has the same ideal properties as in the left-inverse theorem,
 plus invariance under negation, which is automatic for every norm. -/
-theorem opNorm_le_of_sylvester_of_rightInverse
+theorem mul_le_of_sylvester_of_rightInverse
     {N : (F →L[𝕜] E) → ℝ}
     (hadd : ∀ f g : F →L[𝕜] E, N (f + g) ≤ N f + N g)
     (hneg : ∀ f : F →L[𝕜] E, N (-f) = N f)
@@ -281,7 +254,7 @@ theorem norm_le_of_sylvester_of_rightInverse
     (hBinv : ‖Binv‖ ≤ (ρ + δ)⁻¹) (hA : ‖A‖ ≤ ρ)
     (hEq : A ∘L X - X ∘L B = C) :
     δ * ‖X‖ ≤ ‖C‖ :=
-  opNorm_le_of_sylvester_of_rightInverse
+  mul_le_of_sylvester_of_rightInverse
     (fun f g => norm_add_le f g)
     (fun f => norm_neg f)
     (fun C f => ContinuousLinearMap.opNorm_comp_le C f)
