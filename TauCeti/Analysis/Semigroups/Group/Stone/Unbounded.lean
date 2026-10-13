@@ -123,6 +123,33 @@ theorem _root_.LinearPMap.isSelfAdjoint_iff_exists_isUnitary_complexGenerator_eq
     (neg_ne_zero.mpr Complex.I_ne_zero) hU.complexGenerator_adjoint_eq_neg
   simpa [hUA, smul_smul] using h
 
+/-- The self-adjoint Stone generator of a unitary strongly continuous group. It is
+`-i` times the existing complex (skew-adjoint) C₀-generator, rather than a second
+limit-based generator construction. -/
+def stoneGenerator (U : StronglyContinuousGroup H) (hU : U.IsUnitary) : H →ₗ.[ℂ] H :=
+  (-Complex.I) • U.complexGenerator hU
+
+omit [CompleteSpace H] in
+/-- The Stone generator is the canonical complex generator multiplied by `-i`. -/
+theorem stoneGenerator_def (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
+    U.stoneGenerator hU = (-Complex.I) • U.complexGenerator hU :=
+  (rfl)
+
+/-- The Stone generator of a unitary C₀-group is self-adjoint. -/
+theorem isSelfAdjoint_stoneGenerator (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
+    IsSelfAdjoint (U.stoneGenerator hU) := by
+  rw [stoneGenerator_def]
+  exact LinearPMap.isSelfAdjoint_smul_of_adjoint_eq_neg (by simp)
+    (neg_ne_zero.mpr Complex.I_ne_zero) hU.complexGenerator_adjoint_eq_neg
+
+omit [CompleteSpace H] in
+/-- The original complex generator is `i` times the self-adjoint Stone generator. -/
+theorem complexGenerator_eq_I_smul_stoneGenerator (U : StronglyContinuousGroup H)
+    (hU : U.IsUnitary) :
+    U.complexGenerator hU = Complex.I • U.stoneGenerator hU := by
+  rw [stoneGenerator_def, smul_smul]
+  simp only [mul_neg, Complex.I_mul_I, neg_neg, one_smul]
+
 end StronglyContinuousGroup
 
 end TauCeti.Semigroups

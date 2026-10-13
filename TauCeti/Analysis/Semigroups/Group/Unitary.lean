@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors
+Authors: The Tau Ceti contributors, Jon Crall, Claude Opus 5
 -/
 module
 
@@ -294,6 +294,31 @@ private theorem complexGenerator_mem_domain (U : StronglyContinuousGroup H) (hU 
 namespace IsUnitary
 
 variable {U : StronglyContinuousGroup H}
+
+/-- A bounded complex-linear map in the commutant of a unitary C₀-group preserves the
+complex generator domain and intertwines the generator. This specializes the real-linear
+commutant theorem without introducing a second unitary-group structure. -/
+theorem complexGenerator_commute (hU : U.IsUnitary) (T : H →L[ℂ] H)
+    (hT : ∀ (t : ℝ) (y : H), U t (T y) = T (U t y))
+    (x : (U.complexGenerator hU).domain) :
+    ∃ hmem : T (x : H) ∈ (U.complexGenerator hU).domain,
+      U.complexGenerator hU ⟨T (x : H), hmem⟩ = T (U.complexGenerator hU x) := by
+  obtain ⟨hmemR, hcommR⟩ :=
+    U.generator_commute_of_commute (T.restrictScalars ℝ) hT
+      ⟨x, U.complexGenerator_mem_domain hU x⟩
+  have hmemC : T (x : H) ∈ U.complexDomain hU :=
+    (U.mem_complexDomain_iff hU _).mpr hmemR
+  have hmem : T (x : H) ∈ (U.complexGenerator hU).domain := by
+    exact (congrArg (fun D : Submodule ℂ H => T (x : H) ∈ D)
+      (U.complexGenerator_domain hU)).symm.mp hmemC
+  refine ⟨hmem, ?_⟩
+  calc
+    U.complexGenerator hU ⟨T (x : H), hmem⟩ =
+        U.generator ⟨T (x : H), by rw [U.generator_domain]; exact hmemR⟩ := by
+      exact U.complexGenerator_apply hU _
+    _ = T (U.generator ⟨(x : H), by
+        rw [U.generator_domain]; exact U.complexGenerator_mem_domain hU x⟩) := hcommR
+    _ = T (U.complexGenerator hU x) := by rw [U.complexGenerator_apply hU x]
 
 /-- **The infinitesimal generator of a unitary strongly continuous group is skew-symmetric.**
 For vectors `x` and `y` in its natural complex domain,
