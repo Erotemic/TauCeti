@@ -5,88 +5,27 @@ Authors: Jon Crall, Claude Opus 5
 -/
 module
 
-/-
-Staged for Tau Ceti: the polar partial isometry over a general `RCLike` field.
--/
-
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Positive
 public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 public import Mathlib.Analysis.Normed.Operator.Extend
 
 /-!
-# A Gram factorisation produces a contraction
+# Contractions from Gram identities and domination
 
-If a bounded operator `T : E →L[𝕜] F` and a **self-adjoint** `A : E →L[𝕜] E`
-have the same Gram operator,
+Let `T : E →L[𝕜] F` and let `A : E →L[𝕜] E` be self-adjoint.
+The construction `gramContraction T A` extends the rule `A x ↦ T x`
+from the range of `A` to its closure and vanishes on the orthogonal
+complement. Under the **Gram identity** `A² = T†T`, this extension
+is isometric on the initial space, has norm at most one, and satisfies
+`W A = T` and `W† T = A`.
 
-```
-A ∘L A = T⋆ ∘L T,
-```
+Under the weaker **Gram domination** `T†T ≤ A²`, the same construction
+is contractive, but need not be isometric, and only `W A = T` is asserted.
+The canonical polar-factor interpretation requires a *positive* square
+root `A = |T|`; self-adjointness alone does not identify `A` with `|T|`.
 
-then there is a contraction `W : E →L[𝕜] F` with
-
-```
-W ∘L A = T   and   W⋆ ∘L T = A.
-```
-
-`W` is the polar partial isometry: `A` plays the role of `|T|`, and the pair of
-identities says exactly that `T` and `A` are two-sided contractive multiples of
-one another.
-
-## Why this is stated on the Gram operator rather than on `|T|`
-
-`ForTauCeti/Analysis/InnerProductSpace/Polar/PartialIsometry.lean` specializes this
-construction to `A = T.modulus` and packages the result as the canonical polar partial
-isometry.  The lower-level Gram formulation remains useful because it needs no functional
-calculus at all.  Everything below rests on one consequence of the Gram identity,
-`ContinuousLinearMap.norm_apply_eq_of_gram_eq`:
-
-```
-‖A x‖ = ‖T x‖.
-```
-
-Read left to right it says `A x ↦ T x` is well defined; read as an equation it says that
-assignment is isometric.  A caller with the canonical modulus supplies
-`A = T.modulus`, `T.modulus_isSelfAdjoint`, and `T.modulus_mul_self`.
-
-## Main definitions and results
-
-* `ContinuousLinearMap.norm_apply_eq_of_gram_eq`: the isometry identity.
-* `ContinuousLinearMap.rangeTopologicalClosure`: the initial space, `closure (range A)`.
-* `ContinuousLinearMap.gramContraction`: the contraction `W`.
-* `ContinuousLinearMap.gramContraction_comp_right`: `W ∘L A = T`.
-* `ContinuousLinearMap.adjoint_gramContraction_comp_left`: `W⋆ ∘L T = A`.
-* `ContinuousLinearMap.norm_gramContraction_le_one`: `‖W‖ ≤ 1`.
-* `ContinuousLinearMap.exists_contraction_of_gram_eq`: the packaged existence
-  statement, which is the form consumers want.
-* `ContinuousLinearMap.norm_apply_le_of_gram_le`,
-  `ContinuousLinearMap.exists_contraction_of_gram_le`: the **one-sided** version,
-  where the Gram identity is weakened to the operator inequality
-  `T⋆T ≤ A²` and only `W ∘L A = T` survives.
-
-## The one-sided version
-
-Domination `T⋆T ≤ A²` gives `‖T x‖ ≤ ‖A x‖` instead of equality, and that is
-already enough for the whole construction: `A x ↦ T x` is still well defined
-(if `A x = A y` then `‖T x - T y‖ ≤ ‖A x - A y‖ = 0`) and still bounded by `1`,
-so it still extends by continuity.  What is lost is the reverse identity
-`W⋆ ∘L T = A`, which genuinely fails under domination alone — take `T = 0` and
-`A ≠ 0`.  So `exists_contraction_of_gram_le` is deliberately one-sided.
-
-The construction itself (`rangeTopologicalClosure`, `corestrictRangeClosure`,
-`gramContractionOnRangeClosure`, `gramContraction`) mentions no Gram hypothesis at all, so
-both versions share it; only the property proofs differ.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026
-  Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — the `ForTauCeti` import firewall admits only
-  Mathlib, `TauCeti` and `ForTauCeti`.
+Based on the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
 
 public section
@@ -126,8 +65,7 @@ theorem norm_apply_eq_of_gram_eq {T : E →L[𝕜] F} {A : E →L[𝕜] E}
 
 /-! ### The initial space -/
 
-/-- The **initial space**: the closure of the range of `A`.  The contraction is
-isometric on it and vanishes on its orthogonal complement. -/
+/-- The closure of the range of `A`, the support of the Gram extension. -/
 noncomputable def rangeTopologicalClosure (A : E →L[𝕜] E) : Submodule 𝕜 E :=
   (LinearMap.range A.toLinearMap).topologicalClosure
 
@@ -172,19 +110,25 @@ theorem denseRange_corestrictRangeClosure (A : E →L[𝕜] E) :
 
 /-! ### The contraction -/
 
-/-- The extension of the isometry `A x ↦ T x` from the dense range of `A` to the
-whole initial space. -/
+/-- The extension of `A x ↦ T x` to the closure of the range of `A`.
+Its norm bounds and isometry property require the corresponding Gram hypotheses. -/
 noncomputable def gramContractionOnRangeClosure (T : E →L[𝕜] F) (A : E →L[𝕜] E) :
     A.rangeTopologicalClosure →L[𝕜] F :=
   T.toLinearMap.extendOfNorm A.corestrictRangeClosure
 
-/-- **The contraction attached to a Gram factorisation.**
-
-`W = W₀ ∘ P`, where `P` is the orthogonal projection onto the initial space and
-`W₀` is the continuous extension of `A x ↦ T x`.  It is a partial isometry:
-isometric on the initial space and zero on its orthogonal complement. -/
+/-- The Gram extension is `W₀ ∘ P`, with `P` the orthogonal projection
+onto the closure of `range A`. Contractivity follows from Gram domination;
+isometry on the initial space requires Gram equality. -/
 noncomputable def gramContraction (T : E →L[𝕜] F) (A : E →L[𝕜] E) : E →L[𝕜] F :=
   T.gramContractionOnRangeClosure A ∘L A.rangeTopologicalClosure.orthogonalProjectionOnto
+
+/-- The Gram extension vanishes on the orthogonal complement of the closed range of `A`. -/
+theorem gramContraction_apply_eq_zero_of_mem_orthogonal
+    (T : E →L[𝕜] F) (A : E →L[𝕜] E) (x : E)
+    (hx : x ∈ A.rangeTopologicalClosureᗮ) : T.gramContraction A x = 0 := by
+  rw [gramContraction, ContinuousLinearMap.comp_apply,
+    Submodule.orthogonalProjectionOnto_eq_zero_iff.mpr hx]
+  simp
 
 section GramHyp
 
@@ -204,6 +148,30 @@ theorem gramContractionOnRangeClosure_corestrictRangeClosure (x : E) :
     T.gramContractionOnRangeClosure A (A.corestrictRangeClosure x) = T x :=
   LinearMap.extendOfNorm_eq A.denseRange_corestrictRangeClosure
     ⟨1, norm_apply_le_norm_corestrictRangeClosure hA hgram⟩ x
+
+/-- Under Gram equality, the extension preserves norms on the entire closed range of `A`. -/
+theorem norm_gramContractionOnRangeClosure (z : A.rangeTopologicalClosure) :
+    ‖T.gramContractionOnRangeClosure A z‖ = ‖z‖ := by
+  have heq : Set.EqOn
+      (fun w : A.rangeTopologicalClosure => ‖T.gramContractionOnRangeClosure A w‖)
+      (fun w : A.rangeTopologicalClosure => ‖w‖)
+      (Set.range A.corestrictRangeClosure) := by
+    rintro _ ⟨x, rfl⟩
+    rw [gramContractionOnRangeClosure_corestrictRangeClosure hA hgram]
+    exact (norm_apply_eq_of_gram_eq hA hgram x).symm
+  exact congrFun (Continuous.ext_on A.denseRange_corestrictRangeClosure
+    (by fun_prop) (by fun_prop) heq) z
+
+/-- Under Gram equality, `gramContraction T A` is isometric on the closed range of `A`. -/
+theorem norm_gramContraction_apply_of_mem_rangeTopologicalClosure (x : E)
+    (hx : x ∈ A.rangeTopologicalClosure) :
+    ‖T.gramContraction A x‖ = ‖x‖ := by
+  have hproj : A.rangeTopologicalClosure.orthogonalProjectionOnto x = ⟨x, hx⟩ := by
+    apply Subtype.ext
+    simpa using Submodule.starProjection_eq_self_iff.mpr hx
+  rw [gramContraction, ContinuousLinearMap.comp_apply, hproj,
+    norm_gramContractionOnRangeClosure hA hgram]
+  rfl
 
 /-- **The factorisation**: `W A = T`, pointwise. -/
 theorem gramContraction_apply_apply (x : E) :
@@ -281,6 +249,40 @@ theorem adjoint_gramContraction_comp_left :
     _ = ⟪A x, y⟫_𝕜 := by
         rw [Submodule.starProjection_eq_self_iff.mpr
           (A.apply_mem_rangeTopologicalClosure x)]
+
+/-- The Gram extension is the unique bounded factor satisfying `WA = T` and
+vanishing on the orthogonal complement of the closed range of `A`. -/
+theorem eq_gramContraction_of_comp_right_and_orthogonal_eq_zero
+    (W : E →L[𝕜] F) (hWA : W ∘L A = T)
+    (hzero : ∀ x ∈ A.rangeTopologicalClosureᗮ, W x = 0) :
+    W = T.gramContraction A := by
+  have hon : ∀ z : A.rangeTopologicalClosure,
+      W (z : E) = T.gramContraction A z := by
+    have heq : Set.EqOn
+        (fun z : A.rangeTopologicalClosure => W (z : E))
+        (fun z : A.rangeTopologicalClosure => T.gramContraction A (z : E))
+        (Set.range A.corestrictRangeClosure) := by
+      rintro _ ⟨x, rfl⟩
+      have hw := congrArg (fun K : E →L[𝕜] F => K x) hWA
+      simpa only [ContinuousLinearMap.comp_apply, coe_corestrictRangeClosure_apply]
+        using hw.trans (gramContraction_apply_apply hA hgram x).symm
+    intro z
+    exact congrFun (Continuous.ext_on A.denseRange_corestrictRangeClosure
+      (by fun_prop) (by fun_prop) heq) z
+  ext x
+  set P := A.rangeTopologicalClosure.starProjection x with hP
+  have hx : x - P ∈ A.rangeTopologicalClosureᗮ := by
+    rw [hP]
+    exact Submodule.sub_starProjection_mem_orthogonal x
+  have hPx : P ∈ A.rangeTopologicalClosure := Submodule.starProjection_apply_mem _ _
+  have hGzero : T.gramContraction A (x - P) = 0 :=
+    gramContraction_apply_eq_zero_of_mem_orthogonal T A (x - P) hx
+  calc
+    W x = W P + W (x - P) := by rw [map_sub]; abel
+    _ = W P := by rw [hzero _ hx, add_zero]
+    _ = T.gramContraction A P := hon ⟨P, hPx⟩
+    _ = T.gramContraction A P + T.gramContraction A (x - P) := by rw [hGzero, add_zero]
+    _ = T.gramContraction A x := by rw [← map_add]; congr 1 <;> abel
 
 /-- **A Gram factorisation produces a two-sided contractive equivalence.**
 
