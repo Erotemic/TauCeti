@@ -6,55 +6,19 @@ Authors: Jon Crall, GPT 5.6 High
 module
 
 public import Mathlib.Analysis.Fourier.Inversion
+public import TauCeti.MeasureTheory.Integral.Even
 
 /-!
-# The exponential Fourier transform of the two-sided absolute exponential
+# Fourier analysis of two-sided exponentials
 
-This file collects the scalar exponential Fourier-transform prerequisites of the
-Haagerup--Zsidó reciprocal kernel: the two-sided Laplace transform with an
-oscillatory factor, its Fourier normalization, the associated decay estimates,
-and the integrability certificates for the two-sided exponential.
-
-This is a topic split of `ForTauCeti/Analysis/Fourier/HaagerupZsidoKernel.lean`;
-declarations are moved verbatim and remain in the `TauCeti.HaagerupZsido`
-namespace.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `f35ffc0`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, GPT 5.6 High; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+Evaluates the oscillatory integral of `exp (-y * |t|)` and its Fourier transform, and records
+cocompact decay estimates used in Poisson summation for Cauchy lattice sums. The integrability
+of the real two-sided exponential is reused from `TauCeti.MeasureTheory.Integral.ExpDecay`.
 -/
 
 public section
 
-namespace MeasureTheory
-
-/-- An even function is integrable on the line iff it is integrable on the
-positive half-line. -/
-theorem integrable_iff_integrableOn_Ioi_of_even {g : ℝ → ℝ}
-    (heven : ∀ t, g (-t) = g t) :
-    Integrable g ↔ IntegrableOn g (Set.Ioi 0) := by
-  refine ⟨fun hg => hg.integrableOn, fun hg => ?_⟩
-  have hIic : IntegrableOn g (Set.Iic 0) := by
-    rw [← Measure.map_neg_eq_self (volume : Measure ℝ)]
-    have m : MeasurableEmbedding fun x : ℝ => -x :=
-      (Homeomorph.neg ℝ).measurableEmbedding
-    rw [m.integrableOn_map_iff]
-    simp only [Function.comp_def, heven, Set.neg_preimage, Set.neg_Iic, neg_zero]
-    exact Iff.mpr (integrableOn_Ici_iff_integrableOn_Ioi (by finiteness)) hg
-  rw [← integrableOn_univ, ← Set.Iic_union_Ioi (a := (0 : ℝ))]
-  exact hIic.union hg
-
-end MeasureTheory
-
 namespace TauCeti
-namespace HaagerupZsido
 
 open MeasureTheory Set Filter Asymptotics
 open scoped BigOperators FourierTransform
@@ -220,29 +184,19 @@ theorem cauchy_fourier_isBigO_rpow_neg_two
         (by nlinarith [sq_nonneg y])
     _ = (y / Real.pi) * (x ^ 2)⁻¹ := div_eq_mul_inv _ _
 
-/-- Two-sided integrability of a symmetric exponential. -/
-private theorem integrable_exp_neg_mul_abs {y : ℝ} (hy : 0 < y) :
-    Integrable (fun t : ℝ => Real.exp (-y * |t|)) := by
-  refine (integrable_iff_integrableOn_Ioi_of_even (fun t => by rw [abs_neg])).mpr ?_
-  apply (exp_neg_integrableOn_Ioi 0 hy).congr_fun _ measurableSet_Ioi
-  intro t ht
-  dsimp only
-  rw [abs_of_pos (show (0 : ℝ) < t from ht)]
-
 /-- Integrability of the modulated two-sided exponential. -/
 theorem integrable_cexp_neg_mul_abs_mul_cexp (x : ℝ) {y : ℝ} (hy : 0 < y) :
     Integrable (fun t : ℝ =>
       Complex.exp ((-(y * |t|) : ℝ) : ℂ) *
         Complex.exp ((((t * x : ℝ) : ℂ) * Complex.I))) := by
-  apply (integrable_exp_neg_mul_abs hy).mono'
+  apply (TauCeti.integrable_exp_neg_mul_abs hy).mono'
   · exact (by fun_prop : Measurable fun t : ℝ =>
       Complex.exp ((-(y * |t|) : ℝ) : ℂ) *
         Complex.exp ((((t * x : ℝ) : ℂ) * Complex.I))).aestronglyMeasurable
   · filter_upwards [] with t
     rw [norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_exp,
-      Complex.ofReal_re, neg_mul]
+      Complex.ofReal_re]
 
 end
 
-end HaagerupZsido
 end TauCeti

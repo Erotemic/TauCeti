@@ -5,70 +5,32 @@ Authors: Jon Crall, GPT 5.6 High
 -/
 module
 
-public import TauCeti.Analysis.Fourier.ExponentialAbs
+public import TauCeti.Analysis.SpecialFunctions.Trigonometric.AbsSine
+public import TauCeti.MeasureTheory.Integral.Even
 
 /-!
 # Laplace transforms of the absolute sine
 
-This file develops the Laplace transform of `|sin|` against an exponential
-weight, by periodic decomposition and the geometric series, together with the
-elementary periodicity and two-sided integrability facts it needs.
+Computes the Laplace transform of `|sin t|` by splitting the positive axis into periods and
+summing the resulting geometric progression. Also establishes the two-sided integrability and
+integral identity used to calculate the Haagerup--Zsidó kernel's exact `L¹` mass.
 
-This is a topic split of `ForTauCeti/Analysis/Fourier/HaagerupZsidoKernel.lean`.
-The generic absolute-sine trigonometric lemmas `Real.abs_sin_add_nat_mul_pi` and
-`Real.abs_sin_abs` live in the `Real` namespace; the generic even-function
-integrability lemma `MeasureTheory.integrable_iff_integrableOn_Ioi_of_even`
-lives in `ForTauCeti.Analysis.Fourier.ExponentialAbs`.  The remaining
-declarations are moved verbatim and remain in the `TauCeti.HaagerupZsido`
-namespace.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `f35ffc0`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, GPT 5.6 High; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+The elementary sine identities are in `Trigonometric.AbsSine`, and the half-line integrability
+criterion for even functions is in `MeasureTheory.Integral.Even`.
 -/
 
 public section
 
 namespace Real
 
-/-- Shifting by an integer multiple of `π` preserves the absolute sine. -/
-theorem abs_sin_add_nat_mul_pi (s : ℝ) (n : ℕ) :
-    |Real.sin (s + n * Real.pi)| = |Real.sin s| := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-      have hstep : s + ((n + 1 : ℕ) : ℝ) * Real.pi =
-          (s + (n : ℝ) * Real.pi) + Real.pi := by
-        push_cast
-        ring
-      rw [hstep, Real.sin_add_pi, abs_neg, ih]
-
-/-- The absolute sine is invariant under absolute value of the argument. -/
-theorem abs_sin_abs (t : ℝ) : |Real.sin (|t|)| = |Real.sin t| := by
-  rcases abs_cases t with ⟨h, _⟩ | ⟨h, _⟩
-  · rw [h]
-  · rw [h, Real.sin_neg, abs_neg]
-
-end Real
-
-namespace TauCeti
-namespace HaagerupZsido
-
 open MeasureTheory Set Filter Asymptotics
-open scoped BigOperators FourierTransform
+open scoped BigOperators
 
 noncomputable section
 
 /-- One-period Laplace--sine integral, from the elementary antiderivative
 `-(exp (-y*t) * (y * sin t + cos t)) / (1 + y ^ 2)`. -/
-private theorem integral_zero_pi_sin_mul_exp_neg (y : ℝ) :
+theorem integral_zero_pi_sin_mul_exp_neg (y : ℝ) :
     (∫ t in (0 : ℝ)..Real.pi, Real.sin t * Real.exp (-y * t)) =
       (1 + Real.exp (-Real.pi * y)) / (1 + y ^ 2) := by
   have hden : (1 : ℝ) + y ^ 2 ≠ 0 := by positivity
@@ -101,7 +63,7 @@ private theorem integral_zero_pi_sin_mul_exp_neg (y : ℝ) :
 
 /-- Partial Laplace transform of the absolute sine over `N` periods.  Each
 period contributes one geometric factor. -/
-private theorem integral_abs_sin_mul_exp_neg_upto (y : ℝ) (N : ℕ) :
+theorem integral_abs_sin_mul_exp_neg_upto (y : ℝ) (N : ℕ) :
     (∫ t in (0 : ℝ)..((N : ℝ) * Real.pi),
         |Real.sin t| * Real.exp (-y * t)) =
       (∑ n ∈ Finset.range N, Real.exp (-Real.pi * y) ^ n) *
@@ -166,7 +128,7 @@ private theorem integral_abs_sin_mul_exp_neg_upto (y : ℝ) (N : ℕ) :
       ring
 
 /-- Integrability of the absolute sine against an exponential weight. -/
-private theorem integrableOn_abs_sin_mul_exp_neg {y : ℝ} (hy : 0 < y) :
+theorem integrableOn_abs_sin_mul_exp_neg {y : ℝ} (hy : 0 < y) :
     IntegrableOn (fun t : ℝ => |Real.sin t| * Real.exp (-y * t))
       (Set.Ioi 0) := by
   apply (exp_neg_integrableOn_Ioi 0 hy).mono'
@@ -183,7 +145,7 @@ private theorem integrableOn_abs_sin_mul_exp_neg {y : ℝ} (hy : 0 < y) :
 
 /-- The Laplace transform of the absolute sine, by periodic decomposition and
 the geometric series. -/
-private theorem integral_Ioi_abs_sin_mul_exp_neg {y : ℝ} (hy : 0 < y) :
+theorem integral_Ioi_abs_sin_mul_exp_neg {y : ℝ} (hy : 0 < y) :
     (∫ t in Set.Ioi (0 : ℝ), |Real.sin t| * Real.exp (-y * t)) =
       (1 + Real.exp (-Real.pi * y)) /
         ((1 - Real.exp (-Real.pi * y)) * (1 + y ^ 2)) := by
@@ -245,5 +207,4 @@ theorem integral_abs_sin_mul_exp_neg_abs {y : ℝ} (hy : 0 < y) :
 
 end
 
-end HaagerupZsido
-end TauCeti
+end Real

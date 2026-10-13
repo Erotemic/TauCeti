@@ -7,136 +7,33 @@ module
 
 public import Mathlib.Analysis.Fourier.PoissonSummation
 public import Mathlib.Analysis.PSeries
+public import TauCeti.Analysis.PSeries.ExponentialLattice
 public import TauCeti.Analysis.Fourier.ExponentialAbs
-public import TauCeti.Analysis.Fourier.HaagerupZsido.Defs
 
 /-!
-# Lattice sums and Poisson summation for the Cauchy kernel
+# Poisson summation and Cauchy lattice identities
 
-This file evaluates the two-sided geometric lattice sum, the Poisson-summation
-identity relating the two-sided exponential to the Cauchy lattice, and the
-half-lattice and odd-pole Cauchy sums that expose the hyperbolic weight.
-
-This is a topic split of `ForTauCeti/Analysis/Fourier/HaagerupZsidoKernel.lean`;
-declarations are moved verbatim and remain in the `TauCeti.HaagerupZsido`
-namespace.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `f35ffc0`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, GPT 5.6 High; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+The Fourier transform of the two-sided exponential yields a Poisson identity for the Cauchy
+kernel. Evaluating the exponential lattice sum gives the full- and half-lattice rational sums.
+The geometric lattice formulas live in `Analysis.PSeries.ExponentialLattice`; this module does
+not depend on the Haagerup--Zsidó weight.
 -/
 
 public section
 
 namespace TauCeti
-namespace HaagerupZsido
+namespace CauchyLattice
+
+open TauCeti.ExponentialLattice
 
 open MeasureTheory Set Filter Asymptotics
 open scoped BigOperators FourierTransform
 
 noncomputable section
 
-/-- The positive tail of the geometric exponential series. -/
-private theorem tsum_nat_exp_neg_mul_add_one {a : ℝ} (ha : 0 < a) :
-    (∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ))) =
-      Real.exp (-a) / (1 - Real.exp (-a)) := by
-  let q := Real.exp (-a)
-  have hqpos : 0 < q := Real.exp_pos _
-  have hqlt : q < 1 := Real.exp_lt_one_iff.mpr (neg_neg_of_pos ha)
-  have hqnorm : ‖q‖ < 1 := by
-    rw [Real.norm_eq_abs, abs_of_pos hqpos]
-    exact hqlt
-  calc
-    (∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ))) =
-        ∑' n : ℕ, q ^ (n + 1) := by
-      apply tsum_congr
-      intro n
-      rw [← Real.exp_nat_mul]
-      congr 1
-      push_cast
-      ring
-    _ = ∑' n : ℕ, q ^ n * q := by simp_rw [pow_succ]
-    _ = (∑' n : ℕ, q ^ n) * q := tsum_mul_right
-    _ = (1 - q)⁻¹ * q := by rw [tsum_geometric_of_norm_lt_one hqnorm]
-    _ = Real.exp (-a) / (1 - Real.exp (-a)) := by
-      simp only [q, div_eq_mul_inv]
-      ring
-
-/-- The elementary two-sided geometric lattice sum. -/
-private theorem tsum_int_exp_neg_mul_abs {a : ℝ} (ha : 0 < a) :
-    (∑' n : ℤ, Real.exp (-a * |(n : ℝ)|)) =
-      (1 + Real.exp (-a)) / (1 - Real.exp (-a)) := by
-  let f : ℤ → ℝ := fun n => Real.exp (-a * |(n : ℝ)|)
-  let q := Real.exp (-a)
-  have hqpos : 0 < q := Real.exp_pos _
-  have hqlt : q < 1 := Real.exp_lt_one_iff.mpr (neg_neg_of_pos ha)
-  have hqnorm : ‖q‖ < 1 := by
-    rw [Real.norm_eq_abs, abs_of_pos hqpos]
-    exact hqlt
-  have hgeo : Summable (fun n : ℕ => q ^ n) :=
-    (hasSum_geometric_of_norm_lt_one hqnorm).summable
-  have hsum : Summable f := by
-    apply Summable.of_nat_of_neg
-    · refine hgeo.congr fun n => ?_
-      -- states the goal with the definition unfolded, in the shape the next step needs;
-      -- there is no `_apply` lemma to rewrite with here.
-      change q ^ n = Real.exp (-a * |(((n : ℕ) : ℤ) : ℝ)|)
-      rw [show |(((n : ℕ) : ℤ) : ℝ)| = (n : ℝ) by simp]
-      simp only [q]
-      rw [← Real.exp_nat_mul]
-      congr 1
-      ring
-    · refine hgeo.congr fun n => ?_
-      -- states the goal with the definition unfolded, in the shape the next step needs;
-      -- there is no `_apply` lemma to rewrite with here.
-      change q ^ n = Real.exp (-a * |((-(n : ℤ) : ℤ) : ℝ)|)
-      rw [show |((-(n : ℤ) : ℤ) : ℝ)| = (n : ℝ) by simp]
-      simp only [q]
-      rw [← Real.exp_nat_mul]
-      congr 1
-      ring
-  have heven : Function.Even f := by
-    intro n
-    simp only [f, Int.cast_neg, abs_neg]
-  have hpnat :
-      (∑' n : ℕ+, f (n : ℤ)) =
-        ∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ)) := by
-    calc
-      (∑' n : ℕ+, f (n : ℤ)) = ∑' n : ℕ, f (Nat.succPNat n : ℤ) :=
-        (Equiv.pnatEquivNat.symm.tsum_eq (fun n : ℕ+ => f (n : ℤ))).symm
-      _ = ∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ)) := by
-        apply tsum_congr
-        intro n
-        dsimp only [f, Nat.succPNat]
-        rw [abs_of_nonneg]
-        · congr 1
-        · positivity
-  -- states the goal with the definition unfolded, in the shape the next step needs;
-  -- there is no `_apply` lemma to rewrite with here.
-  change ∑' n : ℤ, f n = _
-  calc
-    (∑' n : ℤ, f n) = f 0 + 2 • ∑' n : ℕ+, f (n : ℤ) :=
-      tsum_int_eq_zero_add_two_mul_tsum_pnat heven hsum
-    _ = 1 + 2 * (Real.exp (-a) / (1 - Real.exp (-a))) := by
-      rw [hpnat, tsum_nat_exp_neg_mul_add_one ha]
-      simp [f]
-    _ = (1 + Real.exp (-a)) / (1 - Real.exp (-a)) := by
-      have hne : 1 - Real.exp (-a) ≠ 0 := by
-        have : Real.exp (-a) < 1 := Real.exp_lt_one_iff.mpr (neg_neg_of_pos ha)
-        linarith
-      field_simp [hne]
-      ring
-
 /-- Poisson summation for the two-sided exponential, before evaluating its
 geometric side. -/
-private theorem poisson_exponential_eq_cauchy_lattice
+theorem poisson_exponential_eq_cauchy_lattice
     {y : ℝ} (hy : 0 < y) :
     (∑' n : ℤ,
         Complex.exp ((-(2 * Real.pi * y * |(n : ℝ)|) : ℝ) : ℂ)) =
@@ -165,7 +62,7 @@ private theorem poisson_exponential_eq_cauchy_lattice
 
 /-- The Cauchy lattice sum, written in exponential rather than hyperbolic
 notation. -/
-private theorem tsum_int_inv_sq_add_sq
+theorem tsum_int_inv_sq_add_sq
     {y : ℝ} (hy : 0 < y) :
     (∑' n : ℤ, (y ^ 2 + (n : ℝ) ^ 2)⁻¹) =
       (Real.pi / y) *
@@ -229,7 +126,7 @@ private theorem tsum_int_inv_sq_add_sq
 
 /-- The natural-number Cauchy series is summable, uniformly with respect to
 the harmless nonnegative square added to its denominator. -/
-private theorem summable_nat_inv_sq_add_sq (y : ℝ) :
+theorem summable_nat_inv_sq_add_sq (y : ℝ) :
     Summable (fun n : ℕ => (y ^ 2 + (n : ℝ) ^ 2)⁻¹) := by
   have hmajor : Summable (fun n : ℕ => (((n + 1 : ℕ) : ℝ) ^ 2)⁻¹) := by
     have h := Real.summable_nat_pow_inv.mpr (by norm_num : 1 < (2 : ℕ))
@@ -248,7 +145,7 @@ private theorem summable_nat_inv_sq_add_sq (y : ℝ) :
   exact htail
 
 /-- The half-lattice version of the Cauchy sum. -/
-private theorem tsum_nat_inv_sq_add_sq
+theorem tsum_nat_inv_sq_add_sq
     {y : ℝ} (hy : 0 < y) :
     (∑' n : ℕ, (y ^ 2 + (n : ℝ) ^ 2)⁻¹) =
       (1 / 2) *
@@ -278,87 +175,7 @@ private theorem tsum_nat_inv_sq_add_sq
   rw [hzero] at hIntSplit hNatSplit
   nlinarith
 
-/-- The positive odd part of the Cauchy lattice. -/
-private theorem tsum_odd_inv_sq_add_sq
-    {y : ℝ} (hy : 0 < y) :
-    (∑' n : ℕ, (y ^ 2 + (((2 * n + 1 : ℕ) : ℝ) ^ 2))⁻¹) =
-      (Real.pi / (4 * y)) * weight y := by
-  let f : ℕ → ℝ := fun n => (y ^ 2 + (n : ℝ) ^ 2)⁻¹
-  have hAll : Summable f := summable_nat_inv_sq_add_sq y
-  have hmul : Function.Injective (fun n : ℕ => 2 * n) :=
-    mul_right_injective₀ (by norm_num : (2 : ℕ) ≠ 0)
-  have hEven := hAll.comp_injective hmul
-  have hOdd := hAll.comp_injective ((add_left_injective 1).comp hmul)
-  have hSplit := (hEven.hasSum.even_add_odd hOdd.hasSum).tsum_eq
-  simp only [Function.comp_apply] at hSplit
-  have hEvenScale :
-      (∑' n : ℕ, f (2 * n)) =
-        (1 / 4 : ℝ) * ∑' n : ℕ, ((y / 2) ^ 2 + (n : ℝ) ^ 2)⁻¹ := by
-    rw [← tsum_mul_left]
-    apply tsum_congr
-    intro n
-    dsimp only [f]
-    have hdenLeft : y ^ 2 + ((2 * n : ℕ) : ℝ) ^ 2 ≠ 0 := by
-      nlinarith [sq_nonneg (((2 * n : ℕ) : ℝ))]
-    have hdenRight : (y / 2) ^ 2 + (n : ℝ) ^ 2 ≠ 0 := by
-      nlinarith [sq_nonneg (n : ℝ)]
-    field_simp [hdenLeft, hdenRight]
-    norm_num
-    ring
-  have hOddEq :
-      (∑' n : ℕ, f (2 * n + 1)) =
-        (∑' n : ℕ, f n) - (1 / 4 : ℝ) *
-          ∑' n : ℕ, ((y / 2) ^ 2 + (n : ℝ) ^ 2)⁻¹ := by
-    rw [← hEvenScale]
-    linarith [hSplit]
-  have hAllValue := tsum_nat_inv_sq_add_sq hy
-  have hHalfValue := tsum_nat_inv_sq_add_sq (show 0 < y / 2 by positivity)
-  rw [hAllValue, hHalfValue] at hOddEq
-  let r : ℝ := Real.exp (-(Real.pi * y))
-  have hrpos : 0 < r := Real.exp_pos _
-  have hrlt : r < 1 := Real.exp_lt_one_iff.mpr (by nlinarith [Real.pi_pos])
-  have hFullExp : Real.exp (-(2 * Real.pi * y)) = r ^ 2 := by
-    rw [← Real.exp_nat_mul]
-    congr 1
-    norm_num
-    ring
-  have hHalfExp : Real.exp (-(2 * Real.pi * (y / 2))) = r := by
-    dsimp only [r]
-    congr 1
-    ring
-  have hInvHalf : (y / 2)⁻¹ ^ 2 = 4 * y⁻¹ ^ 2 := by
-    field_simp [hy.ne']
-    ring
-  -- states the goal with the definition unfolded, in the shape the next step needs;
-  -- there is no `_apply` lemma to rewrite with here.
-  change (∑' n : ℕ, f (2 * n + 1)) = _
-  calc
-    (∑' n : ℕ, f (2 * n + 1)) =
-        (1 / 2) *
-            ((Real.pi / y) * ((1 + r ^ 2) / (1 - r ^ 2)) + y⁻¹ ^ 2) -
-          (1 / 4) * ((1 / 2) *
-            ((Real.pi / (y / 2)) * ((1 + r) / (1 - r)) +
-              (y / 2)⁻¹ ^ 2)) := by
-      simpa only [hFullExp, hHalfExp] using hOddEq
-    _ = (Real.pi / (4 * y)) * weight y := by
-      rw [weight_eq_exp_quotient, show Real.exp (-(Real.pi * y)) = r by rfl,
-        hInvHalf]
-      have hOneSub : 1 - r ≠ 0 := by linarith
-      have hOneAdd : 1 + r ≠ 0 := by positivity
-      have hSq : 1 - r ^ 2 ≠ 0 := by nlinarith
-      field_simp [hy.ne', hOneSub, hOneAdd, hSq]
-      ring
-
-/-- Odd-pole partial-fraction expansion of the hyperbolic weight. -/
-theorem weight_div_eq_tsum_odd
-    {y : ℝ} (hy : 0 < y) :
-    weight y / y =
-      (4 / Real.pi) *
-        ∑' n : ℕ, (y ^ 2 + (((2 * n + 1 : ℕ) : ℝ) ^ 2))⁻¹ := by
-  rw [tsum_odd_inv_sq_add_sq hy]
-  field_simp [Real.pi_ne_zero, hy.ne']
-
 end
 
-end HaagerupZsido
+end CauchyLattice
 end TauCeti

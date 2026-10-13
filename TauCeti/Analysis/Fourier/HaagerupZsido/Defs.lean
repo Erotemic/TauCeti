@@ -8,16 +8,14 @@ module
 public import Mathlib.MeasureTheory.Integral.ExpDecay
 
 /-!
-# The Haagerup--Zsidó kernel: definitions and elementary API
+# The Haagerup--Zsidó kernel: definitions and elementary properties
 
-This file defines the hyperbolic `weight`, its Laplace transform
-`weightLaplaceTransform`, the real kernel `realKernel`, and the complex reciprocal kernel
-`reciprocalKernel`, together with their elementary algebraic, positivity,
-measurability, and parity API.
+Defines the hyperbolic weight `w(y) = tanh (πy/2)`, its one-sided Laplace transform `L(t)`,
+the real kernel `r(t) = (sin t / 2) * L(t)`, and the reciprocal kernel `k(t) = -i * r(t)`.
 
-This is a topic split of `ForTauCeti/Analysis/Fourier/HaagerupZsidoKernel.lean`;
-declarations are moved verbatim and remain in the `TauCeti.HaagerupZsido`
-namespace.
+Records positivity, continuity, parity, measurability, and the norm formula needed for the
+kernel's integrability and Fourier calculations. Its Fourier integral becomes real after the
+rotation by `-i`.
 -/
 
 public section
@@ -67,23 +65,10 @@ theorem weight_eq_exp_quotient (y : ℝ) :
   have hne : Real.exp z ≠ 0 := Real.exp_ne_zero _
   field_simp [hne]
 
-/-! ### The explicit Haagerup--Zsidó kernel
+/-! ### The explicit kernel
 
-The kernel is the sine multiple of the Laplace transform of the hyperbolic
-weight.  Its value at zero already vanishes through the sine factor, so no
-separate zero branch is required; the natural one-sided limits at zero are
-irrelevant for every integral computed below.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `f35ffc0`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, GPT 5.6 High; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+The Laplace transform integrates the weight over the positive half-line. The sine factor
+makes the real kernel odd, and multiplying by `-i` produces the reciprocal kernel.
 -/
 
 /-- The Laplace transform of the hyperbolic weight at `|t|`, the inner factor of
@@ -114,9 +99,9 @@ theorem reciprocalKernel_def (t : ℝ) :
     reciprocalKernel t = -Complex.I * (realKernel t : ℂ) :=
   (rfl)
 
-/-- The hyperbolic weight is continuous.  Proved through the exponential quotient form rather
-than from `Real.tanh` directly, since the quotient has a manifestly nonvanishing denominator. -/
+/-- The hyperbolic weight is continuous. -/
 theorem continuous_weight : Continuous weight := by
+  -- Use the exponential quotient with its nonvanishing denominator.
   have h : weight = fun y =>
       (1 - Real.exp (-(Real.pi * y))) / (1 + Real.exp (-(Real.pi * y))) := by
     funext y
@@ -155,7 +140,8 @@ private theorem realKernel_neg (t : ℝ) : realKernel (-t) = -realKernel t := by
   simp only [realKernel_def, Real.sin_neg, weightLaplaceTransform_neg]
   ring
 
-/-- The reciprocal kernel is odd.  Parity is what makes its Fourier integral purely imaginary. -/
+/-- The reciprocal kernel is odd. The Fourier integral of the real odd kernel is purely
+imaginary; the factor `-i` in the reciprocal kernel makes its Fourier integral real. -/
 theorem reciprocalKernel_neg (t : ℝ) :
     reciprocalKernel (-t) = -reciprocalKernel t := by
   simp only [reciprocalKernel_def, realKernel_neg, Complex.ofReal_neg]

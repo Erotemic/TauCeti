@@ -9,26 +9,12 @@ public import TauCeti.Analysis.Fourier.HaagerupZsido.Defs
 public import TauCeti.Analysis.SpecialFunctions.Integral.SineLaplace
 
 /-!
-# The Haagerup--Zsidó kernel: integrability and exact `L¹` mass
+# Integrability and exact mass of the Haagerup--Zsidó kernel
 
-This file proves the product-integrability certificate for the kernel double
-integrand, the integrability of the real and reciprocal kernels, and the exact
-`L¹` mass `π / 2` of the reciprocal kernel.
-
-This is a topic split of `ForTauCeti/Analysis/Fourier/HaagerupZsidoKernel.lean`;
-declarations are moved verbatim and remain in the `TauCeti.HaagerupZsido`
-namespace.
-
-## Provenance
-
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti` at Davis--Kahan
-  commit `f35ffc0`; it has had no prior home.
-* Extraction class: **authored in place** for the Tau Ceti staging layer.
-* Original authors / copyright: Jon Crall, GPT 5.6 High; Copyright (c) 2026 Kitware, Inc.;
-  Apache 2.0.
-* Spectra influence: **none** — this module imports only Mathlib and sibling
-  `ForTauCeti` staging modules.
+Proves a product-integrability certificate for the hyperbolic-weight/sine integrand. The
+weighted sine Laplace integral reduces to the Cauchy kernel `2 / (1 + y²)`, allowing Fubini's
+interchange and the exact reciprocal-kernel mass `π / 2`. This mass enters the sharp
+spectral-subspace perturbation constant.
 -/
 
 public section
@@ -37,7 +23,7 @@ namespace TauCeti
 namespace HaagerupZsido
 
 open MeasureTheory Set Filter Asymptotics
-open scoped BigOperators FourierTransform
+open scoped BigOperators
 
 noncomputable section
 
@@ -52,6 +38,26 @@ private theorem weight_mul_exp_ratio {y : ℝ} (hy : 0 < y) :
   have hpos : (0 : ℝ) < 1 + Real.exp (-(Real.pi * y)) := by positivity
   rw [weight_eq_exp_quotient, show -Real.pi * y = -(Real.pi * y) by ring]
   field_simp
+
+/-- For a positive Laplace parameter the weighted absolute-sine integral is a Cauchy
+rational function. This identity is shared by the product-integrability and mass proofs. -/
+theorem integral_weight_mul_abs_sin_exp {y : ℝ} (hy : 0 < y) :
+    (∫ t : ℝ, weight y * (|Real.sin t| * Real.exp (-y * |t|))) =
+      2 * (1 + y ^ 2)⁻¹ := by
+  have hq1 : Real.exp (-Real.pi * y) < 1 :=
+    Real.exp_lt_one_iff.mpr (by nlinarith [Real.pi_pos])
+  have hne : 1 - Real.exp (-Real.pi * y) ≠ 0 := by linarith
+  have hy2 : (1 : ℝ) + y ^ 2 ≠ 0 := by positivity
+  calc
+    (∫ t : ℝ, weight y * (|Real.sin t| * Real.exp (-y * |t|))) =
+        weight y * ∫ t : ℝ, |Real.sin t| * Real.exp (-y * |t|) :=
+      integral_const_mul _ _
+    _ = (weight y * ((1 + Real.exp (-Real.pi * y)) /
+          (1 - Real.exp (-Real.pi * y)))) * (2 * (1 + y ^ 2)⁻¹) := by
+      rw [Real.integral_abs_sin_mul_exp_neg_abs hy]
+      field_simp
+    _ = 2 * (1 + y ^ 2)⁻¹ := by
+      rw [weight_mul_exp_ratio hy, one_mul]
 
 /-- The kernel double integrand is integrable on the product of the positive
 weight half-line with the full time line.  This single certificate powers
@@ -68,26 +74,17 @@ theorem integrable_kernel_prod :
   rw [integrable_prod_iff hcont.aestronglyMeasurable]
   constructor
   · filter_upwards [ae_restrict_mem measurableSet_Ioi] with y hy
-    exact (integrable_abs_sin_mul_exp_neg_abs hy).const_mul (weight y)
+    exact (Real.integrable_abs_sin_mul_exp_neg_abs hy).const_mul (weight y)
   · have hint : Integrable (fun y : ℝ => 2 * (1 + y ^ 2)⁻¹) :=
       integrable_inv_one_add_sq.const_mul 2
     apply hint.integrableOn.congr
     filter_upwards [ae_restrict_mem measurableSet_Ioi] with y hy
     have hy0 : (0 : ℝ) < y := hy
-    have hq1 : Real.exp (-Real.pi * y) < 1 :=
-      Real.exp_lt_one_iff.mpr (by nlinarith [Real.pi_pos])
-    have hne : 1 - Real.exp (-Real.pi * y) ≠ 0 := by linarith
-    have hy2 : (1 : ℝ) + y ^ 2 ≠ 0 := by positivity
     calc
       2 * (1 + y ^ 2)⁻¹ =
-          (weight y * ((1 + Real.exp (-Real.pi * y)) /
-            (1 - Real.exp (-Real.pi * y)))) * (2 * (1 + y ^ 2)⁻¹) := by
-        rw [weight_mul_exp_ratio hy0, one_mul]
-      _ = weight y * (2 * ((1 + Real.exp (-Real.pi * y)) /
-            ((1 - Real.exp (-Real.pi * y)) * (1 + y ^ 2)))) := by
-        field_simp
+          ∫ t : ℝ, weight y * (|Real.sin t| * Real.exp (-y * |t|)) :=
+        (integral_weight_mul_abs_sin_exp hy0).symm
       _ = ∫ t : ℝ, ‖weight y * (|Real.sin t| * Real.exp (-y * |t|))‖ := by
-        rw [← integral_abs_sin_mul_exp_neg_abs hy0, ← integral_const_mul]
         apply integral_congr_ae
         filter_upwards [] with t
         rw [Real.norm_eq_abs, abs_of_nonneg
@@ -109,21 +106,7 @@ private theorem integral_abs_sin_mul_weightLaplaceTransform :
         apply setIntegral_congr_fun measurableSet_Ioi
         intro y hy
         have hy0 : (0 : ℝ) < y := hy
-        have hq1 : Real.exp (-Real.pi * y) < 1 :=
-          Real.exp_lt_one_iff.mpr (by nlinarith [Real.pi_pos])
-        have hne : 1 - Real.exp (-Real.pi * y) ≠ 0 := by linarith
-        have hy2 : (1 : ℝ) + y ^ 2 ≠ 0 := by positivity
-        dsimp only
-        calc
-          (∫ t : ℝ, weight y * (|Real.sin t| * Real.exp (-y * |t|))) =
-              weight y * ∫ t : ℝ, |Real.sin t| * Real.exp (-y * |t|) :=
-            integral_const_mul _ _
-          _ = (weight y * ((1 + Real.exp (-Real.pi * y)) /
-                (1 - Real.exp (-Real.pi * y)))) * (2 * (1 + y ^ 2)⁻¹) := by
-            rw [integral_abs_sin_mul_exp_neg_abs hy0]
-            field_simp
-          _ = 2 * (1 + y ^ 2)⁻¹ := by
-            rw [weight_mul_exp_ratio hy0, one_mul]
+        exact integral_weight_mul_abs_sin_exp hy0
       _ = 2 * ∫ y in Set.Ioi (0 : ℝ), (1 + y ^ 2)⁻¹ := by
         rw [integral_const_mul]
       _ = Real.pi := by
