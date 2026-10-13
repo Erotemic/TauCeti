@@ -3,6 +3,11 @@ Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Fable 5
 -/
+/-
+Ported from AIQ-Kitware/aiq-dkps-formalization,
+ForTauCeti/MeasureTheory/IntervalWeakSecondDeriv.lean (Apache-2.0).
+Source: https://github.com/AIQ-Kitware/aiq-dkps-formalization
+-/
 module
 
 public import Mathlib.Analysis.Calculus.Deriv.Add
@@ -64,12 +69,11 @@ noncomputable section
 variable {𝕜 : Type*} [RCLike 𝕜]
 
 /-- The Lebesgue measure of the half-open unit interval, the ambient measure for the
-free-beam `L²` model.  Exposed so downstream modules can unfold to the restriction;
-the ratchet carve-out is deliberate api design. -/
-@[expose] def unitIocMeasure : Measure ℝ := volume.restrict (Set.Ioc (0 : ℝ) 1)
+free-beam `L²` model. The equality `unitIocMeasure_def` describes its restriction. -/
+def unitIocMeasure : Measure ℝ := volume.restrict (Set.Ioc (0 : ℝ) 1)
 
 /-- Unfolding equation for the ambient measure, exported for downstream modules. -/
-theorem unitIocMeasure_def : unitIocMeasure = volume.restrict (Set.Ioc (0 : ℝ) 1) := rfl
+theorem unitIocMeasure_def : unitIocMeasure = volume.restrict (Set.Ioc (0 : ℝ) 1) := (rfl)
 
 /-- The unit-interval measure is a probability-sized finite measure. -/
 instance : IsFiniteMeasure unitIocMeasure := by
@@ -113,7 +117,7 @@ theorem hasDerivAt_intervalBump (k : ℕ) (t : ℝ) :
   have h := (hasDerivAt_pow (k + 2) t).mul (hone.pow 2)
   refine h.congr_deriv ?_
   have e1 : k + 2 - 1 = k + 1 := by omega
-  simp only [e1, (show 2 - 1 = 1 from rfl), pow_one, Pi.pow_apply]
+  simp only [e1, Nat.reduceSub, pow_one, Pi.pow_apply]
   unfold intervalBumpD1
   push_cast
   ring
@@ -129,7 +133,7 @@ theorem hasDerivAt_intervalBumpD1 (k : ℕ) (t : ℝ) :
   refine h.congr_deriv ?_
   have e1 : k + 2 - 1 = k + 1 := by omega
   have e2 : k + 1 - 1 = k := by omega
-  simp only [e1, e2, (show 2 - 1 = 1 from rfl), pow_one, Pi.pow_apply]
+  simp only [e1, e2, Nat.reduceSub, pow_one, Pi.pow_apply]
   unfold intervalBumpD2
   push_cast
   ring
@@ -179,7 +183,7 @@ theorem continuous_intervalBumpD2 (k : ℕ) : Continuous (intervalBumpD2 k) := b
 /-! ## Integration by parts against the bump family -/
 
 /-- One integration by parts against a linear weight: for any `s`,
-`∫_s^1 (x - s) φ''(x) dx = φ(s)`, using `φ(1) = φ'(1) = 0`. -/
+`∫_s^1 (x - s) φ''(x) dx = φ(s)` under the endpoint conditions. -/
 theorem integral_linear_mul_intervalBumpD2 (k : ℕ) (s : ℝ) :
     ∫ x in s..1, (x - s) * intervalBumpD2 k x = intervalBump k s := by
   have hparts :
@@ -270,15 +274,39 @@ theorem abs_secondPrimitiveKernel_sub_le (t t' s : ℝ) :
     _ = |t - t'| := by congr 1; ring
 
 /-- Second primitive of an integrable function on the unit interval, normalized so that it
-and its first derivative vanish at `0`.  Exposed so downstream modules can unfold the
-integral form; the ratchet carve-out is deliberate api design. -/
-@[expose] def secondPrimitive (w : ℝ → 𝕜) (t : ℝ) : 𝕜 :=
+and its first derivative vanish at `0`. -/
+def secondPrimitive (w : ℝ → 𝕜) (t : ℝ) : 𝕜 :=
   ∫ s, (secondPrimitiveKernel t s : 𝕜) * w s ∂unitIocMeasure
 
 /-- Unfolding equation for the second primitive, exported for downstream modules. -/
 theorem secondPrimitive_def (w : ℝ → 𝕜) (t : ℝ) :
     secondPrimitive w t
-      = ∫ s, (secondPrimitiveKernel t s : 𝕜) * w s ∂unitIocMeasure := rfl
+      = ∫ s, (secondPrimitiveKernel t s : 𝕜) * w s ∂unitIocMeasure := (rfl)
+
+/-- Almost-everywhere equal densities have the same second primitive. -/
+theorem secondPrimitive_congr_ae {w w' : ℝ → 𝕜}
+    (h : w =ᵐ[unitIocMeasure] w') : secondPrimitive w = secondPrimitive w' := by
+  funext t
+  rw [secondPrimitive_def, secondPrimitive_def]
+  exact MeasureTheory.integral_congr_ae
+    (h.mono fun s hs =>
+      congrArg (fun z : 𝕜 => (secondPrimitiveKernel t s : 𝕜) * z) hs)
+
+/-- The second primitive of the zero density vanishes. -/
+@[simp] theorem secondPrimitive_zero_density (t : ℝ) :
+    secondPrimitive (fun _ => (0 : 𝕜)) t = 0 := by
+  simp [secondPrimitive_def]
+
+/-- The second primitive vanishes at the left endpoint of the unit interval. -/
+@[simp] theorem secondPrimitive_zero (w : ℝ → 𝕜) : secondPrimitive w 0 = 0 := by
+  rw [secondPrimitive_def]
+  have hz : (fun s => (secondPrimitiveKernel 0 s : 𝕜) * w s)
+      =ᵐ[unitIocMeasure] (fun _ => (0 : 𝕜)) := by
+    filter_upwards [ae_mem_unitIocMeasure] with s hs
+    rw [secondPrimitiveKernel_of_ge hs.1.le]
+    simp
+  rw [integral_congr_ae hz]
+  simp
 
 /-- The kernel slice against an integrable density is integrable. -/
 theorem integrable_secondPrimitiveKernel_mul {w : ℝ → 𝕜}
@@ -293,6 +321,25 @@ theorem integrable_secondPrimitiveKernel_mul {w : ℝ → 𝕜}
     rw [norm_mul, RCLike.norm_ofReal,
       abs_of_nonneg (secondPrimitiveKernel_nonneg t s)]
     exact mul_le_mul_of_nonneg_right (secondPrimitiveKernel_le_abs hs.1.le) (norm_nonneg _)
+
+/-- The second primitive is additive for integrable densities. -/
+theorem secondPrimitive_add {w v : ℝ → 𝕜}
+    (hw : Integrable w unitIocMeasure) (hv : Integrable v unitIocMeasure)
+    (t : ℝ) :
+    secondPrimitive (fun s => w s + v s) t =
+      secondPrimitive w t + secondPrimitive v t := by
+  rw [secondPrimitive_def, secondPrimitive_def, secondPrimitive_def,
+    ← integral_add (integrable_secondPrimitiveKernel_mul hw t)
+      (integrable_secondPrimitiveKernel_mul hv t)]
+  apply MeasureTheory.integral_congr_ae
+  exact Filter.Eventually.of_forall fun s => by ring
+
+/-- The second primitive commutes with scalar multiplication of an integrable density. -/
+theorem secondPrimitive_mul (c : 𝕜) (w : ℝ → 𝕜) (t : ℝ) :
+    secondPrimitive (fun s => c * w s) t = c * secondPrimitive w t := by
+  rw [secondPrimitive_def, secondPrimitive_def, ← MeasureTheory.integral_const_mul]
+  apply MeasureTheory.integral_congr_ae
+  exact Filter.Eventually.of_forall fun s => by ring
 
 /-- Difference bound: the second primitive is Lipschitz with constant the `L¹` norm of the
 density. -/
@@ -389,8 +436,7 @@ theorem integral_secondPrimitiveKernel_mul_intervalBumpD2 {s : ℝ}
   rw [h1, ← hsplit, hzero, hlin, integral_linear_mul_intervalBumpD2, zero_add]
 
 /-- **The second primitive satisfies the weak second-derivative identity**: for integrable
-`w`, `∫ (K w) · φ'' = ∫ w · φ` against every member of the bump family.  Fubini plus the
-reproducing identity for the kernel slices. -/
+`w`, `∫ (K w) · φ'' = ∫ w · φ` against every member of the bump family. -/
 theorem integral_secondPrimitive_mul_intervalBumpD2 {w : ℝ → 𝕜}
     (hw : Integrable w unitIocMeasure) (k : ℕ) :
     ∫ t, secondPrimitive w t * (intervalBumpD2 k t : 𝕜) ∂unitIocMeasure
@@ -470,36 +516,41 @@ theorem integral_secondPrimitive_mul_intervalBumpD2 {w : ℝ → 𝕜}
           ∂unitIocMeasure ∂unitIocMeasure := integral_integral_swap hFint
     _ = ∫ s, w s * (intervalBump k s : 𝕜) ∂unitIocMeasure := integral_congr_ae hinner
 
+/-- Every continuous function is integrable on the unit interval. -/
+theorem integrable_unitIocMeasure_of_continuous {f : ℝ → 𝕜} (hf : Continuous f) :
+    Integrable f unitIocMeasure := by
+  rw [unitIocMeasure]
+  exact (hf.integrableOn_Icc (a := 0) (b := 1)).mono_set Set.Ioc_subset_Icc_self
+
+/-- Multiplying an integrable function on `(0,1]` by a continuous function keeps it
+integrable. -/
+theorem integrable_mul_of_continuous {h g : ℝ → 𝕜} (hh : Integrable h unitIocMeasure)
+    (hg : Continuous g) : Integrable (fun t => h t * g t) unitIocMeasure := by
+  obtain ⟨C, hC⟩ : ∃ C, ∀ x ∈ Set.Icc (0 : ℝ) 1, ‖g x‖ ≤ C :=
+    isCompact_Icc.exists_bound_of_continuousOn hg.continuousOn
+  refine Integrable.mono' (hh.norm.const_mul C)
+    (hh.aestronglyMeasurable.mul hg.aestronglyMeasurable) ?_
+  filter_upwards [ae_mem_unitIocMeasure] with t ht
+  rw [norm_mul]
+  calc ‖h t‖ * ‖g t‖ ≤ ‖h t‖ * C :=
+        mul_le_mul_of_nonneg_left (hC t ⟨ht.1.le, ht.2⟩) (norm_nonneg _)
+    _ = C * ‖h t‖ := mul_comm _ _
+
+
 /-! ## Vanishing moments force vanishing -/
 
-/-- Multiplying an integrable function on `(0,1]` by a monomial keeps it integrable. -/
+/-- Multiplying an integrable density by a monomial remains integrable on `(0,1]`. -/
 theorem integrable_mul_pow {h : ℝ → 𝕜} (hh : Integrable h unitIocMeasure) (m : ℕ) :
     Integrable (fun t => h t * (t : 𝕜) ^ m) unitIocMeasure := by
-  refine Integrable.mono' hh.norm
-    (hh.aestronglyMeasurable.mul
-      ((RCLike.continuous_ofReal.pow m).aestronglyMeasurable)) ?_
-  filter_upwards [ae_mem_unitIocMeasure] with t ht
-  rw [norm_mul, norm_pow, RCLike.norm_ofReal, abs_of_pos ht.1]
-  calc ‖h t‖ * t ^ m ≤ ‖h t‖ * 1 :=
-        mul_le_mul_of_nonneg_left (pow_le_one₀ ht.1.le ht.2) (norm_nonneg _)
-    _ = ‖h t‖ := mul_one _
+  simpa only [Pi.pow_apply] using
+    integrable_mul_of_continuous hh (RCLike.continuous_ofReal.pow m)
 
-/-- Multiplying an integrable function by a member of the bump family keeps it
-integrable. -/
+/-- Multiplying an integrable density by a bump second derivative remains integrable. -/
 theorem integrable_mul_intervalBumpD2 {h : ℝ → 𝕜} (hh : Integrable h unitIocMeasure)
     (k : ℕ) :
     Integrable (fun t => h t * (intervalBumpD2 k t : 𝕜)) unitIocMeasure := by
-  obtain ⟨C, hC⟩ : ∃ C, ∀ x ∈ Set.Icc (0 : ℝ) 1, ‖intervalBumpD2 k x‖ ≤ C :=
-    isCompact_Icc.exists_bound_of_continuousOn (continuous_intervalBumpD2 k).continuousOn
-  refine Integrable.mono' (hh.norm.const_mul C)
-    (hh.aestronglyMeasurable.mul
-      ((RCLike.continuous_ofReal.comp (continuous_intervalBumpD2 k)).aestronglyMeasurable))
-    ?_
-  filter_upwards [ae_mem_unitIocMeasure] with t ht
-  rw [norm_mul, RCLike.norm_ofReal]
-  calc ‖h t‖ * ‖intervalBumpD2 k t‖ ≤ ‖h t‖ * C :=
-        mul_le_mul_of_nonneg_left (hC t ⟨ht.1.le, ht.2⟩) (norm_nonneg _)
-    _ = C * ‖h t‖ := mul_comm _ _
+  simpa only [Function.comp_apply] using integrable_mul_of_continuous hh
+    (RCLike.continuous_ofReal.comp (continuous_intervalBumpD2 k))
 
 /-- **Triangularity of the bump family**: vanishing affine moments together with vanishing
 bump-family pairings force every monomial moment to vanish. -/
@@ -575,34 +626,14 @@ theorem integral_pow_eq_zero_of_forall_integral_bumpD2 {h : ℝ → 𝕜}
         exact mul_ne_zero h4 h3
       exact (mul_eq_zero.mp hk2).resolve_left hc2
 
-/-- Every continuous function is integrable on the unit interval. -/
-theorem integrable_unitIocMeasure_of_continuous {f : ℝ → 𝕜} (hf : Continuous f) :
-    Integrable f unitIocMeasure := by
-  rw [unitIocMeasure]
-  exact (hf.integrableOn_Icc (a := 0) (b := 1)).mono_set Set.Ioc_subset_Icc_self
-
-/-- Multiplying an integrable function on `(0,1]` by a continuous function keeps it
-integrable. -/
-theorem integrable_mul_of_continuous {h g : ℝ → 𝕜} (hh : Integrable h unitIocMeasure)
-    (hg : Continuous g) : Integrable (fun t => h t * g t) unitIocMeasure := by
-  obtain ⟨C, hC⟩ : ∃ C, ∀ x ∈ Set.Icc (0 : ℝ) 1, ‖g x‖ ≤ C :=
-    isCompact_Icc.exists_bound_of_continuousOn hg.continuousOn
-  refine Integrable.mono' (hh.norm.const_mul C)
-    (hh.aestronglyMeasurable.mul hg.aestronglyMeasurable) ?_
-  filter_upwards [ae_mem_unitIocMeasure] with t ht
-  rw [norm_mul]
-  calc ‖h t‖ * ‖g t‖ ≤ ‖h t‖ * C :=
-        mul_le_mul_of_nonneg_left (hC t ⟨ht.1.le, ht.2⟩) (norm_nonneg _)
-    _ = C * ‖h t‖ := mul_comm _ _
-
-/-- **All vanishing monomial moments force vanishing**: a square-integrable function on
-`(0,1]` orthogonal to every monomial is almost everywhere zero.  Weierstrass approximation
-against the density of bounded continuous functions in `L²`. -/
-theorem ae_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
-    (hh : MemLp h 2 unitIocMeasure)
-    (hmom : ∀ m : ℕ, ∫ t, h t * (t : 𝕜) ^ m ∂unitIocMeasure = 0) :
-    h =ᵐ[unitIocMeasure] 0 := by
-  have hhInt : Integrable h unitIocMeasure := hh.integrable one_le_two
+/-- If an integrable density on `(0,1]` annihilates every monomial, then it
+annihilates every continuous test function on the unit interval. -/
+theorem integral_mul_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
+    (hh : Integrable h unitIocMeasure)
+    (hmom : ∀ m : ℕ, ∫ t, h t * (t : 𝕜) ^ m ∂unitIocMeasure = 0)
+    (g : ℝ → 𝕜) (hg : Continuous g) :
+    ∫ t, h t * g t ∂unitIocMeasure = 0 := by
+  have hhInt : Integrable h unitIocMeasure := hh
   -- Every `𝕜`-polynomial function integrates to zero against `h`.
   have hpoly : ∀ p : Polynomial 𝕜,
       ∫ t, h t * Polynomial.eval (t : 𝕜) p ∂unitIocMeasure = 0 := by
@@ -712,6 +743,14 @@ theorem ae_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
             rw [hδdef]
             field_simp
           nlinarith [hδ.le, hL1]
+  exact hcont g hg
+
+/-- **All vanishing monomial moments force vanishing**: a square-integrable function on
+`(0,1]` orthogonal to every monomial is almost everywhere zero. -/
+theorem ae_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
+    (hh : MemLp h 2 unitIocMeasure)
+    (hmom : ∀ m : ℕ, ∫ t, h t * (t : 𝕜) ^ m ∂unitIocMeasure = 0) :
+    h =ᵐ[unitIocMeasure] 0 := by
   -- Transfer to the `L²` element and use density of bounded continuous functions.
   have : Fact ((1 : ℝ≥0∞) ≤ 2) := ⟨one_le_two⟩
   set H : Lp 𝕜 2 unitIocMeasure := hh.toLp h with hHdef
@@ -729,6 +768,7 @@ theorem ae_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
       have h1 := ContinuousMap.coeFn_toAEEqFun unitIocMeasure g.toContinuousMap
       rw [hg] at h1
       exact h1
+    -- Membership in the indicated closed set unfolds to orthogonality in `Lp`.
     change ⟪G, H⟫_𝕜 = 0
     rw [MeasureTheory.L2.inner_def]
     have hHae : ⇑H =ᵐ[unitIocMeasure] h := MemLp.coeFn_toLp hh
@@ -736,7 +776,8 @@ theorem ae_eq_zero_of_forall_integral_pow_eq_zero {h : ℝ → 𝕜}
       filter_upwards [hGae, hHae] with t hGt hHt
       rw [RCLike.inner_apply, hGt, hHt]
     rw [integral_congr_ae hcongr]
-    exact hcont (fun t => (starRingEnd 𝕜) (g t)) (RCLike.continuous_conj.comp g.continuous)
+    exact integral_mul_eq_zero_of_forall_integral_pow_eq_zero
+      (hh.integrable one_le_two) hmom _ (RCLike.continuous_conj.comp g.continuous)
   have hdense : Dense
       (Lp.boundedContinuousFunction 𝕜 2 unitIocMeasure : Set (Lp 𝕜 2 unitIocMeasure)) :=
     Lp.boundedContinuousFunction_dense 𝕜 unitIocMeasure (by norm_num)
@@ -761,14 +802,15 @@ pairing of `u` against the second derivatives of the bump family agrees with the
 `w` against the bumps, then `u` is almost everywhere an affine function plus the second
 primitive of `w`. -/
 theorem eq_affine_add_secondPrimitive_of_forall_integral_bumpD2
-    {u w : ℝ → 𝕜} (hu : MemLp u 2 unitIocMeasure) (hw : MemLp w 2 unitIocMeasure)
+    {u w : ℝ → 𝕜} (hu : MemLp u 2 unitIocMeasure)
+    (hw : Integrable w unitIocMeasure)
     (hweak : ∀ k : ℕ,
       ∫ t, u t * (intervalBumpD2 k t : 𝕜) ∂unitIocMeasure
         = ∫ t, w t * (intervalBump k t : 𝕜) ∂unitIocMeasure) :
     ∃ a b : 𝕜, u =ᵐ[unitIocMeasure]
       fun t => a + b * (t : 𝕜) + secondPrimitive w t := by
   have huInt := hu.integrable one_le_two
-  have hwInt := hw.integrable one_le_two
+  have hwInt := hw
   have hKmem : MemLp (secondPrimitive w) 2 unitIocMeasure := memLp_secondPrimitive hwInt
   have hKInt : Integrable (secondPrimitive w) unitIocMeasure :=
     hKmem.integrable one_le_two

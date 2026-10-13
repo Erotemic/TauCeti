@@ -3,9 +3,14 @@ Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Fable 5
 -/
+/-
+Ported from AIQ-Kitware/aiq-dkps-formalization,
+ForTauCeti/MeasureTheory/IntervalSecondPrimitiveDeriv.lean (Apache-2.0).
+Source: https://github.com/AIQ-Kitware/aiq-dkps-formalization
+-/
 module
 
-public import TauCeti.MeasureTheory.IntervalWeakSecondDeriv
+public import TauCeti.MeasureTheory.Interval.WeakSecondDeriv
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
@@ -13,10 +18,9 @@ public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 # Derivatives of the second primitive
 
 The second primitive `K w` from `IntervalWeakSecondDeriv` is globally differentiable with
-derivative the running integral of the density (differentiation under the integral against the
-`1`-Lipschitz truncated kernel), and for a continuous density the running integral is in turn
-differentiable within `[0,1]` with derivative the density itself (fundamental theorem of
-calculus).
+derivative the running integral of the density. If the density is continuous on `[0,1]`,
+the running integral is differentiable within the interval with derivative equal to the
+density (the fundamental theorem of calculus).
 
 These two steps are the engine of the free-beam eigenfunction bootstrap: a weak eigenfunction
 is an affine function plus a second primitive twice over, so it acquires a full fourth-order
@@ -45,6 +49,48 @@ variable {𝕜 : Type*} [RCLike 𝕜]
 /-- Running integral of a density on the unit interval, cut off below the parameter. -/
 def firstPrimitive (w : ℝ → 𝕜) (t : ℝ) : 𝕜 :=
   ∫ s, (Set.Iio t).indicator w s ∂unitIocMeasure
+
+/-- The first primitive is the integral of the density below its parameter. -/
+theorem firstPrimitive_def (w : ℝ → 𝕜) (t : ℝ) :
+    firstPrimitive w t = ∫ s, (Set.Iio t).indicator w s ∂unitIocMeasure := (rfl)
+
+/-- The first primitive of the zero density vanishes. -/
+@[simp] theorem firstPrimitive_zero_density (t : ℝ) :
+    firstPrimitive (fun _ => (0 : 𝕜)) t = 0 := by
+  simp [firstPrimitive_def]
+
+/-- The first primitive vanishes at the left endpoint of the unit interval. -/
+@[simp] theorem firstPrimitive_zero (w : ℝ → 𝕜) : firstPrimitive w 0 = 0 := by
+  rw [firstPrimitive_def]
+  have hz : (Set.Iio (0 : ℝ)).indicator w =ᵐ[unitIocMeasure]
+      (fun _ => (0 : 𝕜)) := by
+    filter_upwards [ae_mem_unitIocMeasure] with s hs
+    rw [Set.indicator_of_notMem (by simp only [Set.mem_Iio]; exact not_lt.mpr hs.1.le)]
+  rw [integral_congr_ae hz]
+  simp
+
+/-- The first primitive is additive for integrable densities. -/
+theorem firstPrimitive_add {w v : ℝ → 𝕜}
+    (hw : Integrable w unitIocMeasure) (hv : Integrable v unitIocMeasure)
+    (t : ℝ) :
+    firstPrimitive (fun s => w s + v s) t = firstPrimitive w t + firstPrimitive v t := by
+  rw [firstPrimitive_def, firstPrimitive_def, firstPrimitive_def,
+    ← integral_add (hw.indicator measurableSet_Iio) (hv.indicator measurableSet_Iio)]
+  apply integral_congr_ae
+  exact Filter.Eventually.of_forall fun s => by
+    by_cases hs : s ∈ Set.Iio t
+    · simp only [Set.indicator_of_mem hs]
+    · simp only [Set.indicator_of_notMem hs, add_zero]
+
+/-- The first primitive commutes with scalar multiplication of its density. -/
+theorem firstPrimitive_mul (c : 𝕜) (w : ℝ → 𝕜) (t : ℝ) :
+    firstPrimitive (fun s => c * w s) t = c * firstPrimitive w t := by
+  rw [firstPrimitive_def, firstPrimitive_def, ← MeasureTheory.integral_const_mul]
+  apply integral_congr_ae
+  exact Filter.Eventually.of_forall fun s => by
+    by_cases hs : s ∈ Set.Iio t
+    · simp only [Set.indicator_of_mem hs]
+    · simp only [Set.indicator_of_notMem hs, mul_zero]
 
 /-- The running integral depends only on the almost-everywhere class of the density. -/
 theorem firstPrimitive_congr_ae {w w' : ℝ → 𝕜} (h : w =ᵐ[unitIocMeasure] w') :
@@ -77,7 +123,12 @@ theorem hasDerivAt_secondPrimitive {w : ℝ → 𝕜} (hw : Integrable w unitIoc
     (integrable_secondPrimitiveKernel_mul hw t₀)
     (hw.aestronglyMeasurable.indicator measurableSet_Iio)
     ?_ hw.norm ?_
-  · exact key.2
+  · have hfun : secondPrimitive w =
+        (fun t : ℝ => ∫ s, (secondPrimitiveKernel t s : 𝕜) * w s ∂unitIocMeasure) := by
+        funext t
+        exact secondPrimitive_def w t
+    rw [hfun, firstPrimitive_def]
+    exact key.2
   · refine Filter.Eventually.of_forall fun s => ?_
     refine LipschitzOnWith.of_dist_le_mul fun t _ t' _ => ?_
     rw [dist_eq_norm, dist_eq_norm]
@@ -145,13 +196,22 @@ theorem firstPrimitive_eq_intervalIntegral {w : ℝ → 𝕜}
 
 /-- **Fundamental theorem of calculus within the interval**: for a continuous density the
 running integral is differentiable within `[0,1]` with derivative the density. -/
-theorem hasDerivWithinAt_firstPrimitive_of_continuous {w : ℝ → 𝕜} (hw : Continuous w)
+theorem hasDerivWithinAt_firstPrimitive_of_continuous {w : ℝ → 𝕜}
+    (hw : ContinuousOn w (Set.Icc (0 : ℝ) 1))
     {t₀ : ℝ} (ht₀ : t₀ ∈ Set.Icc (0 : ℝ) 1) :
     HasDerivWithinAt (firstPrimitive w) (w t₀) (Set.Icc 0 1) t₀ := by
-  have hFTC : HasDerivAt (fun u => ∫ x in (0 : ℝ)..u, w x) (w t₀) t₀ :=
-    intervalIntegral.integral_hasDerivAt_right (hw.intervalIntegrable 0 t₀)
-      (hw.stronglyMeasurableAtFilter _ _) hw.continuousAt
-  refine (hFTC.hasDerivWithinAt).congr ?_ ?_
+  have hsubset : Set.uIcc (0 : ℝ) t₀ ⊆ Set.Icc (0 : ℝ) 1 := by
+    rw [Set.uIcc_of_le ht₀.1]
+    exact Set.Icc_subset_Icc le_rfl ht₀.2
+  have hwInt : IntervalIntegrable w volume 0 t₀ :=
+    (hw.mono hsubset).intervalIntegrable
+  have : Fact (t₀ ∈ Set.Icc (0 : ℝ) 1) := ⟨ht₀⟩
+  have hFTC : HasDerivWithinAt (fun u => ∫ x in (0 : ℝ)..u, w x)
+      (w t₀) (Set.Icc 0 1) t₀ :=
+    intervalIntegral.integral_hasDerivWithinAt_right hwInt
+      (hw.stronglyMeasurableAtFilter_nhdsWithin measurableSet_Icc t₀)
+      (hw t₀ ht₀)
+  refine hFTC.congr ?_ ?_
   · intro y hy
     exact firstPrimitive_eq_intervalIntegral hy
   · exact firstPrimitive_eq_intervalIntegral ht₀
