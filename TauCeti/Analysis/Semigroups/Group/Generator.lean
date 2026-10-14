@@ -109,32 +109,15 @@ theorem generator_eq_of_tendsto (U : StronglyContinuousGroup X) {x : X} (hx : x 
     U.generator ⟨x, by rw [U.generator_domain]; exact hx⟩ = y :=
   U.toSemigroup.generator_eq_of_tendsto hx ((tendsto_congr' (U.genQuot_eventuallyEq x)).mpr h)
 
-/-- A bounded linear map commuting with every member of a strongly continuous group
-preserves the generator domain and commutes with the generator there. No unitarity assumption
-is needed. -/
+/-- A bounded operator commuting with a strongly continuous group preserves its generator
+domain and commutes with the generator on that domain, via the forward semigroup. -/
 theorem generator_commute_of_commute (U : StronglyContinuousGroup X) (T : X →L[ℝ] X)
     (hT : ∀ (t : ℝ) (y : X), U t (T y) = T (U t y)) (x : U.domain) :
     ∃ hmem : T (x : X) ∈ U.domain,
       U.generator ⟨T (x : X), by rw [U.generator_domain]; exact hmem⟩ =
         T (U.generator ⟨(x : X), by rw [U.generator_domain]; exact x.property⟩) := by
-  have hpoint (t : ℝ) :
-      (1 / t) • (U t (T (x : X)) - T (x : X)) =
-        T ((1 / t) • (U t (x : X) - (x : X))) := by
-    calc
-      _ = (1 / t) • (T (U t (x : X)) - T (x : X)) := by rw [hT]
-      _ = _ := by simp only [map_smul, map_sub]
-  have hlim :
-      Tendsto (fun t : ℝ => (1 / t) • (U t (T (x : X)) - T (x : X)))
-        (𝓝[>] (0 : ℝ))
-        (𝓝 (T (U.generator ⟨(x : X), by
-          rw [U.generator_domain]; exact x.property⟩))) := by
-    have h := (T.continuous.tendsto
-      (U.generator ⟨(x : X), by rw [U.generator_domain]; exact x.property⟩)).comp
-      (U.generator_tendsto x)
-    simpa only [hpoint, Function.comp_def] using h
-  have hmem : T (x : X) ∈ U.domain :=
-    (U.mem_domain_iff_tendsto _).mpr ⟨_, hlim⟩
-  exact ⟨hmem, U.generator_eq_of_tendsto hmem hlim⟩
+  exact U.toSemigroup.generator_commute_of_commute T
+    (fun s y => by simpa only [U.toSemigroup_apply] using hT (s : ℝ) y) x
 
 /-- The difference quotient based at `U r x` is `U r` applied to the difference quotient based
 at `x`. -/

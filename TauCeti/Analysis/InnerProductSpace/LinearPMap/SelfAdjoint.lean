@@ -339,8 +339,8 @@ open Complex InnerProductSpace
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
-/-- If a symmetric partial operator has surjective shift `A + i`, then its domain is dense.
-The proof uses the reality of the diagonal quadratic form and orthogonality to the domain. -/
+/-- Surjectivity of `A + i` for a symmetric partial operator makes its domain dense.
+This supplies the density hypothesis needed when using the adjoint of the operator. -/
 theorem dense_domain_of_surjective_add_I (A : H →ₗ.[ℂ] H) (hsym : A.IsFormalAdjoint A)
     (hplus : ∀ φ : H, ∃ ψ : A.domain, A ψ + I • (ψ : H) = φ) :
     Dense (A.domain : Set H) := by
@@ -350,23 +350,18 @@ theorem dense_domain_of_surjective_add_I (A : H →ₗ.[ℂ] H) (hsym : A.IsForm
   obtain ⟨ψ, hψ⟩ := hplus x
   have hx0 : ⟪(ψ : H), x⟫_ℂ = 0 :=
     (Submodule.mem_orthogonal _ x).mp hx (ψ : H) ψ.2
-  have hreal : ((starRingEnd ℂ) ⟪(ψ : H), A ψ⟫_ℂ) = ⟪(ψ : H), A ψ⟫_ℂ := by
-    rw [inner_conj_symm]
-    exact hsym ψ ψ
-  have hIm : (⟪(ψ : H), A ψ⟫_ℂ).im = 0 := Complex.conj_eq_iff_im.mp hreal
+  have hIm : (⟪(ψ : H), A ψ⟫_ℂ).im = 0 := hsym.im_inner_self_apply ψ
   have hexp : ⟪(ψ : H), A ψ⟫_ℂ + I * ⟪(ψ : H), (ψ : H)⟫_ℂ = 0 := by
     rw [← hψ, inner_add_right, inner_smul_right] at hx0
     exact hx0
-  have hself : ⟪(ψ : H), (ψ : H)⟫_ℂ = 0 := by
-    have him : (⟪(ψ : H), (ψ : H)⟫_ℂ).re = 0 := by
-      have := congrArg Complex.im hexp
-      simp only [Complex.add_im, Complex.mul_im, Complex.I_re, Complex.I_im, Complex.zero_im,
-        hIm, zero_mul, one_mul, zero_add] at this
-      exact this
-    have hii : (⟪(ψ : H), (ψ : H)⟫_ℂ).im = 0 :=
-      Complex.conj_eq_iff_im.mp (inner_conj_symm _ _)
-    exact Complex.ext (by simpa using him) (by simpa using hii)
-  have hψ0 : (ψ : H) = 0 := inner_self_eq_zero.mp hself
+  have him : (⟪(ψ : H), (ψ : H)⟫_ℂ).re = 0 := by
+    have hi := congrArg Complex.im hexp
+    simp only [Complex.add_im, Complex.mul_im, Complex.I_re, Complex.I_im, Complex.zero_im,
+      hIm, zero_mul, one_mul, zero_add] at hi
+    exact hi
+  have hψ0 : (ψ : H) = 0 :=
+    (re_inner_self_nonpos (𝕜 := ℂ) (x := (ψ : H))).mp
+      (by simpa only [RCLike.re_to_complex] using (le_of_eq him))
   have : ψ = 0 := Subtype.ext hψ0
   rw [this] at hψ
   simpa using hψ.symm
@@ -401,7 +396,8 @@ theorem isSelfAdjoint_of_surjective_addSub
   have hxeq : A.adjoint (⟨(x : H), hxin⟩ : (A.adjoint).domain) = A x :=
     ((hsym.le_adjoint hdense).2 (x := x) (y := ⟨(x : H), hxin⟩) rfl).symm
   set W' : (A.adjoint).domain := W - ⟨(x : H), hxin⟩ with hW'def
-  have hW'val : (W' : H) = (W : H) - (x : H) := (rfl)
+  have hW'val : (W' : H) = (W : H) - (x : H) := by
+    simp only [hW'def, Submodule.coe_sub]
   have hrearr : A.adjoint W - A x = I • (W : H) - I • (x : H) := by
     have h2 : A.adjoint W = A x - I • (x : H) + I • (W : H) := by rw [hx]; abel
     rw [h2]; abel

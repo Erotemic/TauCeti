@@ -14,6 +14,7 @@ public import TauCeti.Analysis.Semigroups.Generator.ComplexLinear
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import TauCeti.Analysis.Semigroups.Dissipative.Basic
 import TauCeti.LinearAlgebra.LinearPMap.Basic
+import TauCeti.Analysis.InnerProductSpace.LinearPMap.SelfAdjoint
 
 /-!
 # Unitary strongly continuous groups
@@ -49,6 +50,8 @@ completes the generator direction of Stone's theorem; the converse construction 
   submodule.
 * `TauCeti.Semigroups.StronglyContinuousGroup.complexGenerator`: the generator as a complex
   `LinearPMap`.
+* `TauCeti.Semigroups.StronglyContinuousGroup.stoneGenerator`: the self-adjoint Stone generator,
+  `-i` times the complex generator, with matching domain and an explicit application lemma.
 * `TauCeti.Semigroups.StronglyContinuousGroup.isUnitary_of_isComplexLinear_of_opNorm_le_one`:
   a contractive C₀-group whose forward semigroup is complex linear is unitary;
   `isUnitary_toGroupOfInverse`: a complex-linear contraction semigroup and an inverse
@@ -261,6 +264,41 @@ theorem complexGenerator_apply (U : StronglyContinuousGroup H) (hU : U.IsUnitary
     U.toSemigroup.complexGenerator_apply hU.isComplexLinear ⟨x, hx'⟩,
     LinearPMap.congr_fun U.generator_def _ hxr]
 
+/-- The self-adjoint Stone generator, normalized as `-i` times the complex generator of a
+unitary strongly continuous group. -/
+def stoneGenerator (U : StronglyContinuousGroup H) (hU : U.IsUnitary) : H →ₗ.[ℂ] H :=
+  (-Complex.I) • U.complexGenerator hU
+
+/-- The Stone generator is the complex generator multiplied by `-i`. -/
+theorem stoneGenerator_def (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
+    U.stoneGenerator hU = (-Complex.I) • U.complexGenerator hU :=
+  rfl
+
+/-- The Stone generator has the same domain as the complex generator. -/
+@[simp]
+theorem stoneGenerator_domain (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
+    (U.stoneGenerator hU).domain = U.complexDomain hU := by
+  rw [stoneGenerator_def, LinearPMap.smul_domain, U.complexGenerator_domain]
+
+/-- Characterization of membership in the Stone-generator domain. -/
+theorem mem_stoneGenerator_domain_iff (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
+    (x : H) : x ∈ (U.stoneGenerator hU).domain ↔ x ∈ U.complexDomain hU := by
+  rw [U.stoneGenerator_domain hU]
+
+/-- The Stone generator acts by `-i` times the complex generator. -/
+@[simp]
+theorem stoneGenerator_apply (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
+    (x : (U.stoneGenerator hU).domain) :
+    U.stoneGenerator hU x = (-Complex.I) • U.complexGenerator hU x := by
+  exact LinearPMap.smul_apply (-Complex.I) (U.complexGenerator hU) x
+
+/-- The complex generator is `i` times its Stone normalization. -/
+theorem complexGenerator_eq_I_smul_stoneGenerator (U : StronglyContinuousGroup H)
+    (hU : U.IsUnitary) :
+    U.complexGenerator hU = Complex.I • U.stoneGenerator hU := by
+  rw [stoneGenerator_def, smul_smul]
+  simp only [mul_neg, Complex.I_mul_I, neg_neg, one_smul]
+
 /-- The real generator of a unitary C₀-group is the real restriction of its complex generator. -/
 @[simp]
 theorem complexGenerator_restrictScalars (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
@@ -296,8 +334,7 @@ namespace IsUnitary
 variable {U : StronglyContinuousGroup H}
 
 /-- A bounded complex-linear map in the commutant of a unitary C₀-group preserves the
-complex generator domain and intertwines the generator. This specializes the real-linear
-commutant theorem without introducing a second unitary-group structure. -/
+complex generator domain and intertwines the complex generator there. -/
 theorem complexGenerator_commute (hU : U.IsUnitary) (T : H →L[ℂ] H)
     (hT : ∀ (t : ℝ) (y : H), U t (T y) = T (U t y))
     (x : (U.complexGenerator hU).domain) :
@@ -457,6 +494,15 @@ theorem complexGenerator_adjoint_eq_neg (hU : U.IsUnitary) :
   exact (LinearPMap.eq_of_le_of_domain_eq hle (le_antisymm hle.1 hdom_le)).symm
 
 end IsUnitary
+
+variable [CompleteSpace H]
+
+/-- The Stone generator of a unitary strongly continuous group is self-adjoint. -/
+theorem isSelfAdjoint_stoneGenerator (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
+    IsSelfAdjoint (U.stoneGenerator hU) := by
+  rw [stoneGenerator_def]
+  exact LinearPMap.isSelfAdjoint_smul_of_adjoint_eq_neg (by simp)
+    (neg_ne_zero.mpr Complex.I_ne_zero) hU.complexGenerator_adjoint_eq_neg
 
 end StronglyContinuousGroup
 
