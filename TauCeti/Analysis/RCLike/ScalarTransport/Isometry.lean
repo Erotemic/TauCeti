@@ -96,12 +96,11 @@ noncomputable def submoduleSubtypeEquiv (S : Submodule 𝕜 X) :
       of (e := e) (((out (e := e) x : S) : X)) := by
   dsimp only [submoduleSubtypeEquiv]
   rfl
-/-- Nor does its inverse move the ambient vector. -/
+/-- The inverse transported-subspace adapter preserves the underlying ambient vector. -/
 @[simp] theorem submoduleSubtypeEquiv_symm_coe_apply (S : Submodule 𝕜 X)
     (x : submodule (e := e) S) :
-    out (e := e) ((submoduleSubtypeEquiv (e := e) S).symm x) =
-      (⟨out (e := e) (x : ScalarTransport e X),
-        by simpa only [mem_submodule] using x.2⟩ : S) := by
+    ((out (e := e) ((submoduleSubtypeEquiv (e := e) S).symm x) : S) : X) =
+      out (e := e) (x : ScalarTransport e X) := by
   dsimp only [submoduleSubtypeEquiv, Equiv.symm]
   rfl
 
