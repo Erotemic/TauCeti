@@ -52,7 +52,7 @@ public section
 open MeasureTheory Filter Set
 open scoped Topology Matrix Matrix.Norms.L2Operator
 
-namespace TauCeti.Matrix
+namespace Matrix
 
 variable {𝕜 ι : Type*} [RCLike 𝕜] [Fintype ι] [DecidableEq ι]
 
@@ -234,4 +234,4 @@ theorem measurable_spectralProjectionIci_of_hermitian {Ω : Type*}
     Measurable fun w => spectralProjectionIci c (Bm w) (hherm w) :=
   (measurable_spectralProjectionIci c).comp (hBmeas.subtype_mk (h := hherm))
 
-end TauCeti.Matrix
+end Matrix
