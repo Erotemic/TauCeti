@@ -272,7 +272,7 @@ def stoneGenerator (U : StronglyContinuousGroup H) (hU : U.IsUnitary) : H →ₗ
 /-- The Stone generator is the complex generator multiplied by `-i`. -/
 theorem stoneGenerator_def (U : StronglyContinuousGroup H) (hU : U.IsUnitary) :
     U.stoneGenerator hU = (-Complex.I) • U.complexGenerator hU :=
-  rfl
+  (rfl)
 
 /-- The Stone generator has the same domain as the complex generator. -/
 @[simp]
@@ -285,12 +285,25 @@ theorem mem_stoneGenerator_domain_iff (U : StronglyContinuousGroup H) (hU : U.Is
     (x : H) : x ∈ (U.stoneGenerator hU).domain ↔ x ∈ U.complexDomain hU := by
   rw [U.stoneGenerator_domain hU]
 
-/-- The Stone generator acts by `-i` times the complex generator. -/
+/-- The Stone generator acts by `-i` times the complex generator on its domain. -/
 @[simp]
 theorem stoneGenerator_apply (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
     (x : (U.stoneGenerator hU).domain) :
-    U.stoneGenerator hU x = (-Complex.I) • U.complexGenerator hU x := by
-  exact LinearPMap.smul_apply (-Complex.I) (U.complexGenerator hU) x
+    U.stoneGenerator hU x = (-Complex.I) • U.complexGenerator hU
+      ⟨(x : H), by
+        rw [U.complexGenerator_domain hU, ← U.stoneGenerator_domain hU]
+        exact x.property⟩ := by
+  have hx : (x : H) ∈ (U.complexGenerator hU).domain := by
+    rw [U.complexGenerator_domain hU, ← U.stoneGenerator_domain hU]
+    exact x.property
+  have hx' : (x : H) ∈ ((-Complex.I) • U.complexGenerator hU).domain := by
+    rwa [LinearPMap.smul_domain]
+  calc
+    U.stoneGenerator hU x =
+        ((-Complex.I) • U.complexGenerator hU) ⟨(x : H), hx'⟩ :=
+      LinearPMap.congr_fun (U.stoneGenerator_def hU) x.property hx'
+    _ = (-Complex.I) • U.complexGenerator hU ⟨(x : H), hx⟩ := by
+      exact LinearPMap.smul_apply (-Complex.I) (U.complexGenerator hU) ⟨(x : H), hx'⟩
 
 /-- The complex generator is `i` times its Stone normalization. -/
 theorem complexGenerator_eq_I_smul_stoneGenerator (U : StronglyContinuousGroup H)
