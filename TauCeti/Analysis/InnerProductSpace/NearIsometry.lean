@@ -6,9 +6,9 @@ Authors: Jon Crall, Claude Fable 5, Claude Opus 4.8, Claude Opus 5
 module
 
 public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.FromBasis
-public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.Bound
-public import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
-public import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
+public import TauCeti.Analysis.InnerProductSpace.Gram.QuadraticForm
+public import TauCeti.Analysis.InnerProductSpace.Gram.Eigenvalue
+public import TauCeti.Analysis.InnerProductSpace.Gram.Adjoint
 public import TauCeti.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
@@ -21,8 +21,9 @@ at most `δ < 1`, it has a symmetric Gram square root `S` and factors as `M = W 
 a linear isometry equivalence. The factorization gives the sharp pointwise estimate
 `‖M x - W x‖ ≤ δ * ‖x‖`. A continuous-linear-map variant takes an operator-norm Gram bound.
 
-This is the real-scalar specialization of the near-isometry estimates; the `RCLike` extension
-requires additional scalar-field generalization.
+The underlying basis-isometry result is stated for general `RCLike` inner product spaces in
+`LinearIsometry.FromBasis`. The quadratic-form, eigenvalue, and operator-norm bounds are imported
+from reusable modules under `Gram/`.
 
 ## References and provenance
 
@@ -133,12 +134,11 @@ private theorem norm_diagonal_apply_sub_self_le (b : OrthonormalBasis (Fin d) �
     simpa using this
   rw [hx]
   exact norm_diagonal_apply_le b _ hδ0 hc x
+
 end Diagonal
 
 end TauCeti
 
--- The following theorems extend Mathlib's LinearMap and ContinuousLinearMap.
--- Their namespaces must be at the root for dot notation and the upstream lint.
 open scoped RealInnerProductSpace InnerProductSpace
 open Module (finrank)
 open TauCeti
@@ -148,11 +148,8 @@ variable [FiniteDimensional ℝ E]
 
 namespace LinearMap
 
-/-- On an orthonormal eigenbasis of the Gram operator `Mᵀ ∘ M`, the images under `M` are
-orthogonal and their squared norms are the eigenvalues.
-
-This is why `W = M ∘ S⁻¹` is an isometry in `exists_linearIsometryEquiv_comp_polarFactor`:
-rescaling `M (b k)` by `(√ μ k)⁻¹` turns this Gram matrix into the identity. -/
+/-- The images of a Gram eigenbasis under `M` are pairwise orthogonal, with squared
+norms given by the eigenvalues. -/
 private theorem inner_map_eigenvectorBasis {M : E →ₗ[ℝ] E} {d : ℕ}
     (b : OrthonormalBasis (Fin d) ℝ E) (μ : Fin d → ℝ)
     (hunit : ∀ k, ⟪b k, b k⟫_ℝ = 1)
@@ -188,8 +185,9 @@ private theorem inner_basis_of_smul_inv_sqrt {M W : E →ₗ[ℝ] E} {d : ℕ}
     field_simp
     exact (Real.sq_sqrt (le_of_lt (hμpos j))).symm
   · rw [ite_eq_right hjk, b.inner_eq_zero hjk, mul_zero, mul_zero]
-/-- The Gram operator of a real near-isometry has an orthonormal eigenbasis with
-positive eigenvalues, each within `δ` of one. -/
+
+/-- A real near-isometry admits an orthonormal Gram eigenbasis with positive eigenvalues
+whose deviations from one are bounded by the quadratic-form error. -/
 private theorem exists_orthonormalBasis_gram (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ)
     {d : ℕ} (hd : finrank ℝ E = d) :
@@ -211,9 +209,9 @@ private theorem exists_orthonormalBasis_gram (M : E →ₗ[ℝ] E) {δ : ℝ} (h
   have hk := hμbound k
   rw [abs_le] at hk
   linarith
-/-- A finite-dimensional real near-isometry factors as `M = W ∘ S`, where `W` is a linear
-isometry equivalence, `S` is symmetric, `S² = M.adjoint * M`, and `S` moves every
-vector by at most `δ` times its norm. -/
+
+/-- A real finite-dimensional near-isometry factors through a symmetric square root of its
+Gram operator, with a sharp pointwise estimate for the square root. -/
 theorem exists_linearIsometryEquiv_comp_polarFactor (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ) :
     ∃ (W : E ≃ₗᵢ[ℝ] E) (S : E →ₗ[ℝ] E),
@@ -264,8 +262,14 @@ theorem exists_linearIsometryEquiv_comp_polarFactor (M : E →ₗ[ℝ] E) {δ : 
     (b.inner_map_eq_of_inner_basis hWortho)
   refine ⟨U, S, fun x => ?_, hS ▸ isSymmetric_diagonal b _, hSS, hSest⟩
   rw [hU, hW, LinearMap.comp_apply, hRS]
-/-- If the squared norms of `M x` differ from those of `x` by at most `δ‖x‖²`, with
-`δ < 1`, then `M` is pointwise `δ`-close to a linear isometry equivalence. -/
+
+/-- **The sharp near-isometry estimate.**  If the quadratic form of a linear map `M` on a
+finite-dimensional real inner product space is uniformly `δ`-close to the identity quadratic
+form (with `δ < 1`), then `M` lies within `δ` — not `2 * δ` — of a genuine linear isometry
+equivalence.
+
+This is immediate from `exists_linearIsometryEquiv_comp_polarFactor`: `M x - W x` is the image
+under the isometry `W` of `S x - x`. -/
 theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ) :
     ∃ W : E ≃ₗᵢ[ℝ] E, ∀ x : E, ‖M x - W x‖ ≤ δ * ‖x‖ := by
@@ -273,12 +277,13 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ :
   refine ⟨W, fun x => ?_⟩
   rw [hMS x, ← map_sub, W.norm_map]
   exact hSest x
+
 end LinearMap
 
 namespace ContinuousLinearMap
 
-/-- A bounded finite-dimensional real endomorphism whose Gram operator is within `δ < 1`
-of the identity is pointwise `δ`-close to a linear isometry equivalence. -/
+/-- A bounded real endomorphism with a small Gram defect is close to a linear isometry
+equivalence, with the sharp coefficient `δ`. -/
 theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →L[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ‖ContinuousLinearMap.adjoint M * M - 1‖ ≤ δ) :
     ∃ W : E ≃ₗᵢ[ℝ] E, ∀ x : E, ‖M x - W x‖ ≤ δ * ‖x‖ := by
@@ -286,6 +291,7 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →L[ℝ] E) {δ : �
     LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) hδ
     (abs_inner_sub_le_of_norm_adjoint_mul_self_sub_one_le M hM)
   exact ⟨W, fun x => by simpa using hW x⟩
+
 end ContinuousLinearMap
 
 end
