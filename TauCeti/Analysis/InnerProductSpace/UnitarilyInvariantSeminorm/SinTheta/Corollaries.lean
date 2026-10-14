@@ -6,7 +6,7 @@ Authors: The Tau Ceti contributors
 module
 
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Frobenius
-public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.SinTheta
+public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.SinTheta.Basic
 
 /-!
 # Frobenius and Ky Fan Davis–Kahan `sin Θ` bounds
@@ -16,12 +16,8 @@ Frobenius norm and every Ky Fan norm. Both the residual form, for a trial map `X
 perturbation form, for invariant subspaces of two self-adjoint operators, have constant `1`
 under interval/exterior spectral separation.
 
-The reverse interval/exterior orientation is also available for each norm. The proofs are
-specializations of the general theorems in `UnitarilyInvariantSeminorm.SinTheta`; they do not
-introduce another proof of the Sylvester estimate or another norm construction.
-
-These are `SSP-C21` (Frobenius) and `SSP-C22` (Ky Fan) of the
-`OperatorTheory/SpectralSubspacePerturbation` roadmap.
+The reverse interval/exterior orientation is also available for each norm. These specialize
+the general bounds in `UnitarilyInvariantSeminorm.SinTheta.Basic`.
 
 ## Main results
 
@@ -54,7 +50,7 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
   {a b δ : ℝ}
 
-/-- **Frobenius residual `sin Θ` bound (`SSP-C21`).** Under interval/exterior spectral
+/-- **Frobenius residual `sin Θ` bound.** Under interval/exterior spectral
 separation, `δ ‖P_{Uᗮ} X‖_F ≤ ‖A X - X M‖_F` for any trial map `X`. -/
 theorem mul_frobenius_starProjection_comp_le_frobenius_sylvester_apply
     {A : E →L[𝕜] E} {M : F →L[𝕜] F} (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
@@ -65,7 +61,7 @@ theorem mul_frobenius_starProjection_comp_le_frobenius_sylvester_apply
       frobenius 𝕜 F E (A.sylvester M X) :=
   (frobenius 𝕜 F E).mul_map_starProjection_comp_le_map_sylvester_apply hA hM hU h X
 
-/-- **Frobenius perturbation `sin Θ` bound (`SSP-C21`).** For invariant subspaces
+/-- **Frobenius perturbation `sin Θ` bound.** For invariant subspaces
 `U` and `V`, interval/exterior separation implies
 `δ ‖P_{Vᗮ} P_U‖_F ≤ ‖B - A‖_F`. -/
 theorem mul_frobenius_starProjection_comp_starProjection_le_frobenius_sub
@@ -90,9 +86,8 @@ theorem mul_frobenius_starProjection_comp_starProjection_le_frobenius_sub_swap
       frobenius 𝕜 E E (B - A) :=
   (frobenius 𝕜 E E).mul_map_starProjection_comp_starProjection_le_map_sub_swap hA hB hU hV h
 
-/-- **Ky Fan residual `sin Θ` bound (`SSP-C22`).** Under interval/exterior spectral
-separation, the `k`-th Ky Fan sum of the projected residual trial map is bounded by
-`δ Kₖ(P_{Uᗮ} X) ≤ Kₖ(A X - X M)`, for every `k`. -/
+/-- **Ky Fan residual `sin Θ` bound.** Under interval/exterior spectral separation,
+`δ Kₖ(P_{Uᗮ} X) ≤ Kₖ(A X - X M)` for every trial map `X` and every `k`. -/
 theorem mul_kyFan_starProjection_comp_le_kyFan_sylvester_apply (k : ℕ)
     {A : E →L[𝕜] E} {M : F →L[𝕜] F} (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
     (hM : (M : F →ₗ[𝕜] F).IsSymmetric) {U : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U)
@@ -102,7 +97,7 @@ theorem mul_kyFan_starProjection_comp_le_kyFan_sylvester_apply (k : ℕ)
       kyFan 𝕜 F E k (A.sylvester M X) :=
   (kyFan 𝕜 F E k).mul_map_starProjection_comp_le_map_sylvester_apply hA hM hU h X
 
-/-- **Ky Fan perturbation `sin Θ` bound (`SSP-C22`).** For every `k`, interval/exterior
+/-- **Ky Fan perturbation `sin Θ` bound.** For every `k`, interval/exterior
 spectral separation implies `δ Kₖ(P_{Vᗮ} P_U) ≤ Kₖ(B - A)`. -/
 theorem mul_kyFan_starProjection_comp_starProjection_le_kyFan_sub (k : ℕ)
     {A B : E →L[𝕜] E} (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
