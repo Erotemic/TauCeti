@@ -179,7 +179,7 @@ private theorem tendsto_cfc_of_pointwise {β : Type*} {l : Filter β}
   simpa only [hA.cfc_eq, Matrix.IsHermitian.cfc, Unitary.conjStarAlgAut_apply,
     Function.comp_def] using (tendsto_const_nhds.mul ht).mul tendsto_const_nhds
 
-/- The general CFC measurability theorem requires a real normed-algebra
+/-- The general CFC measurability theorem requires a real normed-algebra
 structure compatible with the canonical L2 operator norm. This is only a
 local adapter, not a new global choice of matrix norm. -/
 noncomputable local instance instRealNormedAlgebraMatrix :
