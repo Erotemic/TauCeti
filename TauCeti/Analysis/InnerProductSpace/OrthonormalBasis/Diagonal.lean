@@ -122,7 +122,7 @@ theorem norm_diagonal_apply_le (b : OrthonormalBasis ι ℝ E) (c : ι → ℝ)
     sq_nonneg (‖diagonal b c x‖ - δ * ‖x‖)]
 
 /-- If every diagonal coefficient differs from `1` by at most `δ`, then the
-operator moves each vector `x` by at most `δ * ‖x‖`. 
+operator moves each vector `x` by at most `δ * ‖x‖`.
 
 This is the operator form of the scalar estimate that makes the near-isometry constant sharp:
 `diagonal b c - 1` is again diagonal, with factors `c k - 1`. -/
