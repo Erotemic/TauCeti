@@ -6,9 +6,9 @@ Authors: Jon Crall, Claude Fable 5, Claude Opus 4.8, Claude Opus 5
 module
 
 public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.FromBasis
-public import TauCeti.Analysis.InnerProductSpace.Gram.QuadraticForm
-public import TauCeti.Analysis.InnerProductSpace.Gram.Eigenvalue
-public import TauCeti.Analysis.InnerProductSpace.Gram.Adjoint
+public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.Bound
+public import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
+public import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
 public import TauCeti.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
@@ -23,7 +23,7 @@ a linear isometry equivalence. The factorization gives the sharp pointwise estim
 
 The underlying basis-isometry result is stated for general `RCLike` inner product spaces in
 `LinearIsometry.FromBasis`. The quadratic-form, eigenvalue, and operator-norm bounds are imported
-from reusable modules under `Gram/`.
+from reusable modules under `QuadraticForm/`, `Spectrum/`, and `Adjoint/`.
 
 ## References and provenance
 
