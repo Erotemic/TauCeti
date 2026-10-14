@@ -6,6 +6,9 @@ Authors: Jon Crall, Claude Fable 5, Claude Opus 4.8, Claude Opus 5
 module
 
 public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.FromBasis
+public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.Bound
+public import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
+public import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
 public import TauCeti.Analysis.SpecialFunctions.Sqrt
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
@@ -130,9 +133,7 @@ private theorem norm_diagonal_apply_sub_self_le (b : OrthonormalBasis (Fin d) �
     simpa using this
   rw [hx]
   exact norm_diagonal_apply_le b _ hδ0 hc x
-
 end Diagonal
-
 
 end TauCeti
 
@@ -147,17 +148,11 @@ variable [FiniteDimensional ℝ E]
 
 namespace LinearMap
 
-omit [FiniteDimensional ℝ E] in
-/-- A uniform quadratic-form bound forces a nonnegative error on a nontrivial space. -/
-private theorem nonneg_of_quadraticFormBound [Nontrivial E] {M : E →ₗ[ℝ] E} {δ : ℝ}
-    (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ) : 0 ≤ δ := by
-  obtain ⟨v, hv⟩ := exists_ne (0 : E)
-  have hvpos : 0 < ⟪v, v⟫_ℝ := real_inner_self_pos.mpr hv
-  have hmul : 0 ≤ δ * ⟪v, v⟫_ℝ :=
-    le_trans (abs_nonneg (⟪M v, M v⟫_ℝ - ⟪v, v⟫_ℝ)) (hM v)
-  exact nonneg_of_mul_nonneg_left hmul hvpos
+/-- On an orthonormal eigenbasis of the Gram operator `Mᵀ ∘ M`, the images under `M` are
+orthogonal and their squared norms are the eigenvalues.
 
-/-- The Gram operator eigenbasis determines the inner products of the images under `M`. -/
+This is why `W = M ∘ S⁻¹` is an isometry in `exists_linearIsometryEquiv_comp_polarFactor`:
+rescaling `M (b k)` by `(√ μ k)⁻¹` turns this Gram matrix into the identity. -/
 private theorem inner_map_eigenvectorBasis {M : E →ₗ[ℝ] E} {d : ℕ}
     (b : OrthonormalBasis (Fin d) ℝ E) (μ : Fin d → ℝ)
     (hunit : ∀ k, ⟪b k, b k⟫_ℝ = 1)
@@ -170,7 +165,12 @@ private theorem inner_map_eigenvectorBasis {M : E →ₗ[ℝ] E} {d : ℕ}
   · subst hjk; rw [hunit j, ite_eq_left rfl, mul_one]
   · rw [b.inner_eq_zero hjk, ite_eq_right hjk, mul_zero]
 
-/-- Normalized images of a positive Gram eigenbasis are orthonormal. -/
+/-- Rescaling the eigenbasis images by `(√ μ k)⁻¹` turns the Gram matrix of `M` into the
+identity: a map sending `b k` to `(√ μ k)⁻¹ • M (b k)` preserves the inner products *between
+basis vectors*.
+
+With `inner_map_eq_of_inner_basis` this is the whole reason `W = M ∘ S⁻¹` is an isometry in
+`exists_linearIsometryEquiv_comp_polarFactor`. -/
 private theorem inner_basis_of_smul_inv_sqrt {M W : E →ₗ[ℝ] E} {d : ℕ}
     (b : OrthonormalBasis (Fin d) ℝ E) {μ : Fin d → ℝ} (hμpos : ∀ k, 0 < μ k)
     (hunit : ∀ k, ⟪b k, b k⟫_ℝ = 1)
@@ -188,20 +188,8 @@ private theorem inner_basis_of_smul_inv_sqrt {M W : E →ₗ[ℝ] E} {d : ℕ}
     field_simp
     exact (Real.sq_sqrt (le_of_lt (hμpos j))).symm
   · rw [ite_eq_right hjk, b.inner_eq_zero hjk, mul_zero, mul_zero]
-
-/-- The quadratic-form error bounds the deviation of each unit Gram eigenvalue from one. -/
-private theorem abs_eigenvalue_sub_one_le {M : E →ₗ[ℝ] E} {δ : ℝ}
-    (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ)
-    {v : E} (hv : ⟪v, v⟫_ℝ = 1) {lam : ℝ}
-    (hGv : (M.adjoint * M) v = lam • v) : |lam - 1| ≤ δ := by
-  have hquad : ⟪(M.adjoint * M) v, v⟫_ℝ = ⟪M v, M v⟫_ℝ := by
-    rw [Module.End.mul_apply, LinearMap.adjoint_inner_left]
-  have hlam : ⟪(M.adjoint * M) v, v⟫_ℝ = lam := by
-    rw [hGv, real_inner_smul_left, hv, mul_one]
-  have hb := hM v
-  rwa [← hquad, hlam, hv, mul_one] at hb
-
-/-- The Gram operator of a real near-isometry has a positive, controlled eigenbasis. -/
+/-- The Gram operator of a real near-isometry has an orthonormal eigenbasis with
+positive eigenvalues, each within `δ` of one. -/
 private theorem exists_orthonormalBasis_gram (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ)
     {d : ℕ} (hd : finrank ℝ E = d) :
@@ -223,7 +211,6 @@ private theorem exists_orthonormalBasis_gram (M : E →ₗ[ℝ] E) {δ : ℝ} (h
   have hk := hμbound k
   rw [abs_le] at hk
   linarith
-
 /-- A finite-dimensional real near-isometry factors as `M = W ∘ S`, where `W` is a linear
 isometry equivalence, `S` is symmetric, `S² = M.adjoint * M`, and `S` moves every
 vector by at most `δ` times its norm. -/
@@ -274,10 +261,9 @@ theorem exists_linearIsometryEquiv_comp_polarFactor (M : E →ₗ[ℝ] E) {δ : 
       (fun k => (Real.abs_sqrt_sub_one_le_abs_sub_one).trans (hμbound k)) x
   -- Bundle `W₀` as a linear isometry equivalence and read off the factorization.
   obtain ⟨U, hU⟩ := LinearMap.exists_linearIsometryEquiv_of_inner_map
-    (TauCeti.inner_map_eq_of_inner_basis b hWortho)
+    (b.inner_map_eq_of_inner_basis hWortho)
   refine ⟨U, S, fun x => ?_, hS ▸ isSymmetric_diagonal b _, hSS, hSest⟩
   rw [hU, hW, LinearMap.comp_apply, hRS]
-
 /-- If the squared norms of `M x` differ from those of `x` by at most `δ‖x‖²`, with
 `δ < 1`, then `M` is pointwise `δ`-close to a linear isometry equivalence. -/
 theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
@@ -287,29 +273,9 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ :
   refine ⟨W, fun x => ?_⟩
   rw [hMS x, ← map_sub, W.norm_map]
   exact hSest x
-
 end LinearMap
 
 namespace ContinuousLinearMap
-
-/-- An operator-norm Gram bound implies the corresponding pointwise quadratic-form bound. -/
-private theorem abs_inner_sub_le_of_norm_adjoint_mul_self_sub_one_le (M : E →L[ℝ] E) {δ : ℝ}
-    (hM : ‖ContinuousLinearMap.adjoint M * M - 1‖ ≤ δ) (x : E) :
-    |⟪(M : E →ₗ[ℝ] E) x, (M : E →ₗ[ℝ] E) x⟫_ℝ - ⟪x, x⟫_ℝ| ≤
-      δ * ⟪x, x⟫_ℝ := by
-  have hid : ⟪(ContinuousLinearMap.adjoint M * M - 1) x, x⟫_ℝ
-      = ⟪(M : E →ₗ[ℝ] E) x, (M : E →ₗ[ℝ] E) x⟫_ℝ - ⟪x, x⟫_ℝ := by
-    rw [sub_apply, mul_apply_eq_comp, one_apply_eq_self, inner_sub_left,
-      ContinuousLinearMap.adjoint_inner_left]
-    simp
-  rw [← hid]
-  calc |⟪(ContinuousLinearMap.adjoint M * M - 1) x, x⟫_ℝ|
-      ≤ ‖(ContinuousLinearMap.adjoint M * M - 1) x‖ * ‖x‖ := abs_real_inner_le_norm _ _
-    _ ≤ ‖ContinuousLinearMap.adjoint M * M - 1‖ * ‖x‖ * ‖x‖ :=
-        mul_le_mul_of_nonneg_right
-          ((ContinuousLinearMap.adjoint M * M - 1).le_opNorm x) (norm_nonneg x)
-    _ ≤ δ * ‖x‖ * ‖x‖ := by gcongr
-    _ = δ * ⟪x, x⟫_ℝ := by rw [real_inner_self_eq_norm_mul_norm]; ring
 
 /-- A bounded finite-dimensional real endomorphism whose Gram operator is within `δ < 1`
 of the identity is pointwise `δ`-close to a linear isometry equivalence. -/
@@ -320,7 +286,6 @@ theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →L[ℝ] E) {δ : �
     LinearMap.exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) hδ
     (abs_inner_sub_le_of_norm_adjoint_mul_self_sub_one_le M hM)
   exact ⟨W, fun x => by simpa using hW x⟩
-
 end ContinuousLinearMap
 
 end
