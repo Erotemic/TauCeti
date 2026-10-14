@@ -10,8 +10,6 @@ public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.Bound
 public import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
 public import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
 public import TauCeti.Analysis.SpecialFunctions.Sqrt
-public import Mathlib.Analysis.InnerProductSpace.Adjoint
-public import Mathlib.Analysis.InnerProductSpace.Spectrum
 
 /-!
 # Finite-dimensional real near-isometries
