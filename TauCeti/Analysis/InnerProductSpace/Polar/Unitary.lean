@@ -1,12 +1,16 @@
 /-
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
+Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors
+Authors: The Tau Ceti contributors, Jon Crall, Claude Fable 5, Claude Opus 4.8,
+  Claude Opus 5
 -/
 module
 
 public import TauCeti.Analysis.InnerProductSpace.Gram.Rigidity
 public import TauCeti.Analysis.InnerProductSpace.PositiveSquareRoot
+import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
+import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
 import TauCeti.Analysis.SpecialFunctions.Sqrt
 
 /-!
@@ -25,6 +29,11 @@ within `δ` of `M` itself, `‖M x - U x‖ ≤ δ ‖x‖`. Combined with the u
 this says that a square near-isometry is pointwise `δ`-close to a linear isometric equivalence.
 No smallness assumption on `δ` is needed.
 
+For bounded real endomorphisms, an operator-norm Gram defect `‖M†M - I‖ ≤ δ` implies the
+squared-norm hypothesis. The resulting corollary makes the existing polar-factor bound available
+directly to applications that control the operator norm. The eigenvalue step of the estimate is
+factored out into the reusable Gram-eigenvalue lemma.
+
 ## Main declarations
 
 * `LinearMap.exists_linearIsometryEquiv_comp_operatorAbs_eq`: `A = U |A|` for a linear isometric
@@ -36,6 +45,8 @@ No smallness assumption on `δ` is needed.
 * `LinearMap.exists_linearIsometryEquiv_comp_operatorAbs_eq_and_norm_apply_sub_le`: a
   near-isometry between spaces of the same dimension is `U |M|` for a linear isometric
   equivalence `U` within `δ` of it.
+* `ContinuousLinearMap.exists_linearIsometryEquiv_norm_sub_apply_le`: the same sharp pointwise
+  estimate under an operator-norm bound on the bounded map's Gram defect.
 
 ## References
 
@@ -43,6 +54,8 @@ No smallness assumption on `δ` is needed.
   2013, Theorem 7.3.1.
 * N. J. Higham, *Functions of Matrices: Theory and Computation*, SIAM, 2008,
   §8.1 (approximation properties of the polar factor).
+* The operator-norm Gram conversion and eigenvalue lemma were adapted from the Apache-2.0
+  Kitware DKPS formalization.
 -/
 
 public section
@@ -87,17 +100,8 @@ theorem norm_operatorAbs_apply_sub_le (M : E →ₗ[𝕜] F) {δ : ℝ}
   rw [hx, hsub]
   refine hT.norm_cfc_apply_le _ (fun μ hμ ↦ ?_) x
   obtain ⟨v, hv⟩ := hμ.exists_hasEigenvector
-  have hnorm : ‖M v‖ ^ 2 = μ * ‖v‖ ^ 2 := by
-    have h := congrArg (fun y ↦ RCLike.re ⟪y, v⟫_𝕜) hv.apply_eq_smul
-    simpa [adjoint_inner_left, inner_smul_left, ← norm_sq_eq_re_inner] using h
-  have hv0 : 0 < ‖v‖ ^ 2 := by
-    have := hv.2
-    positivity
-  have hμ1 : |μ - 1| ≤ δ := by
-    have := hM v
-    rw [hnorm, ← sub_one_mul, abs_mul, abs_of_pos hv0] at this
-    exact le_of_mul_le_mul_right this hv0
-  exact Real.abs_sqrt_sub_one_le_abs_sub_one.trans hμ1
+  exact Real.abs_sqrt_sub_one_le_abs_sub_one.trans
+    (M.abs_eigenvalue_sub_one_le hM hv.apply_eq_smul hv.2)
 
 /-- **Near-isometry polar-factor bound.** If `|‖M x‖² - ‖x‖²| ≤ δ ‖x‖²` for every `x` and
 `U` is a linear isometry with `U |M| = M`, then `‖M x - U x‖ ≤ δ ‖x‖` for every `x`. -/
@@ -120,3 +124,28 @@ theorem exists_linearIsometryEquiv_comp_operatorAbs_eq_and_norm_apply_sub_le (M 
   exact ⟨U, hU, M.norm_apply_sub_le_of_comp_operatorAbs_eq hM (U := U.toLinearIsometry) hU⟩
 
 end LinearMap
+
+namespace ContinuousLinearMap
+
+open scoped RealInnerProductSpace
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E]
+
+/-- **Gram-defect near-isometry bound (PD-B43).** If a bounded real endomorphism has
+`‖M†M - I‖ ≤ δ`, then it is pointwise `δ`-close to an isometric equivalence. The polar
+factor and the estimate are supplied by `LinearMap`'s existing `RCLike` theorem. No separate
+Gram square root or assumption `δ < 1` is required. -/
+theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →L[ℝ] E) {δ : ℝ}
+    (hM : ‖ContinuousLinearMap.adjoint M * M - 1‖ ≤ δ) :
+    ∃ W : E ≃ₗᵢ[ℝ] E, ∀ x : E, ‖M x - W x‖ ≤ δ * ‖x‖ := by
+  have hsq : ∀ x : E, |‖(M : E →ₗ[ℝ] E) x‖ ^ 2 - ‖x‖ ^ 2| ≤ δ * ‖x‖ ^ 2 := by
+    intro x
+    simpa only [real_inner_self_eq_norm_sq] using
+      abs_inner_sub_le_of_norm_adjoint_mul_self_sub_one_le M hM x
+  obtain ⟨W, -, hW⟩ :=
+    (M : E →ₗ[ℝ] E).exists_linearIsometryEquiv_comp_operatorAbs_eq_and_norm_apply_sub_le
+      rfl hsq
+  exact ⟨W, fun x => by simpa using hW x⟩
+
+end ContinuousLinearMap

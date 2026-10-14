@@ -8,35 +8,42 @@ module
 public import Mathlib.Analysis.InnerProductSpace.Spectrum
 
 /-!
-# Eigenvalue control for real Gram operators
+# A Gram-eigenvalue bound from squared-norm control
 
-A quadratic-form bound on a linear map controls the eigenvalue of its Gram
-operator at every unit eigenvector.
+A relative bound on the squared-norm defect of a finite-dimensional linear map controls every
+real eigenvalue of its Gram operator. The eigenvector need not be normalized, and the source and
+target may differ. This supplies the spectral step of PD-B41 independently of a particular
+square-root construction.
 
-Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.).
+Generalized from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
 
 public section
 
-open scoped RealInnerProductSpace InnerProductSpace
+open scoped InnerProductSpace
 
 namespace LinearMap
 
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
-variable [FiniteDimensional ℝ E]
+variable {𝕜 E F : Type*} [RCLike 𝕜]
+  [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [FiniteDimensional 𝕜 E]
+  [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
 
-/-- The eigenvalue of `M.adjoint * M` at a unit eigenvector differs from one
-by at most the error in the quadratic-form bound for `M`. -/
-theorem abs_eigenvalue_sub_one_le {M : E →ₗ[ℝ] E} {δ : ℝ}
-    (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ)
-    {v : E} (hv : ⟪v, v⟫_ℝ = 1) {lam : ℝ}
-    (hGv : (M.adjoint * M) v = lam • v) : |lam - 1| ≤ δ := by
-  have hquad : ⟪(M.adjoint * M) v, v⟫_ℝ = ⟪M v, M v⟫_ℝ := by
-    rw [Module.End.mul_apply, LinearMap.adjoint_inner_left]
-  have hlam : ⟪(M.adjoint * M) v, v⟫_ℝ = lam := by
-    rw [hGv, real_inner_smul_left, hv, mul_one]
-  have hb := hM v
-  rwa [← hquad, hlam, hv, mul_one] at hb
+/-- An eigenvalue of the source Gram operator `M† M` on a nonzero vector is within `δ` of
+one when `M` distorts squared norms by at most `δ` relative to their original size.
+This is the eigenvalue step in the near-isometry square-root estimate PD-B41. -/
+theorem abs_eigenvalue_sub_one_le (M : E →ₗ[𝕜] F) {δ : ℝ}
+    (hM : ∀ x, |‖M x‖ ^ 2 - ‖x‖ ^ 2| ≤ δ * ‖x‖ ^ 2)
+    {μ : ℝ} {v : E} (hv : (M.adjoint ∘ₗ M) v = (μ : 𝕜) • v) (hv0 : v ≠ 0) :
+    |μ - 1| ≤ δ := by
+  have hnorm : ‖M v‖ ^ 2 = μ * ‖v‖ ^ 2 := by
+    have h := congrArg (fun y ↦ RCLike.re ⟪y, v⟫_𝕜) hv
+    simpa [adjoint_inner_left, inner_smul_left, ← norm_sq_eq_re_inner] using h
+  have hvpos : 0 < ‖v‖ ^ 2 := by
+    have := hv0
+    positivity
+  have h := hM v
+  rw [hnorm, ← sub_one_mul, abs_mul, abs_of_pos hvpos] at h
+  exact le_of_mul_le_mul_right h hvpos
 
 end LinearMap
 
