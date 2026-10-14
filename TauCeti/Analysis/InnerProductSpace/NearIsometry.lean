@@ -6,6 +6,7 @@ Authors: Jon Crall, Claude Fable 5, Claude Opus 4.8, Claude Opus 5
 module
 
 public import TauCeti.Analysis.InnerProductSpace.LinearIsometry.FromBasis
+public import TauCeti.Analysis.InnerProductSpace.OrthonormalBasis.Diagonal
 public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.Bound
 public import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
 public import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
@@ -22,6 +23,7 @@ a linear isometry equivalence. The factorization gives the sharp pointwise estim
 The underlying basis-isometry result is stated for general `RCLike` inner product spaces in
 `LinearIsometry.FromBasis`. The quadratic-form, eigenvalue, and operator-norm bounds are imported
 from reusable modules under `QuadraticForm/`, `Spectrum/`, and `Adjoint/`.
+The basis-diagonal calculus now lives in `OrthonormalBasis.Diagonal`.
 
 ## References and provenance
 
@@ -31,115 +33,9 @@ from reusable modules under `QuadraticForm/`, `Spectrum/`, and `Adjoint/`.
 
 public section
 
-namespace TauCeti
-
 open scoped RealInnerProductSpace InnerProductSpace
 open Module (finrank)
-
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
-
-section Diagonal
-
-variable {d : ℕ}
-
-/-- The operator that scales the `k`-th vector of an orthonormal basis by `c k`. -/
-private noncomputable def diagonal (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ) :
-    E →ₗ[ℝ] E :=
-  b.toBasis.constr ℝ fun j => c j • b j
-
-private theorem diagonal_basis (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ)
-    (k : Fin d) :
-    diagonal b c (b k) = c k • b k := by
-  have := b.toBasis.constr_basis ℝ (fun j => c j • b j) k
-  rwa [OrthonormalBasis.coe_toBasis] at this
-
-/-- **Diagonals compose pointwise.**  `diagonal b f ∘ₗ diagonal b g` is the
-diagonal of the pointwise product. -/
-private theorem diagonal_comp_diagonal (b : OrthonormalBasis (Fin d) ℝ E)
-    (f g : Fin d → ℝ) :
-    diagonal b f ∘ₗ diagonal b g = diagonal b (fun k => f k * g k) := by
-  refine b.toBasis.ext fun k => ?_
-  simp only [OrthonormalBasis.coe_toBasis, LinearMap.comp_apply, diagonal_basis, map_smul,
-    smul_smul, mul_comm]
-
-/-- **A diagonal minus the identity is diagonal**, with factors `c k - 1`. -/
-private theorem diagonal_sub_id (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ) :
-    diagonal b c - LinearMap.id = diagonal b fun k => c k - 1 := by
-  refine b.toBasis.ext fun k => ?_
-  simp only [OrthonormalBasis.coe_toBasis, LinearMap.sub_apply, LinearMap.id_apply,
-    diagonal_basis, sub_smul, one_smul]
-
-/-- A diagonal operator acts on basis coordinates by scalar multiplication. -/
-private theorem repr_diagonal (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ) (x : E)
-    (k : Fin d) : b.repr (diagonal b c x) k = c k * b.repr x k := by
-  have hx : diagonal b c x = ∑ j : Fin d, b.repr x j • (c j • b j) := by
-    conv_lhs => rw [← b.sum_repr x, map_sum]
-    exact Finset.sum_congr rfl fun j _ => by rw [map_smul, diagonal_basis]
-  rw [b.repr_apply_apply, hx, inner_sum, Finset.sum_eq_single k]
-  · rw [real_inner_smul_right, real_inner_smul_right, real_inner_self_eq_norm_sq,
-      b.orthonormal.norm_eq_one k, b.repr_apply_apply]
-    ring
-  · intro j _ hjk
-    rw [real_inner_smul_right, real_inner_smul_right, b.inner_eq_zero hjk.symm]
-    ring
-  · intro hk; exact absurd (Finset.mem_univ k) hk
-
-private theorem isSymmetric_diagonal (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ) :
-    (diagonal b c).IsSymmetric := by
-  have key :
-      ∀ u v : E, ⟪diagonal b c u, v⟫_ℝ =
-        ∑ k : Fin d, c k * b.repr u k * b.repr v k := by
-    intro u v
-    conv_lhs => rw [← b.sum_repr v]
-    rw [inner_sum]
-    refine Finset.sum_congr rfl fun k _ => ?_
-    rw [real_inner_smul_right, real_inner_comm, ← b.repr_apply_apply, repr_diagonal]
-    ring
-  intro x y
-  rw [key, real_inner_comm, key]
-  exact Finset.sum_congr rfl fun k _ => by ring
-
-/-- A diagonal operator whose scaling factors are bounded by `δ` has operator norm at most
-`δ`, by Parseval. -/
-private theorem norm_diagonal_apply_le (b : OrthonormalBasis (Fin d) ℝ E) (c : Fin d → ℝ)
-    {δ : ℝ} (hδ0 : 0 ≤ δ) (hc : ∀ k, |c k| ≤ δ) (x : E) :
-    ‖diagonal b c x‖ ≤ δ * ‖x‖ := by
-  have hpars : ∀ y : E, ∑ k : Fin d, b.repr y k ^ 2 = ‖y‖ ^ 2 := by
-    intro y
-    rw [← b.sum_sq_inner_right y]
-    exact Finset.sum_congr rfl fun k _ => by rw [b.repr_apply_apply]
-  have hbnd : ‖diagonal b c x‖ ^ 2 ≤ δ ^ 2 * ‖x‖ ^ 2 := by
-    rw [← hpars (diagonal b c x), ← hpars x, Finset.mul_sum]
-    refine Finset.sum_le_sum fun k _ => ?_
-    rw [repr_diagonal, mul_pow]
-    refine mul_le_mul_of_nonneg_right ?_ (sq_nonneg _)
-    have := hc k
-    nlinarith [abs_nonneg (c k), abs_le.mp (hc k), sq_abs (c k)]
-  nlinarith [hbnd, norm_nonneg (diagonal b c x), mul_nonneg hδ0 (norm_nonneg x),
-    sq_nonneg (‖diagonal b c x‖ - δ * ‖x‖)]
-
-/-- A diagonal operator whose scaling factors are all within `δ` of `1` moves no vector by
-more than `δ`.
-
-This is the operator form of the scalar estimate that makes the near-isometry constant sharp:
-`diagonal b c - 1` is again diagonal, with factors `c k - 1`. -/
-private theorem norm_diagonal_apply_sub_self_le (b : OrthonormalBasis (Fin d) ℝ E)
-    (c : Fin d → ℝ) {δ : ℝ} (hδ0 : 0 ≤ δ) (hc : ∀ k, |c k - 1| ≤ δ) (x : E) :
-    ‖diagonal b c x - x‖ ≤ δ * ‖x‖ := by
-  have hsub := diagonal_sub_id b c
-  have hx : diagonal b c x - x = diagonal b (fun k => c k - 1) x := by
-    have := congrArg (fun T : E →ₗ[ℝ] E => T x) hsub
-    simpa using this
-  rw [hx]
-  exact norm_diagonal_apply_le b _ hδ0 hc x
-
-end Diagonal
-
-end TauCeti
-
-open scoped RealInnerProductSpace InnerProductSpace
-open Module (finrank)
-open TauCeti
+open OrthonormalBasis
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 variable [FiniteDimensional ℝ E]
