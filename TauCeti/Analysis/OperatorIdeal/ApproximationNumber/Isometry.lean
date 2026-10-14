@@ -6,23 +6,23 @@ Authors: Jon Crall, GPT-6
 module
 
 public import TauCeti.Analysis.OperatorIdeal.ApproximationNumber.Equivalence
-public import Mathlib.Analysis.Normed.Operator.LinearIsometry
 
 /-!
 # Approximation numbers under isometric changes of coordinates
 
-Pre- and postcomposition with linear isometric equivalences preserve the
-`ℝ≥0`-valued approximation-number sequence. The result is valid for maps
-between different normed spaces and does not require finite dimension or
-completeness. The proof uses the two-sided ideal inequality from the canonical
-`ContinuousLinearMap.singularValue` API and applies it again to the inverses.
+The approximation-number sequence is unchanged by linear isometric changes of
+coordinates in the domain and codomain. Consequently, two operators related by
+such a change have the same approximation-number sequence and Ky Fan prefix
+gauges. This permits transferring approximation-number invariants between
+isometric presentations of operator spaces, even across different universes.
+The result applies to seminormed spaces without finite-dimensionality or
+completeness assumptions.
 
-Adapted from the DKPS formalization's isometric-invariance argument. The
-real-valued legacy `approximationNumber` API is not reintroduced.
+## Provenance
 
-The core invariance theorem is a prerequisite for OperatorIdeals target `OI-B72`:
-the donor proof of `symmetricGaugeFamily_injective` invokes it to transport a
-diagonal model through independent universe lifts.
+Adapted from `ForTauCeti/Analysis/OperatorIdeal/ApproximationNumber/Isometry.lean`
+in [AIQ-Kitware/aiq-dkps-formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+(Kitware, Inc., Apache-2.0).
 -/
 
 public section
@@ -34,9 +34,11 @@ variable {𝕜 : Type*} [NontriviallyNormedField 𝕜]
 /-- Sandwiching an operator by linear isometric equivalences does not increase
 its approximation numbers. -/
 private theorem singularValue_linearIsometryEquiv_sandwich_le {X Y X' Y' : Type*}
-    [NormedAddCommGroup X] [NormedSpace 𝕜 X] [NormedAddCommGroup Y] [NormedSpace 𝕜 Y]
-    [NormedAddCommGroup X'] [NormedSpace 𝕜 X'] [NormedAddCommGroup Y'] [NormedSpace 𝕜 Y']
-    (a : X' ≃ₗᵢ[𝕜] X) (b : Y ≃ₗᵢ[𝕜] Y') (S : X →L[𝕜] Y) (n : ℕ) :
+    [SeminormedAddCommGroup X] [NormedSpace 𝕜 X]
+    [SeminormedAddCommGroup Y] [NormedSpace 𝕜 Y]
+    [SeminormedAddCommGroup X'] [NormedSpace 𝕜 X']
+    [SeminormedAddCommGroup Y'] [NormedSpace 𝕜 Y']
+    (S : X →L[𝕜] Y) (a : X' ≃ₗᵢ[𝕜] X) (b : Y ≃ₗᵢ[𝕜] Y') (n : ℕ) :
     (b.toLinearIsometry.toContinuousLinearMap ∘L S ∘L
         a.toLinearIsometry.toContinuousLinearMap).singularValue n
       ≤ S.singularValue n := by
@@ -56,22 +58,22 @@ private theorem singularValue_linearIsometryEquiv_sandwich_le {X Y X' Y' : Type*
     _ = _ := by simp
 
 variable {E F E' F' : Type*}
-  [NormedAddCommGroup E] [NormedSpace 𝕜 E]
-  [NormedAddCommGroup F] [NormedSpace 𝕜 F]
-  [NormedAddCommGroup E'] [NormedSpace 𝕜 E']
-  [NormedAddCommGroup F'] [NormedSpace 𝕜 F']
+  [SeminormedAddCommGroup E] [NormedSpace 𝕜 E]
+  [SeminormedAddCommGroup F] [NormedSpace 𝕜 F]
+  [SeminormedAddCommGroup E'] [NormedSpace 𝕜 E']
+  [SeminormedAddCommGroup F'] [NormedSpace 𝕜 F']
 
 /-- Linear isometric changes of domain and codomain preserve the canonical
 nonnegative approximation numbers, even across different universes. -/
-theorem singularValue_comp_linearIsometryEquiv
-    (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') (T : E →L[𝕜] F) (n : ℕ) :
+@[simp] theorem singularValue_comp_linearIsometryEquiv
+    (T : E →L[𝕜] F) (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') (n : ℕ) :
     (f.toLinearIsometry.toContinuousLinearMap ∘L T ∘L
         e.toLinearIsometry.toContinuousLinearMap).singularValue n =
       T.singularValue n := by
-  refine le_antisymm (singularValue_linearIsometryEquiv_sandwich_le e f T n) ?_
-  have h := singularValue_linearIsometryEquiv_sandwich_le e.symm f.symm
+  refine le_antisymm (singularValue_linearIsometryEquiv_sandwich_le T e f n) ?_
+  have h := singularValue_linearIsometryEquiv_sandwich_le
     (f.toLinearIsometry.toContinuousLinearMap ∘L T ∘L
-      e.toLinearIsometry.toContinuousLinearMap) n
+      e.toLinearIsometry.toContinuousLinearMap) e.symm f.symm n
   have heq : f.symm.toLinearIsometry.toContinuousLinearMap ∘L
       (f.toLinearIsometry.toContinuousLinearMap ∘L T ∘L
         e.toLinearIsometry.toContinuousLinearMap) ∘L
@@ -82,20 +84,20 @@ theorem singularValue_comp_linearIsometryEquiv
 
 /-- A change of isometric coordinates preserves the equivalence class of the
 approximation-number sequence. -/
-theorem sameSingularValues_comp_linearIsometryEquiv
-    (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') (T : E →L[𝕜] F) :
+@[simp] theorem sameSingularValues_comp_linearIsometryEquiv
+    (T : E →L[𝕜] F) (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') :
     SameSingularValues
       (f.toLinearIsometry.toContinuousLinearMap ∘L T ∘L
         e.toLinearIsometry.toContinuousLinearMap) T := by
   apply (sameSingularValues_iff _ _).2
   intro n
-  exact singularValue_comp_linearIsometryEquiv e f T n
+  exact singularValue_comp_linearIsometryEquiv T e f n
 
 /-- Ky Fan prefix gauges are invariant under linear isometric coordinate changes. -/
-theorem kyFanGauge_comp_linearIsometryEquiv
-    (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') (T : E →L[𝕜] F) (k : ℕ) :
+@[simp] theorem kyFanGauge_comp_linearIsometryEquiv
+    (T : E →L[𝕜] F) (e : E' ≃ₗᵢ[𝕜] E) (f : F ≃ₗᵢ[𝕜] F') (k : ℕ) :
     (f.toLinearIsometry.toContinuousLinearMap ∘L T ∘L
       e.toLinearIsometry.toContinuousLinearMap).kyFanGauge k = T.kyFanGauge k :=
-  (sameSingularValues_comp_linearIsometryEquiv e f T).kyFanGauge_eq k
+  (sameSingularValues_comp_linearIsometryEquiv T e f).kyFanGauge_eq k
 
 end ContinuousLinearMap

@@ -14,10 +14,14 @@ Two continuous linear maps have the same approximation numbers when their
 `ℝ≥0`-valued singular-value sequences agree at every index. The two maps may
 act between different seminormed spaces, including spaces in different universes.
 This relation is reflexive, symmetric, and transitive. Equal sequences also
-have equal Ky Fan prefix gauges.
+have equal Ky Fan prefix gauges, so properties determined solely by approximation
+numbers can be transported between these operators.
 
-This is the sequence relation specified by OperatorIdeals roadmap targets
-`OI-A02`--`OI-A05`, on the canonical `singularValue` API.
+## Provenance
+
+Adapted from `ForTauCeti/Analysis/OperatorIdeal/ApproximationNumber/SameSequence.lean`
+in [AIQ-Kitware/aiq-dkps-formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+(Kitware, Inc., Apache-2.0), using TauCeti's nonnegative `singularValue` sequence.
 -/
 
 public section
@@ -44,7 +48,7 @@ theorem sameSingularValues_iff (S : E →L[𝕜] F) (T : G →L[𝕜] H) :
   Iff.rfl
 
 /-- Every bounded map has the same approximation numbers as itself. -/
-theorem sameSingularValues_refl (T : E →L[𝕜] F) : SameSingularValues T T :=
+@[simp] theorem sameSingularValues_refl (T : E →L[𝕜] F) : SameSingularValues T T :=
   fun _ => rfl
 
 /-- Equality of approximation-number sequences is symmetric. -/
