@@ -160,13 +160,11 @@ theorem exists_linearIsometryEquiv_comp_polarFactor (M : E →ₗ[ℝ] E) {δ : 
 /-- **The sharp near-isometry estimate.**  If the quadratic form of a linear map `M` on a
 finite-dimensional real inner product space is uniformly `δ`-close to the identity quadratic
 form (with `δ < 1`), then `M` lies within `δ` — not `2 * δ` — of a genuine linear isometry
-equivalence.
-
-This is immediate from `exists_linearIsometryEquiv_comp_polarFactor`: `M x - W x` is the image
-under the isometry `W` of `S x - x`. -/
+equivalence. -/
 theorem exists_linearIsometryEquiv_norm_sub_apply_le (M : E →ₗ[ℝ] E) {δ : ℝ} (hδ : δ < 1)
     (hM : ∀ x : E, |⟪M x, M x⟫_ℝ - ⟪x, x⟫_ℝ| ≤ δ * ⟪x, x⟫_ℝ) :
     ∃ W : E ≃ₗᵢ[ℝ] E, ∀ x : E, ‖M x - W x‖ ≤ δ * ‖x‖ := by
+  -- The factorization transports the displacement S x - x through the isometry W.
   obtain ⟨W, S, hMS, -, -, hSest⟩ := exists_linearIsometryEquiv_comp_polarFactor M hδ hM
   refine ⟨W, fun x => ?_⟩
   rw [hMS x, ← map_sub, W.norm_map]

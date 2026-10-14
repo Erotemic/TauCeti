@@ -121,8 +121,7 @@ theorem norm_diagonal_apply_le (b : OrthonormalBasis ι ℝ E) (c : ι → ℝ)
   nlinarith [hbnd, norm_nonneg (diagonal b c x), mul_nonneg hδ0 (norm_nonneg x),
     sq_nonneg (‖diagonal b c x‖ - δ * ‖x‖)]
 
-/-- A diagonal operator whose scaling factors are all within `δ` of `1` moves no vector by
-more than `δ`.
+/-- A diagonal operator whose scaling factors are all within `δ` of `1` moves any vector `x` by at most `δ * ‖x‖`.
 
 This is the operator form of the scalar estimate that makes the near-isometry constant sharp:
 `diagonal b c - 1` is again diagonal, with factors `c k - 1`. -/
