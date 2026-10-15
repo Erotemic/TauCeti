@@ -40,6 +40,16 @@ forward half directly and the backward half through `U.reflect`.
   bounded operator, with generator `A`; every C₀-group whose generator is `A` on all of `X` is of
   this form.
 
+## Provenance
+
+The bounded-commutant theorem added here is adapted from
+[`ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Commutant.lean`](https://github.com/AIQ-Kitware/aiq-dkps-formalization/blob/main/ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Commutant.lean)
+in the AIQ-Kitware DKPS formalization (copyright (c) 2026 Kitware, Inc.;
+authors Jon Crall and Claude Opus 5; Apache-2.0). Its delegation to the forward
+semigroup follows the approach of
+[`ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/SemigroupBridge.lean`](https://github.com/AIQ-Kitware/aiq-dkps-formalization/blob/main/ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/SemigroupBridge.lean).
+The present proof uses TauCeti's canonical group and semigroup generator APIs.
+
 ## References
 
 Engel--Nagel, *One-Parameter Semigroups for Linear Evolution Equations*, Section II.3.11;

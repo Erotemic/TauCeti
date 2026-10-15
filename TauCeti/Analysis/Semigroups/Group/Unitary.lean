@@ -65,6 +65,19 @@ completes the generator direction of Stone's theorem; the converse construction 
 * `TauCeti.Semigroups.StronglyContinuousGroup.IsUnitary.complexGenerator_adjoint_eq_neg`:
   the generator is skew-adjoint.
 
+## Provenance
+
+The bounded-commutant theorem added here is adapted from
+[`ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Commutant.lean`](https://github.com/AIQ-Kitware/aiq-dkps-formalization/blob/main/ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Commutant.lean).
+The Stone-generator normalization and self-adjointness result follow
+[`ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Stone.lean`](https://github.com/AIQ-Kitware/aiq-dkps-formalization/blob/main/ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Stone.lean)
+and its generator convention from
+[`ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Basic.lean`](https://github.com/AIQ-Kitware/aiq-dkps-formalization/blob/main/ForTauCeti/Analysis/InnerProductSpace/OneParameterUnitaryGroup/Basic.lean).
+Those sources are part of the AIQ-Kitware DKPS formalization (copyright (c) 2026
+Kitware, Inc.; authors Jon Crall and Claude Opus 5; Apache-2.0).
+The present results use TauCeti's canonical strongly continuous group and complex
+generator rather than the donor's separate one-parameter group representation.
+
 ## References
 
 * M. Reed and B. Simon, *Methods of Modern Mathematical Physics I: Functional Analysis*,
