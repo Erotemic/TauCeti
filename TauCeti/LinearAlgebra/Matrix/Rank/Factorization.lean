@@ -6,15 +6,19 @@ Authors: Jon Crall, Claude Fable 5
 module
 
 public import TauCeti.LinearAlgebra.Matrix.Rank
+import TauCeti.LinearAlgebra.Matrix.Range
 
 import Mathlib.LinearAlgebra.Dimension.Free
 
 /-!
 # Uniqueness of exact-rank matrix factorizations
 
-An exact-rank factorization `M = L * R` is unique up to an invertible change of basis
-on its intermediate space (MSS-A08). The existence and rank-characterization results
-MSS-A01--A03 are already provided by `TauCeti.LinearAlgebra.Matrix.Rank`.
+Suppose a matrix `M` admits two factorizations through an intermediate index type whose
+cardinality equals the rank of `M`. The two left factors differ by multiplication by an
+invertible matrix on the intermediate space, and the two right factors differ by the inverse.
+
+The imported matrix rank results provide existence and rank bounds for factorizations;
+this module proves uniqueness of an exact-rank factorization.
 
 ## Main result
 
@@ -33,13 +37,6 @@ public section
 namespace Matrix
 
 variable {𝕜 m n : Type*} [Field 𝕜] [Fintype n]
-
--- Only used in the MSS-A08 uniqueness proof. The row index type need not be finite.
-private theorem rank_eq_card_iff_mulVec_injective {ι : Type*} [Fintype ι]
-    (B : Matrix m ι 𝕜) :
-    B.rank = Fintype.card ι ↔ Function.Injective B.mulVec := by
-  rw [mulVec_injective_iff, rank_eq_finrank_span_cols,
-    linearIndependent_iff_card_eq_finrank_span, Set.finrank, eq_comm]
 
 section Uniqueness
 
@@ -65,21 +62,6 @@ private theorem range_left_factor_eq {ι : Type*} [Fintype ι]
   · have hL := rank_left_factor_eq hM h
     rw [Matrix.rank] at hM hL
     exact hM.trans hL.symm
-
-omit [Fintype n] in
-/-- If each column of `L'` belongs to the range of `L`, then `L'` factors
-through `L`. The column index type `κ` need not be finite: a preimage is
-chosen independently for each of its columns. -/
-private theorem exists_mul_eq_of_range_le {ι κ : Type*} [Fintype ι]
-    {L : Matrix m ι 𝕜} {L' : Matrix m κ 𝕜}
-    (h : ∀ j : κ, L'.col j ∈ LinearMap.range L.mulVecLin) :
-    ∃ G : Matrix ι κ 𝕜, L * G = L' := by
-  classical
-  have hpre (j : κ) : ∃ v : ι → 𝕜, L.mulVec v = L'.col j := h j
-  choose v hv using hpre
-  refine ⟨Matrix.of fun i j => v j i, ?_⟩
-  ext i j
-  simpa [Matrix.mul_apply, Matrix.mulVec, dotProduct] using congrFun (hv j) i
 
 /-- Two factorizations of the same matrix through any finite intermediate type `ι`,
 when the rank equals `Fintype.card ι`, differ by an invertible change of basis.

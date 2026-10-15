@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors
+Authors: The Tau Ceti contributors, Jon Crall, Claude Fable 5
 -/
 module
 
@@ -17,6 +17,8 @@ This file records general results relating matrix rank to the corresponding line
 
 * `Matrix.rank_eq_card_iff_vecMul_injective` characterizes full row rank by injectivity of right
   multiplication by the matrix.
+* `Matrix.rank_eq_card_iff_mulVec_injective` characterizes full column rank by injectivity of
+  matrix-vector multiplication.
 * `Matrix.rank_add_rank_le_rank_mul_add_card`: Sylvester's rank inequality
   `rank A + rank B ≤ rank (A * B) + n` for an `m × n` matrix `A` and an `n × o` matrix `B`.
 * `Matrix.exists_eq_mul_fin_rank`: a rectangular matrix factors through `Fin A.rank`.
@@ -28,6 +30,19 @@ This file records general results relating matrix rank to the corresponding line
 public section
 
 namespace Matrix
+
+section FullColumnRank
+
+variable {R m n : Type*} [CommSemiring R] [OrzechProperty R] [Nontrivial R] [Fintype n]
+
+/-- A matrix has full column rank exactly when matrix-vector multiplication by it is injective.
+The row index type need not be finite. -/
+theorem rank_eq_card_iff_mulVec_injective (B : Matrix m n R) :
+    B.rank = Fintype.card n ↔ Function.Injective B.mulVec := by
+  rw [mulVec_injective_iff, rank_eq_finrank_span_cols,
+    linearIndependent_iff_card_eq_finrank_span, Set.finrank, eq_comm]
+
+end FullColumnRank
 
 variable {K : Type*} [Field K] {m n : Type*} [Fintype m] [Fintype n]
 
