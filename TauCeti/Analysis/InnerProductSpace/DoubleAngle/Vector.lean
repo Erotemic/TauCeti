@@ -18,28 +18,28 @@ Let `T` and `H` be symmetric operators on a real or complex inner-product space.
 write `x = y + z` with `y ∈ U` and `z ∈ Uᗮ`.
 
 The sharp **per-eigenvector** double-angle product estimate is
-`(b-a) * ‖y‖ * ‖z‖ ≤ ε` when `‖H v‖ ≤ ε * ‖v‖` (`SSP-C25`).
+`(b-a) * ‖y‖ * ‖z‖ ≤ ε` when `‖H v‖ ≤ ε * ‖v‖`.
 With an orthogonal projection onto `U`, `θ = arccos ‖P_U x‖` gives the angle form
-`(b-a) * sin (2θ) ≤ 2ε` (`SSP-C26`). If `b > a`, these imply the usual divided
+`(b-a) * sin (2θ) ≤ 2ε`. If `b > a`, these imply the usual divided
 bound `sin (2θ) ≤ 2ε / (b-a)`; positivity of the gap is required for division.
 
 If the two diagonal blocks of `H` with respect to `U ⊕ Uᗮ` vanish, the sharper,
 **homogeneous** off-diagonal product estimate is
-`(b-a) * ‖y‖ * ‖z‖ ≤ |‖y‖² - ‖z‖²| * ε` (`SSP-C30`).
+`(b-a) * ‖y‖ * ‖z‖ ≤ |‖y‖² - ‖z‖²| * ε`.
 For a *unit* vector, `b > a`, and `cos (2θ) ≠ 0`, this implies the absolute tangent
 bound `|tan (2θ)| ≤ 2ε / (b-a)`. The product estimate itself requires neither
 unit normalization nor a tangent pole restriction.
 
 These are eigenvector bounds, **not** the finite-dimensional unitarily invariant
-subspace `sin 2Θ` theorem (`SSP-C27`) or the general `sin Θ` theorems (`SSP-C17`–`C24`).
+subspace `sin 2Θ` theorem or the general `sin Θ` theorems.
 They do not require finite-dimensionality. The proof uses a phase-free block-energy
 identity and real two-vector quadratic-form identities.
 
 ## Main declarations
 
-* `TauCeti.sin_two_theta_le_of_mem` and `TauCeti.sin_two_theta_le` (SSP-C25).
-* `TauCeti.sin_two_arccos_le` (SSP-C26).
-* `TauCeti.tan_two_theta_le_of_mem` and `TauCeti.tan_two_theta_le` (SSP-C30).
+* `TauCeti.sin_two_theta_le_of_mem` and `TauCeti.sin_two_theta_le`.
+* `TauCeti.sin_two_arccos_le`.
+* `TauCeti.tan_two_theta_le_of_mem` and `TauCeti.tan_two_theta_le`.
 
 ## References and provenance
 
@@ -265,7 +265,7 @@ theorem sin_two_arccos_le (hT : T.IsSymmetric) (hH : H.IsSymmetric)
   rw [hsqrt]
   nlinarith [hmain]
 
-/-- **Off-diagonal double-angle product bound** (`SSP-C30`). Suppose the diagonal
+/-- **Off-diagonal double-angle product bound**. Suppose the diagonal
 blocks of `H` relative to `U ⊕ Uᗮ` vanish. For any (possibly nonunit) eigenvector
 `y+z` of `T+H`, with `y ∈ U` and `z ∈ Uᗮ`,
 
@@ -339,7 +339,7 @@ theorem tan_two_theta_le_of_mem (hT : T.IsSymmetric) (hH : H.IsSymmetric)
       linear_combination hchain
     exact le_of_mul_le_mul_left hh hn
 
-/-- **Off-diagonal double-angle product bound, projection form** (`SSP-C30`).
+/-- **Off-diagonal double-angle product bound, projection form**.
 Under the hypotheses of `tan_two_theta_le_of_mem`, for any eigenvector `x` of
 `T+H` and `P=U.starProjection`,
 
