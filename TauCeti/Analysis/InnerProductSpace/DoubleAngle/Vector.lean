@@ -37,9 +37,10 @@ identity and real two-vector quadratic-form identities.
 
 ## Main declarations
 
-* `TauCeti.sin_two_theta_le_of_mem` and `TauCeti.sin_two_theta_le`.
-* `TauCeti.sin_two_arccos_le`.
-* `TauCeti.tan_two_theta_le_of_mem` and `TauCeti.tan_two_theta_le`.
+* `LinearMap.IsSymmetric.sin_two_theta_le_of_mem` and
+  `LinearMap.IsSymmetric.sin_two_theta_le`.
+* `LinearMap.IsSymmetric.sin_two_arccos_le`.
+* `LinearMap.IsSymmetric.tan_two_theta_le_of_mem` and `LinearMap.IsSymmetric.tan_two_theta_le`.
 
 ## References and provenance
 
@@ -54,7 +55,7 @@ identity and real two-vector quadratic-form identities.
 
 public section
 
-namespace TauCeti
+namespace LinearMap.IsSymmetric
 open scoped InnerProductSpace
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
@@ -102,7 +103,7 @@ private theorem eigenvector_block_energy_identity (hT : T.IsSymmetric) (hH : H.I
     linarith
   -- `‖z‖² · e1 - ‖y‖² · e2` eliminates `μ`; the mixed terms combine by symmetry
   -- of `H` at the level of real parts.
-  have hW := re_inner_map_symm hH y z
+  have hW := hH.re_inner_map_symm y z
   set c₂ : ℝ := ‖y‖ ^ 2
   set s₂ : ℝ := ‖z‖ ^ 2
   linear_combination s₂ * e1 - c₂ * e2 + c₂ * hW
@@ -163,13 +164,13 @@ theorem sin_two_theta_le_of_mem (hT : T.IsSymmetric) (hH : H.IsSymmetric)
   -- `s(c-s) • y + c(c+s) • z` and `-s(c+s) • y + c(c-s) • z`
   -- (the polynomial realization of the classical half-angle rotation:
   -- `1 - 2cs = (c-s)²`, `1 + 2cs = (c+s)²`).
-  have hW := re_inner_map_symm hH y z
+  have hW := hH.re_inner_map_symm y z
   have hb1 := hquad ((((‖z‖ * (‖y‖ - ‖z‖)) : ℝ) : 𝕜) • y
     + (((‖y‖ * (‖y‖ + ‖z‖)) : ℝ) : 𝕜) • z)
-  rw [re_inner_smul_add_smul_map, norm_smul_add_smul_sq hyz, hW] at hb1
+  rw [LinearMap.re_inner_smul_add_smul_map, TauCeti.norm_smul_add_smul_sq hyz, hW] at hb1
   have hb2 := hquad ((((-(‖z‖ * (‖y‖ + ‖z‖))) : ℝ) : 𝕜) • y
     + (((‖y‖ * (‖y‖ - ‖z‖)) : ℝ) : 𝕜) • z)
-  rw [re_inner_smul_add_smul_map, norm_smul_add_smul_sq hyz, hW] at hb2
+  rw [LinearMap.re_inner_smul_add_smul_map, TauCeti.norm_smul_add_smul_sq hyz, hW] at hb2
   -- Both rotation vectors have squared norm `2‖y‖²‖z‖²`.
   have hN1 : (‖z‖ * (‖y‖ - ‖z‖)) ^ 2 * ‖y‖ ^ 2 + (‖y‖ * (‖y‖ + ‖z‖)) ^ 2 * ‖z‖ ^ 2
       = 2 * (‖y‖ ^ 2 * ‖z‖ ^ 2) := by
@@ -228,7 +229,7 @@ theorem sin_two_theta_le (hT : T.IsSymmetric) (hH : H.IsSymmetric)
     {x : E} (hx : ‖x‖ = 1) {μ : ℝ} (hμ : T x + H x = (μ : 𝕜) • x) :
     (b - a) * (‖U.starProjection x‖ * ‖x - U.starProjection x‖) ≤ ε := by
   have hxsum : U.starProjection x + (x - U.starProjection x) = x := by abel
-  exact sin_two_theta_le_of_mem hT hH hUinv hb ha hε
+  exact hT.sin_two_theta_le_of_mem hH hUinv hb ha hε
     (U.starProjection_apply_mem x) (U.sub_starProjection_mem_orthogonal x)
     (by rw [hxsum]; exact hx) (by rw [hxsum]; exact hμ)
 
@@ -245,7 +246,7 @@ theorem sin_two_arccos_le (hT : T.IsSymmetric) (hH : H.IsSymmetric)
     (hε : ∀ v, ‖H v‖ ≤ ε * ‖v‖)
     {x : E} (hx : ‖x‖ = 1) {μ : ℝ} (hμ : T x + H x = (μ : 𝕜) • x) :
     (b - a) * Real.sin (2 * Real.arccos ‖U.starProjection x‖) ≤ 2 * ε := by
-  have hmain := sin_two_theta_le hT hH hUinv hb ha hε hx hμ
+  have hmain := hT.sin_two_theta_le hH hUinv hb ha hε hx hμ
   set y := U.starProjection x with hy
   set z := x - y with hzdef
   have hyU : y ∈ U := U.starProjection_apply_mem x
@@ -359,8 +360,8 @@ theorem tan_two_theta_le (hT : T.IsSymmetric) (hH : H.IsSymmetric)
     (b - a) * (‖U.starProjection x‖ * ‖x - U.starProjection x‖)
       ≤ |‖U.starProjection x‖ ^ 2 - ‖x - U.starProjection x‖ ^ 2| * ε := by
   have hxsum : U.starProjection x + (x - U.starProjection x) = x := by abel
-  exact tan_two_theta_le_of_mem hT hH hUinv hb ha hε hHU hHUperp
+  exact hT.tan_two_theta_le_of_mem hH hUinv hb ha hε hHU hHUperp
     (U.starProjection_apply_mem x) (U.sub_starProjection_mem_orthogonal x)
     (by rw [hxsum]; exact hμ)
 
-end TauCeti
+end LinearMap.IsSymmetric

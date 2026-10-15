@@ -12,8 +12,8 @@ public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 
 Three elementary lemmas useful for block-operator perturbation estimates:
 
-* `TauCeti.re_inner_map_symm`: the real mixed coefficients agree for symmetric maps;
-* `TauCeti.re_inner_smul_add_smul_map`: expand the real quadratic form of a two-vector
+* `LinearMap.IsSymmetric.re_inner_map_symm`: the real mixed coefficients agree for symmetric maps;
+* `LinearMap.re_inner_smul_add_smul_map`: expand the real quadratic form of a two-vector
   real-linear combination;
 * `TauCeti.norm_smul_add_smul_sq`: the Pythagorean norm formula for an orthogonal
   two-vector real-linear combination.
@@ -26,17 +26,22 @@ Adapted from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 
 public section
 
-namespace TauCeti
 open scoped InnerProductSpace
 
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
   {H : E →ₗ[𝕜] E}
+
+namespace LinearMap.IsSymmetric
 
 /-- Real parts of the two mixed entries of a symmetric operator agree; the
 reason no complex phase alignment is needed anywhere in this file. -/
 theorem re_inner_map_symm (hH : H.IsSymmetric) (y z : E) :
     RCLike.re ⟪z, H y⟫_𝕜 = RCLike.re ⟪y, H z⟫_𝕜 := by
   rw [← hH z y, ← inner_conj_symm, RCLike.conj_re]
+
+end LinearMap.IsSymmetric
+
+namespace LinearMap
 
 /-- Quadratic form of an operator at a real linear combination of two vectors,
 expanded into the four scalar entries.  Pure sesquilinear algebra. -/
@@ -47,6 +52,10 @@ theorem re_inner_smul_add_smul_map (H : E →ₗ[𝕜] E) (y z : E) (γ σ : ℝ
   simp only [map_add, LinearMap.map_smul, inner_add_left, inner_add_right,
     inner_smul_left, inner_smul_right, RCLike.conj_ofReal, RCLike.re_ofReal_mul]
   ring
+
+end LinearMap
+
+namespace TauCeti
 
 /-- Squared norm of a real linear combination of two orthogonal vectors. -/
 theorem norm_smul_add_smul_sq {y z : E} (hyz : ⟪y, z⟫_𝕜 = 0) (γ σ : ℝ) :
