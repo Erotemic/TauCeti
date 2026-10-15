@@ -348,6 +348,11 @@ theorem complexGenerator_commute (hU : U.IsUnitary) (T : H →L[ℂ] H)
     (x : (U.complexGenerator hU).domain) :
     ∃ hmem : T (x : H) ∈ (U.complexGenerator hU).domain,
       U.complexGenerator hU ⟨T (x : H), hmem⟩ = T (U.complexGenerator hU x) := by
+  -- `U.complexGenerator_def hU` identifies the group generator with
+  -- the forward-semigroup generator. Explicit `rw` cannot transport
+  -- the dependent subtype argument `x`, whose type references the
+  -- generator domain. `change` uses that definitional equality
+  -- without requiring an ill-typed rewrite motive.
   change ∃ hmem : T (x : H) ∈
       (U.toSemigroup.complexGenerator hU.isComplexLinear).domain,
     U.toSemigroup.complexGenerator hU.isComplexLinear ⟨T (x : H), hmem⟩ =
