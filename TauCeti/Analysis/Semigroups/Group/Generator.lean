@@ -110,7 +110,7 @@ theorem generator_eq_of_tendsto (U : StronglyContinuousGroup X) {x : X} (hx : x 
   U.toSemigroup.generator_eq_of_tendsto hx ((tendsto_congr' (U.genQuot_eventuallyEq x)).mpr h)
 
 /-- A bounded operator commuting with a strongly continuous group preserves its generator
-domain and commutes with the generator on that domain, via the forward semigroup. -/
+domain and commutes with the generator on that domain. -/
 theorem generator_commute_of_commute (U : StronglyContinuousGroup X) (T : X →L[ℝ] X)
     (hT : ∀ (t : ℝ) (y : X), U t (T y) = T (U t y)) (x : U.domain) :
     ∃ hmem : T (x : X) ∈ U.domain,

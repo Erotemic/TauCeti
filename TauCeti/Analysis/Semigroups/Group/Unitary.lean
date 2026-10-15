@@ -280,11 +280,6 @@ theorem stoneGenerator_domain (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
     (U.stoneGenerator hU).domain = U.complexDomain hU := by
   rw [stoneGenerator_def, LinearPMap.smul_domain, U.complexGenerator_domain]
 
-/-- Characterization of membership in the Stone-generator domain. -/
-theorem mem_stoneGenerator_domain_iff (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
-    (x : H) : x ∈ (U.stoneGenerator hU).domain ↔ x ∈ U.complexDomain hU := by
-  rw [U.stoneGenerator_domain hU]
-
 /-- The Stone generator acts by `-i` times the complex generator on its domain. -/
 @[simp]
 theorem stoneGenerator_apply (U : StronglyContinuousGroup H) (hU : U.IsUnitary)
@@ -353,22 +348,12 @@ theorem complexGenerator_commute (hU : U.IsUnitary) (T : H →L[ℂ] H)
     (x : (U.complexGenerator hU).domain) :
     ∃ hmem : T (x : H) ∈ (U.complexGenerator hU).domain,
       U.complexGenerator hU ⟨T (x : H), hmem⟩ = T (U.complexGenerator hU x) := by
-  obtain ⟨hmemR, hcommR⟩ :=
-    U.generator_commute_of_commute (T.restrictScalars ℝ) hT
-      ⟨x, U.complexGenerator_mem_domain hU x⟩
-  have hmemC : T (x : H) ∈ U.complexDomain hU :=
-    (U.mem_complexDomain_iff hU _).mpr hmemR
-  have hmem : T (x : H) ∈ (U.complexGenerator hU).domain := by
-    exact (congrArg (fun D : Submodule ℂ H => T (x : H) ∈ D)
-      (U.complexGenerator_domain hU)).symm.mp hmemC
-  refine ⟨hmem, ?_⟩
-  calc
-    U.complexGenerator hU ⟨T (x : H), hmem⟩ =
-        U.generator ⟨T (x : H), by rw [U.generator_domain]; exact hmemR⟩ := by
-      exact U.complexGenerator_apply hU _
-    _ = T (U.generator ⟨(x : H), by
-        rw [U.generator_domain]; exact U.complexGenerator_mem_domain hU x⟩) := hcommR
-    _ = T (U.complexGenerator hU x) := by rw [U.complexGenerator_apply hU x]
+  change ∃ hmem : T (x : H) ∈
+      (U.toSemigroup.complexGenerator hU.isComplexLinear).domain,
+    U.toSemigroup.complexGenerator hU.isComplexLinear ⟨T (x : H), hmem⟩ =
+      T (U.toSemigroup.complexGenerator hU.isComplexLinear x)
+  exact U.toSemigroup.complexGenerator_commute hU.isComplexLinear T
+    (fun s y => by simpa only [U.toSemigroup_apply] using hT (s : ℝ) y) x
 
 /-- **The infinitesimal generator of a unitary strongly continuous group is skew-symmetric.**
 For vectors `x` and `y` in its natural complex domain,
