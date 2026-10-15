@@ -7,6 +7,7 @@ module
 
 public import TauCeti.Analysis.InnerProductSpace.QuadraticForm.TwoVector
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+import Mathlib.Analysis.InnerProductSpace.Semisimple
 
 /-!
 # Per-eigenvector Davis sin 2θ and off-diagonal tan 2θ bounds
@@ -59,16 +60,6 @@ open scoped InnerProductSpace
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
   {T H : E →ₗ[𝕜] E}
 
-/-- The orthogonal complement of an invariant subspace of a symmetric operator
-is invariant: if `T u ∈ U` for all `u ∈ U` and `T` is symmetric, then
-`T w ∈ Uᗮ` for all `w ∈ Uᗮ`. -/
-theorem map_mem_orthogonal_of_forall_map_mem (hT : T.IsSymmetric)
-    {U : Submodule 𝕜 E} (hU : ∀ u ∈ U, T u ∈ U) {w : E} (hw : w ∈ Uᗮ) : T w ∈ Uᗮ := by
-  rw [Submodule.mem_orthogonal]
-  intro u hu
-  rw [← hT u w]
-  exact Submodule.inner_right_of_mem_orthogonal (hU u hu) hw
-
 /-- **The block energy identity** (phase-free form of Davis's 2×2 compression).  If
 `y ∈ U`, `z ∈ Uᗮ` for a `T`-invariant subspace `U` of a symmetric operator,
 and `y + z` is an eigenvector of `T + H` with real eigenvalue `μ`, then
@@ -89,7 +80,8 @@ private theorem eigenvector_block_energy_identity (hT : T.IsSymmetric) (hH : H.I
   have hyz : ⟪y, z⟫_𝕜 = 0 := Submodule.inner_right_of_mem_orthogonal hyU hzU
   have hzy : ⟪z, y⟫_𝕜 = 0 := Submodule.inner_left_of_mem_orthogonal hyU hzU
   have hTy : T y ∈ U := hUinv y hyU
-  have hTz : T z ∈ Uᗮ := map_mem_orthogonal_of_forall_map_mem hT hUinv hzU
+  have hTz : T z ∈ Uᗮ :=
+    hT.orthogonalComplement_mem_invtSubmodule (p := U) hUinv hzU
   -- Pair the eigenvector equation with `y`.
   have e1 : RCLike.re ⟪y, T y⟫_𝕜 + RCLike.re ⟪y, H y⟫_𝕜 + RCLike.re ⟪y, H z⟫_𝕜
       = μ * ‖y‖ ^ 2 := by
