@@ -38,19 +38,6 @@ variable {𝕜 m n : Type*} [Field 𝕜] [Fintype n]
 
 section Uniqueness
 
-/-- Cancel multiplication on the left by a matrix with injective `mulVec`.
-The right-hand matrices may have any column index type, including the empty type. -/
-private theorem mul_left_cancel_of_mulVec_injective {ι κ : Type*}
-    [Fintype ι] {L : Matrix m ι 𝕜}
-    (hL : Function.Injective L.mulVec)
-    {X Y : Matrix ι κ 𝕜} (hXY : L * X = L * Y) : X = Y := by
-  classical
-  rcases isEmpty_or_nonempty κ with hEmpty | hNonempty
-  · ext i j
-    exact (hEmpty.false j).elim
-  · let : Inhabited κ := ⟨Classical.choice hNonempty⟩
-    exact (mul_right_injective_iff_mulVec_injective.mpr hL) hXY
-
 /-- Two factorizations of the same matrix through any finite intermediate type `ι`,
 when the rank equals `Fintype.card ι`, differ by an invertible change of basis.
 The decidable equality instance supplies the identity matrix and square-matrix units. -/

@@ -16,11 +16,31 @@ matrix-vector multiplication by `L`. The column index type of `L'` need not be f
 ## Main result
 
 * `Matrix.exists_mul_eq_of_range_le`: construct the right factor from column preimages.
+* `Matrix.mul_left_cancel_of_mulVec_injective`: cancel an injective left factor even for
+  matrices with an empty output-column index type.
 -/
 
 public section
 
 namespace Matrix
+
+section LeftCancellation
+
+variable {R m ι κ : Type*} [NonUnitalSemiring R] [Fintype ι]
+
+/-- If matrix-vector multiplication by `L` is injective, multiplication by `L`
+cancels on the left, even when the right-hand matrices have no columns. -/
+theorem mul_left_cancel_of_mulVec_injective
+    {L : Matrix m ι R} (hL : Function.Injective L.mulVec)
+    {X Y : Matrix ι κ R} (hXY : L * X = L * Y) : X = Y := by
+  classical
+  rcases isEmpty_or_nonempty κ with hEmpty | hNonempty
+  · ext i j
+    exact (hEmpty.false j).elim
+  · let : Inhabited κ := ⟨Classical.choice hNonempty⟩
+    exact (mul_right_injective_iff_mulVec_injective.mpr hL) hXY
+
+end LeftCancellation
 
 variable {R m ι κ : Type*} [CommSemiring R] [Fintype ι]
 
