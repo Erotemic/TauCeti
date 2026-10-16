@@ -216,7 +216,7 @@ theorem map_mem_unitaryConj_domain (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[�
 /-- **The intertwining law**, in the form consumers want: conjugation composed
 with `U` is `U` composed with `A`, indexed by the *original* domain rather than
 the conjugated one. -/
-@[simp] theorem unitaryConj_apply_map (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) (y : A.domain) :
+theorem unitaryConj_apply_map (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) (y : A.domain) :
     unitaryConj U A ⟨U (y : H), map_mem_unitaryConj_domain U A y⟩ = U (A y) := by
   rw [unitaryConj_apply]
   congr 1
