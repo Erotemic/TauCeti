@@ -8,58 +8,25 @@ module
 public import Mathlib.Analysis.InnerProductSpace.LinearPMap
 
 /-!
-# The double adjoint of a submodule
+# Double adjoints of submodules and densely defined operators
 
-`Submodule.adjoint` sends a submodule of `E × F` to one of `F × E`; it is the
-graph-level form of the adjoint of an unbounded operator, and Mathlib's
-`LinearPMap.adjoint_graph_eq_graph_adjoint` identifies `Γ(T†)` with
-`Γ(T).adjoint`.
-
-Mathlib does not record how the operation composes with itself.  That gap is
-what stops the von Neumann theorem — *the adjoint of a closed densely defined
-operator is again densely defined* — from being stated, because that proof needs
-`g.adjoint.adjoint = g` for a closed graph.
-
-This module supplies that composition law and the density theorem it unlocks.
+The double adjoint of a closed submodule is the original submodule. As a
+consequence, the adjoint of a closed densely defined partial linear map has
+dense domain.
 
 ## Main results
 
-* `Submodule.le_adjoint_adjoint`: `g ≤ g.adjoint.adjoint`, for **any** submodule.
-* `Submodule.adjoint_adjoint_le`: the reverse, for a **closed** `g`.
-* `Submodule.adjoint_adjoint`: `g.adjoint.adjoint = g` for closed `g` — the
-  involutivity that lets the adjoint theory close on itself.
-* `LinearPMap.dense_adjoint_domain`: **von Neumann's theorem** — the adjoint of a
-  closed densely defined operator is itself densely defined.
-
-## The reverse inclusion
-
-`adjoint_adjoint_le` needs `g` closed — and genuinely so: the double adjoint is
-always closed, so it contains the closure of `g`, and the inclusion fails for a
-non-closed `g`.  Completeness of `E` and `F` is used only to get the orthogonal
-projection.
-
-The mechanism is one separating vector.  For closed `g` and `x ∉ g`, project in
-`WithLp 2 (E × F)` to get `y = (y₁, y₂)` orthogonal to `g` with `⟪y, x⟫ ≠ 0`;
-then `(a, b) := (-y₂, y₁)` lies in `g.adjoint`, because
-`Submodule.mem_adjoint_iff` unfolds its membership to
-`∀ (c, d) ∈ g, ⟪d, -y₂⟫ - ⟪c, y₁⟫ = 0`, which is exactly `y ⟂ g` — and the
-pairing that `x ∈ g.adjoint.adjoint` would force to vanish is
-`⟪b, x.1⟫ - ⟪a, x.2⟫ = ⟪y₁, x.1⟫ + ⟪y₂, x.2⟫ = ⟪y, x⟫`.
-
-## Sources
-
-*Follows nothing in particular*: the inclusion is the standard graph-adjoint
-computation, and the proof is `Submodule.mem_adjoint_iff` on both sides.
+* `Submodule.le_adjoint_adjoint`: double adjoints contain the original submodule.
+* `Submodule.adjoint_adjoint_le`: reverse inclusion for closed submodules.
+* `Submodule.adjoint_adjoint`: equality for closed submodules.
+* `LinearPMap.dense_adjoint_domain`: a closed densely defined operator has a
+  densely defined adjoint.
 
 ## Provenance
 
-* Original repository: Davis--Kahan/DKPS formalization (Kitware, Inc.).
-* Original module: authored directly in `ForTauCeti`.
-* Extraction class: **authored in place**, for Tau Ceti and ultimately for
-  Mathlib, beside `Submodule.adjoint`.
-* Original authors / copyright: Jon Crall, Claude Opus 5; Copyright (c) 2026
-  Kitware, Inc.; Apache 2.0.
-* Spectra influence: **none** — imports only Mathlib.
+Adapted from the Kitware DKPS formalization, originally authored in `ForTauCeti`
+(copyright (c) 2026 Kitware, Inc.; authors Jon Crall and Claude Opus 5; Apache-2.0).
+
 -/
 
 public section
@@ -72,12 +39,8 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
   [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
 
-/-- **A submodule sits inside its double adjoint.**
-
-This inclusion is unconditional: no closedness, no completeness, and no contact
-with the `WithLp 2` structure `Submodule.adjoint` is defined through.  Unfolding
-`Submodule.mem_adjoint_iff` twice produces the defining relation of `g` with its
-two arguments exchanged, and conjugating exchanges them back. -/
+/-- Every submodule is contained in its double adjoint, without closedness or
+completeness assumptions. -/
 theorem le_adjoint_adjoint (g : Submodule 𝕜 (E × F)) : g ≤ g.adjoint.adjoint := by
   intro x hx
   rw [Submodule.mem_adjoint_iff]
@@ -88,11 +51,8 @@ theorem le_adjoint_adjoint (g : Submodule 𝕜 (E × F)) : g ≤ g.adjoint.adjoi
   simp only [map_sub, inner_conj_symm, map_zero] at h2
   exact sub_eq_zero.mpr (sub_eq_zero.mp h2).symm
 
-/-- **The double adjoint of a closed submodule is itself.**
-
-Closedness is necessary: `g.adjoint.adjoint` is always closed, so it contains the
-closure of `g`.  Completeness enters only through the orthogonal projection used
-to separate a point from `g`. -/
+/-- The double adjoint of a closed submodule is contained in the submodule
+when the ambient inner product spaces are complete. -/
 theorem adjoint_adjoint_le [CompleteSpace E] [CompleteSpace F] (g : Submodule 𝕜 (E × F))
     (hg : IsClosed (g : Set (E × F))) : g.adjoint.adjoint ≤ g := by
   classical
@@ -137,24 +97,15 @@ end Submodule
 
 namespace LinearPMap
 
-variable {𝕜 E : Type*} [RCLike 𝕜]
+variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
+  [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [CompleteSpace F]
 
-/-- **von Neumann's theorem: the adjoint of a closed densely defined operator is
-densely defined.**
-
-This is the fact that makes the unbounded adjoint theory close on itself.  Without
-it, every development iterating the adjoint — `T††`, self-adjointness criteria,
-the Cayley transform, unbounded spectral theory — must carry density of the
-adjoint domain as a standing hypothesis.
-
-The proof is one separating vector.  If `y ⟂ T†.domain` then `(0, y)` lies in
-`Γ(T).adjoint.adjoint`, because that membership unfolds to exactly
-`∀ a ∈ T†.domain, ⟪a, y⟫ = 0`.  Closedness of `Γ(T)` collapses the double
-adjoint, so `(0, y) ∈ Γ(T)`, forcing `y = T 0 = 0`. -/
-theorem dense_adjoint_domain {T : E →ₗ.[𝕜] E}
+/-- **von Neumann's theorem.** The adjoint of a closed densely defined partial
+linear map between complete inner product spaces has dense domain. -/
+theorem dense_adjoint_domain {T : E →ₗ.[𝕜] F}
     (hT : Dense (T.domain : Set E)) (hTc : T.IsClosed) :
-    Dense (T.adjoint.domain : Set E) := by
+    Dense (T.adjoint.domain : Set F) := by
   rw [Submodule.dense_iff_topologicalClosure_eq_top,
     Submodule.topologicalClosure_eq_top_iff, Submodule.eq_bot_iff]
   intro y hy

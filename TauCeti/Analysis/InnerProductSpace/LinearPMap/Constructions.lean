@@ -14,14 +14,12 @@ documentation below.
 -/
 module
 
-public import Mathlib.Analysis.InnerProductSpace.LinearPMap
+public import TauCeti.Analysis.InnerProductSpace.LinearPMap.SelfAdjoint
+public import TauCeti.LinearAlgebra.LinearPMap.Perturbation
 
 /-!
-# Domain perturbations and unitary conjugation of partial linear maps
+# Bounded perturbations and unitary conjugation of partial linear maps
 
-* `LinearPMap.perturb A V`: add a map defined on `dom A` to `A`, keeping
-  the domain.  This is the domain-preserving perturbation that Kato--Rellich
-  arguments start from, before any relative-boundedness hypothesis appears.
 * `LinearPMap.isSelfAdjoint_toPMap_top`: a bounded self-adjoint operator,
   viewed as a partial map on the full domain, is self-adjoint.
 * `LinearPMap.isSelfAdjoint_perturb_bounded`: adding a bounded self-adjoint
@@ -30,8 +28,8 @@ public import Mathlib.Analysis.InnerProductSpace.LinearPMap
   along a linear isometric equivalence. Self-adjointness is preserved by this
   conjugation.
 
-The domain-defined perturbation is distinct from Mathlib's `VAdd` of an
-*ambient* linear map: its added term need not extend outside the domain.
+The algebraic, domain-defined perturbation API is in
+`TauCeti.LinearAlgebra.LinearPMap.Perturbation`.
 
 ## Provenance
 
@@ -43,9 +41,8 @@ The domain-defined perturbation is distinct from Mathlib's `VAdd` of an
 * **Original authors / copyright / licence:** Copyright (c) 2026 Spectra
   Formalization Project, Apache 2.0.  Apache 2.0 §4(b): **modified** — see below.
   §4(c): notices retained here and in the file header.
-* **Adaptation:** `perturb` accepts a domain-defined linear map and works over
-  general commutative rings and modules; the bounded self-adjointness result
-  is stated directly for Mathlib's `LinearPMap` and its `VAdd` operation.
+* **Adaptation:** the bounded self-adjointness result is stated using Mathlib's
+  `LinearPMap` and its `VAdd` operation.
 -/
 
 public section
@@ -54,28 +51,6 @@ namespace LinearPMap
 
 open scoped InnerProductSpace
 
-section Algebraic
-
-variable {R E F : Type*} [CommRing R]
-variable [AddCommGroup E] [AddCommGroup F] [Module R E] [Module R F]
-
-/-- Add a map defined on `dom A` to `A`, keeping the domain unchanged. -/
--- `@[expose]` is needed here: the `_apply` lemma below cannot be *stated* without
--- `.domain` reducing, since it indexes its argument by this map's domain.
-@[expose]
-def perturb (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F) : E →ₗ.[R] F where
-  domain := A.domain
-  toFun := A.toFun + V
-
-/-- Perturbing leaves the domain alone — that is the point of `perturb`, and
-what lets a perturbed operator be compared with the original on the nose. -/
-@[simp] theorem perturb_domain (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F) :
-    (perturb A V).domain = A.domain := (rfl)
-/-- The perturbed map acts by `A + V` pointwise on the shared domain. -/
-@[simp] theorem perturb_apply (A : E →ₗ.[R] F) (V : A.domain →ₗ[R] F)
-    (ψ : A.domain) : perturb A V ψ = A ψ + V ψ := (rfl)
-
-end Algebraic
 
 section HilbertSpace
 
@@ -96,15 +71,8 @@ theorem isSelfAdjoint_toPMap_top {T : H →L[𝕜] H} (hT : IsSelfAdjoint T) :
   rw [_root_.LinearPMap.isSelfAdjoint_def,
     ContinuousLinearMap.toPMap_adjoint_eq_adjoint_toPMap_of_dense T hdense, hTadj]
 
-/-- **Bounded Kato--Rellich.**  A bounded self-adjoint perturbation of a
-self-adjoint partial map is self-adjoint, on the same domain.
-
-Spectra obtains this as the `a = 0` corollary of the full Kato--Rellich theorem,
-which needs relative bounds and von Neumann's criterion.  The bounded case does
-not: because `T` is everywhere defined and continuous, `x ↦ ⟪y, T x⟫` is
-automatically continuous, so `A + T` and `A` have *the same* adjoint domain, and
-symmetry finishes it.  Stated directly with Mathlib's `VAdd`
-(`T.toLinearMap +ᵥ A`), which keeps the domain `A.domain`. -/
+/-- **Bounded Kato--Rellich.** Adding a bounded self-adjoint endomorphism to a
+self-adjoint partial map preserves self-adjointness and its domain. -/
 theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoint A)
     {T : H →L[𝕜] H} (hT : IsSelfAdjoint T) :
     IsSelfAdjoint (T.toLinearMap +ᵥ A) := by
@@ -116,9 +84,7 @@ theorem isSelfAdjoint_perturb_bounded {A : H →ₗ.[𝕜] H} (hA : IsSelfAdjoin
     change (T.toLinearMap +ᵥ A) x = T (x : H) + A x
     exact LinearPMap.vadd_apply T.toLinearMap A x
   have hdense : Dense (A.domain : Set H) := hA.dense_domain
-  have hsymA : A.IsFormalAdjoint A := by
-    have h := _root_.LinearPMap.adjoint_isFormalAdjoint (T := A) hdense
-    rwa [_root_.LinearPMap.isSelfAdjoint_def.mp hA] at h
+  have hsymA : A.IsFormalAdjoint A := hA.isFormalAdjoint
   have hTadj : ContinuousLinearMap.adjoint T = T :=
     (ContinuousLinearMap.star_eq_adjoint T).symm.trans hT
   have hTsym : ∀ u v : H, ⟪T u, v⟫_𝕜 = ⟪u, T v⟫_𝕜 := by
@@ -165,46 +131,28 @@ section UnitaryConj
 
 variable {H' : Type*} [NormedAddCommGroup H'] [InnerProductSpace 𝕜 H']
 
-/-- **Conjugation of a partial map by a unitary**, `A ↦ U A U⁻¹`, with domain
-`U '' dom A` and action `y ↦ U (A (U⁻¹ y))`. -/
--- `@[expose]` is needed here: the `_apply` lemma below cannot be *stated* without
--- `.domain` reducing, since it indexes its argument by this map's domain.
-@[expose]
+/-- The unitary conjugate `U A U⁻¹`, with domain obtained by transporting
+`A.domain` along the linear isometric equivalence `U`. -/
 noncomputable def unitaryConj (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H) : H' →ₗ.[𝕜] H' where
-  domain := A.domain.comap (U.symm.toLinearEquiv : H' →ₗ[𝕜] H)
+  domain := A.domain.comap U.symm.toLinearMap
   toFun :=
-    { toFun := fun x => U (A ⟨U.symm (x : H'), x.2⟩)
-      map_add' := fun x y => by
-        have hsub : (⟨U.symm ((x : H') + (y : H')), (x + y).2⟩ : A.domain)
-            = ⟨U.symm (x : H'), x.2⟩ + ⟨U.symm (y : H'), y.2⟩ :=
-          Subtype.ext (by simp)
-        simp only [Submodule.coe_add]
-        rw [hsub, A.map_add, U.map_add]
-      map_smul' := fun c x => by
-        have hsub : (⟨U.symm (c • (x : H')), (c • x).2⟩ : A.domain)
-            = c • ⟨U.symm (x : H'), x.2⟩ :=
-          Subtype.ext (by
-            -- states the goal with the definition unfolded, in the shape the next step needs;
-            -- there is no `_apply` lemma to rewrite with here.
-            change U.symm (c • (x : H')) = c • U.symm (x : H')
-            exact U.symm.map_smul c (x : H'))
-        simp only [Submodule.coe_smul]
-        rw [hsub, A.map_smul, U.map_smul]
-        rfl }
+    let D : Submodule 𝕜 H' := A.domain.comap U.symm.toLinearMap
+    let p : D →ₗ[𝕜] A.domain :=
+      (U.symm.toLinearMap.comp D.subtype).codRestrict A.domain (fun x => x.property)
+    U.toLinearMap.comp (A.toFun.comp p)
 
-/-- The domain of the conjugated operator is the image of the original domain:
-`x` lies in it exactly when `U.symm x` lies in `A.domain`.  Stated as an `Iff`
-on the preimage because that is the form the definition produces and the one
-`rw` can use in either direction. -/
+/-- Membership in the conjugated domain is membership after transport by `U.symm`. -/
 @[simp] theorem mem_unitaryConj_domain_iff {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜] H} {x : H'} :
     x ∈ (unitaryConj U A).domain ↔ U.symm x ∈ A.domain := Iff.rfl
 
-/-- `U A U⁻¹` acting on a vector of the conjugated domain: pull back by `U.symm`,
-apply `A`, push forward by `U`. -/
+/-- Evaluate the unitary conjugate on its transported domain. -/
 @[simp]
 theorem unitaryConj_apply (U : H ≃ₗᵢ[𝕜] H') (A : H →ₗ.[𝕜] H)
     (x : (unitaryConj U A).domain) :
-    unitaryConj U A x = U (A ⟨U.symm (x : H'), x.2⟩) := (rfl)
+    unitaryConj U A x =
+      U (A ⟨U.symm (x : H'),
+        (mem_unitaryConj_domain_iff (U := U) (A := A)).mp x.property⟩) := by
+  rfl
 /-- `U` carries `A.domain` into the conjugated domain.  This is the membership
 witness needed to state `unitaryConj_apply_map`, which is the form of the
 conjugation law that is usable from the *original* domain. -/
@@ -226,49 +174,45 @@ section UnitaryConjSelfAdjoint
 
 variable [CompleteSpace H] [CompleteSpace H']
 
-/-- **Self-adjointness transfers through unitary conjugation.**
-
-Spectra proves this through von Neumann's deficiency criterion — symmetry,
-density and both `(· ± i)` surjectivities transported across `U`.  It is cheaper
-than that: `U` is an isometric equivalence, so `⟪U a, U b⟫ = ⟪a, b⟫` turns the
-adjoint-domain condition for `U A U⁻¹` at `y` into the one for `A` at `U⁻¹ y`,
-and symmetry closes it. -/
+/-- Unitary conjugation preserves self-adjointness, transporting the domain. -/
 theorem isSelfAdjoint_unitaryConj {U : H ≃ₗᵢ[𝕜] H'} {A : H →ₗ.[𝕜] H}
     (hA : IsSelfAdjoint A) : IsSelfAdjoint (unitaryConj U A) := by
   set B := unitaryConj U A with hB
-  have hB_apply (x : B.domain) :
-      B x = U (A ⟨U.symm (x : H'), x.2⟩) := by
+  have hB_apply (x : B.domain) (hx : U.symm (x : H') ∈ A.domain) :
+      B x = U (A ⟨U.symm (x : H'), hx⟩) := by
     simpa only [hB] using (unitaryConj_apply U A x)
   have hdenseA : Dense (A.domain : Set H) := hA.dense_domain
-  have hsymA : A.IsFormalAdjoint A := by
-    have h := _root_.LinearPMap.adjoint_isFormalAdjoint (T := A) hdenseA
-    rwa [_root_.LinearPMap.isSelfAdjoint_def.mp hA] at h
+  have hsymA : A.IsFormalAdjoint A := hA.isFormalAdjoint
   -- `U` is a surjective isometry, so it carries a dense set to a dense set
   have hdenseB : Dense (B.domain : Set H') := by
     have himg : (U : H ≃ₗᵢ[𝕜] H') '' (A.domain : Set H) ⊆ (B.domain : Set H') := by
       rintro _ ⟨w, hw, rfl⟩
-      exact map_mem_unitaryConj_domain U A ⟨w, hw⟩
+      simpa only [hB, SetLike.mem_coe] using (map_mem_unitaryConj_domain U A ⟨w, hw⟩)
     exact Dense.mono himg ((U.toHomeomorph.isDenseEmbedding).dense_image.mpr hdenseA)
   -- symmetry of `B`
   have hsymB : B.IsFormalAdjoint B := by
     intro x y
-    have hx : U.symm (x : H') ∈ A.domain := x.2
-    have hy : U.symm (y : H') ∈ A.domain := y.2
+    have hx : U.symm (x : H') ∈ A.domain := by
+      apply (mem_unitaryConj_domain_iff (U := U) (A := A)).mp
+      simpa only [hB] using x.property
+    have hy : U.symm (y : H') ∈ A.domain := by
+      apply (mem_unitaryConj_domain_iff (U := U) (A := A)).mp
+      simpa only [hB] using y.property
     calc ⟪B x, (y : H')⟫_𝕜
         = ⟪U (A ⟨U.symm (x : H'), hx⟩), U (U.symm (y : H'))⟫_𝕜 := by
-          rw [U.apply_symm_apply, hB_apply x]
+          rw [U.apply_symm_apply, hB_apply x hx]
       _ = ⟪A ⟨U.symm (x : H'), hx⟩, U.symm (y : H')⟫_𝕜 := U.inner_map_map _ _
       _ = ⟪U.symm (x : H'), A ⟨U.symm (y : H'), hy⟩⟫_𝕜 :=
           hsymA ⟨U.symm (x : H'), hx⟩ ⟨U.symm (y : H'), hy⟩
       _ = ⟪U (U.symm (x : H')), U (A ⟨U.symm (y : H'), hy⟩)⟫_𝕜 :=
           (U.inner_map_map _ _).symm
       _ = ⟪(x : H'), B y⟫_𝕜 := by
-          rw [U.apply_symm_apply, hB_apply y]
+          rw [U.apply_symm_apply, hB_apply y hy]
   -- the adjoint domain of `B` sits inside `B`'s domain
   have hsub : ∀ y : H', y ∈ (_root_.LinearPMap.adjoint B).domain → y ∈ B.domain := by
     intro y hy
     have hform := _root_.LinearPMap.adjoint_isFormalAdjoint (T := B) hdenseB ⟨y, hy⟩
-    rw [mem_unitaryConj_domain_iff]
+    rw [hB, mem_unitaryConj_domain_iff]
     have hwit : ∀ u : A.domain,
         ⟪U.symm ((_root_.LinearPMap.adjoint B) ⟨y, hy⟩), (u : H)⟫_𝕜 = ⟪U.symm y, A u⟫_𝕜 := by
       intro u
