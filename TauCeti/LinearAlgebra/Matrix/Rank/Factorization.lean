@@ -40,29 +40,6 @@ variable {𝕜 m n : Type*} [Field 𝕜] [Fintype n]
 
 section Uniqueness
 
-/-- If `M = L * R` has rank equal to the number of columns of `L`, then `L`
-has full column rank. The intermediate index may be any finite type. -/
-private theorem rank_left_factor_eq {ι : Type*} [Fintype ι]
-    {M : Matrix m n 𝕜} {L : Matrix m ι 𝕜}
-    {R : Matrix ι n 𝕜} (hM : M.rank = Fintype.card ι)
-    (h : M = L * R) : L.rank = Fintype.card ι := by
-  refine le_antisymm (by simpa using L.rank_le_card_width) ?_
-  calc Fintype.card ι = M.rank := hM.symm
-    _ = (L * R).rank := by rw [h]
-    _ ≤ L.rank := Matrix.rank_mul_le_left L R
-
-/-- An exact-rank left factor spans the column space of the factored matrix. -/
-private theorem range_left_factor_eq {ι : Type*} [Fintype ι]
-    {M : Matrix m n 𝕜} {L : Matrix m ι 𝕜}
-    {R : Matrix ι n 𝕜} (hM : M.rank = Fintype.card ι) (h : M = L * R) :
-    LinearMap.range L.mulVecLin = LinearMap.range M.mulVecLin := by
-  refine (Submodule.eq_of_le_of_finrank_eq ?_ ?_).symm
-  · rw [h, Matrix.mulVecLin_mul]
-    exact LinearMap.range_comp_le_range _ _
-  · have hL := rank_left_factor_eq hM h
-    rw [Matrix.rank] at hM hL
-    exact hM.trans hL.symm
-
 /-- Two factorizations of the same matrix through any finite intermediate type `ι`,
 when the rank equals `Fintype.card ι`, differ by an invertible change of basis.
 The decidable equality instance supplies the identity matrix and square-matrix units. -/
