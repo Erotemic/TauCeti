@@ -1,14 +1,12 @@
 /-
 Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
-Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors, Jon Crall, Claude Fable 5, Claude Opus 4.8,
-  Claude Opus 5
+Authors: The Tau Ceti contributors
 -/
 module
 
 public import TauCeti.Analysis.InnerProductSpace.Gram.Rigidity
-public import TauCeti.Analysis.InnerProductSpace.PositiveSquareRoot
+public import TauCeti.Analysis.InnerProductSpace.Positive.SquareRoot
 import TauCeti.Analysis.InnerProductSpace.Adjoint.GramBound
 import TauCeti.Analysis.InnerProductSpace.Spectrum.GramBound
 import TauCeti.Analysis.SpecialFunctions.Sqrt
@@ -54,8 +52,14 @@ factored out into the reusable Gram-eigenvalue lemma.
   2013, Theorem 7.3.1.
 * N. J. Higham, *Functions of Matrices: Theory and Computation*, SIAM, 2008,
   §8.1 (approximation properties of the polar factor).
-* The operator-norm Gram conversion and eigenvalue lemma were adapted from the Apache-2.0
-  Kitware DKPS formalization.
+
+## Provenance
+
+The near-isometry factorization and polar-factor estimate are from Tau Ceti PR #16127.
+The operator-norm Gram conversion and Gram-eigenvalue estimate are adapted from the
+Apache-2.0 Kitware DKPS formalization (Copyright (c) 2026 Kitware, Inc.; authors
+Jon Crall, Claude Fable 5, Claude Opus 4.8, and Claude Opus 5). The original
+Tau Ceti module copyright and authorship notice are retained above.
 -/
 
 public section
@@ -132,7 +136,7 @@ open scoped RealInnerProductSpace
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E]
 
-/-- **Gram-defect near-isometry bound (PD-B43).** If a bounded real endomorphism has
+/-- **Gram-defect near-isometry bound.** If a bounded real endomorphism has
 `‖M†M - I‖ ≤ δ`, then it is pointwise `δ`-close to an isometric equivalence. The polar
 factor and the estimate are supplied by `LinearMap`'s existing `RCLike` theorem. No separate
 Gram square root or assumption `δ < 1` is required. -/

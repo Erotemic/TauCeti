@@ -12,8 +12,8 @@ public import Mathlib.Analysis.InnerProductSpace.Spectrum
 
 A relative bound on the squared-norm defect of a finite-dimensional linear map controls every
 real eigenvalue of its Gram operator. The eigenvector need not be normalized, and the source and
-target may differ. This supplies the spectral step of PD-B41 independently of a particular
-square-root construction.
+target may differ. This supplies the spectral step of the near-isometry square-root estimate
+independently of a particular square-root construction.
 
 Generalized from the Apache-2.0 DKPS formalization (Kitware, Inc.).
 -/
@@ -30,7 +30,7 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
 
 /-- An eigenvalue of the source Gram operator `M† M` on a nonzero vector is within `δ` of
 one when `M` distorts squared norms by at most `δ` relative to their original size.
-This is the eigenvalue step in the near-isometry square-root estimate PD-B41. -/
+This is the eigenvalue step in the near-isometry square-root estimate. -/
 theorem abs_eigenvalue_sub_one_le (M : E →ₗ[𝕜] F) {δ : ℝ}
     (hM : ∀ x, |‖M x‖ ^ 2 - ‖x‖ ^ 2| ≤ δ * ‖x‖ ^ 2)
     {μ : ℝ} {v : E} (hv : (M.adjoint ∘ₗ M) v = (μ : 𝕜) • v) (hv0 : v ≠ 0) :
