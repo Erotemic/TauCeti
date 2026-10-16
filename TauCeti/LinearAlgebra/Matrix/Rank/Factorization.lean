@@ -8,8 +8,6 @@ module
 public import TauCeti.LinearAlgebra.Matrix.Rank
 import TauCeti.LinearAlgebra.Matrix.Range
 
-import Mathlib.LinearAlgebra.Dimension.Free
-
 /-!
 # Uniqueness of exact-rank matrix factorizations
 
@@ -40,6 +38,19 @@ variable {𝕜 m n : Type*} [Field 𝕜] [Fintype n]
 
 section Uniqueness
 
+/-- Cancel multiplication on the left by a matrix with injective `mulVec`.
+The right-hand matrices may have any column index type, including the empty type. -/
+private theorem mul_left_cancel_of_mulVec_injective {ι κ : Type*}
+    [Fintype ι] {L : Matrix m ι 𝕜}
+    (hL : Function.Injective L.mulVec)
+    {X Y : Matrix ι κ 𝕜} (hXY : L * X = L * Y) : X = Y := by
+  classical
+  rcases isEmpty_or_nonempty κ with hEmpty | hNonempty
+  · ext i j
+    exact (hEmpty.false j).elim
+  · let : Inhabited κ := ⟨Classical.choice hNonempty⟩
+    exact (mul_right_injective_iff_mulVec_injective.mpr hL) hXY
+
 /-- Two factorizations of the same matrix through any finite intermediate type `ι`,
 when the rank equals `Fintype.card ι`, differ by an invertible change of basis.
 The decidable equality instance supplies the identity matrix and square-matrix units. -/
@@ -65,43 +76,21 @@ theorem exists_unit_eq_mul_of_rank_factorization {ι : Type*} [Fintype ι] [Deci
   obtain ⟨G', hG'⟩ := exists_mul_eq_of_range_le (L := L') (L' := L) hcols'
   have hLinj : Function.Injective L.mulVec :=
     (rank_eq_card_iff_mulVec_injective L).mp (rank_left_factor_eq hM h)
-  have hL'inj : Function.Injective L'.mulVec :=
-    (rank_eq_card_iff_mulVec_injective L').mp (rank_left_factor_eq hM h')
   have hGG' : G * G' = 1 := by
-    rcases isEmpty_or_nonempty ι with hEmpty | hNonempty
-    · apply Matrix.ext
-      intro i j
-      exact (hEmpty.false i).elim
-    · let : Inhabited ι := ⟨Classical.choice hNonempty⟩
-      apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
-      exact calc
-        L * (G * G') = (L * G) * G' := (Matrix.mul_assoc L G G').symm
-        _ = L := by rw [hG, hG']
-        _ = L * 1 := (Matrix.mul_one L).symm
-  have hG'G : G' * G = 1 := by
-    rcases isEmpty_or_nonempty ι with hEmpty | hNonempty
-    · apply Matrix.ext
-      intro i j
-      exact (hEmpty.false i).elim
-    · let : Inhabited ι := ⟨Classical.choice hNonempty⟩
-      apply (mul_right_injective_iff_mulVec_injective.mpr hL'inj)
-      exact calc
-        L' * (G' * G) = (L' * G') * G := (Matrix.mul_assoc L' G' G).symm
-        _ = L' := by rw [hG', hG]
-        _ = L' * 1 := (Matrix.mul_one L').symm
+    apply mul_left_cancel_of_mulVec_injective hLinj
+    calc
+      L * (G * G') = (L * G) * G' := (Matrix.mul_assoc L G G').symm
+      _ = L := by rw [hG, hG']
+      _ = L * 1 := (Matrix.mul_one L).symm
+  have hG'G : G' * G = 1 := mul_eq_one_comm.mp hGG'
   refine ⟨⟨G, G', hGG', hG'G⟩, hG.symm, ?_⟩
   have hR : R = G * R' := by
-    rcases isEmpty_or_nonempty n with hEmpty | hNonempty
-    · apply Matrix.ext
-      intro i j
-      exact (hEmpty.false j).elim
-    · let : Inhabited n := ⟨Classical.choice hNonempty⟩
-      apply (mul_right_injective_iff_mulVec_injective.mpr hLinj)
-      exact calc
-        L * R = M := h.symm
-        _ = L' * R' := h'
-        _ = (L * G) * R' := by rw [hG]
-        _ = L * (G * R') := Matrix.mul_assoc L G R'
+    apply mul_left_cancel_of_mulVec_injective hLinj
+    calc
+      L * R = M := h.symm
+      _ = L' * R' := h'
+      _ = (L * G) * R' := by rw [hG]
+      _ = L * (G * R') := Matrix.mul_assoc L G R'
   rw [hR, ← Matrix.mul_assoc]
   simp [hG'G]
 
