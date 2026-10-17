@@ -34,8 +34,8 @@ A projection-valued measure on the measurable sets of an arbitrary measurable
 space `X`, acting on a complex Hilbert space `H`.
 
 The finite diagonal scalar measures are provided by the DKPS donor's `diag`
-field and exposed through `diagMeasure`. Their measure-theoretic countable
-additivity supplies strong countable additivity of the projections.
+field. Their measure-theoretic countable additivity supplies strong
+countable additivity of the projections.
 Idempotence, self-adjointness, positivity, and finite additivity are proved
 from the structure's laws.
 
@@ -51,8 +51,8 @@ from the structure's laws.
 * `hasSum_proj_of_pairwise_disjoint`: unconditional strong countable additivity
   (`HasSum`) on a pairwise-disjoint measurable family; `tendsto_sum_proj_of_pairwise_disjoint`
   gives convergence of the natural-order partial sums.
-* `diagMeasure`, `diagMeasure_real_univ`, `diagMeasure_univ`: the finite
-  diagonal scalar measure and its real/extended-real total masses.
+* `diag`, `diag_real_univ`, `diag_univ`: the finite diagonal scalar
+  measures carried by the structure, and their real/extended-real total masses.
 * `ext_of_diag`, `ext`, `ext_iff_diag`, `ext_iff`: extensionality from either
   data field.
 
@@ -111,27 +111,11 @@ namespace ProjValMeasure
 
 /-! ## The classical axioms, recovered as theorems -/
 
-/-- The finite diagonal scalar measure associated to `ξ`. The field `diag`
-is retained from the DKPS donor; its values are uniquely determined by the
-projection field through `inner_proj` and polarization. -/
-abbrev diagMeasure (P : ProjValMeasure X H) (ξ : H) : Measure X := P.diag ξ
-
-@[simp]
-lemma diagMeasure_apply (P : ProjValMeasure X H) (ξ : H) (B : Set X) :
-    P.diagMeasure ξ B = (P.diag ξ) B := rfl
-
-/-- The diagonal-measure accessor is finite. This unpacks the donor's
-`diag_finite` field; its total mass is computed by `diagMeasure_univ`. -/
+/-- Each scalar diagonal measure is finite, as witnessed by the `diag_finite`
+field. Its total mass is computed by `diag_univ`. -/
 instance instIsFiniteMeasureDiag (P : ProjValMeasure X H) (ξ : H) :
-    IsFiniteMeasure (P.diagMeasure ξ) :=
+    IsFiniteMeasure (P.diag ξ) :=
   P.diag_finite ξ
-
-/-- The projection--diagonal identity stated with the public `diagMeasure` accessor.
-For measurable sets its value is real, embedded in `ℂ`. -/
-lemma inner_proj_diagMeasure (P : ProjValMeasure X H) (B : Set X)
-    (hB : MeasurableSet B) (ξ : H) :
-    ⟪ξ, P.proj B hB ξ⟫_ℂ = (((P.diagMeasure ξ) B).toReal : ℂ) := by
-  simpa only [diagMeasure] using P.inner_proj B hB ξ
 
 /-- The diagonal identity with the projection in the first inner-product slot. -/
 lemma inner_proj_apply_left (P : ProjValMeasure X H) (B : Set X)
@@ -283,24 +267,23 @@ lemma diag_univ_toReal (P : ProjValMeasure X H) (ξ : H) :
   simpa [P.proj_univ] using
     (P.norm_sq_proj_apply Set.univ MeasurableSet.univ ξ).symm
 
-/-- The real total mass of the canonical diagonal-measure accessor. -/
+/-- The total mass of the diagonal measure as a real number. -/
 @[simp]
-theorem diagMeasure_real_univ (P : ProjValMeasure X H) (ξ : H) :
-    (P.diagMeasure ξ).real Set.univ = ‖ξ‖ ^ 2 := by
-  simpa only [diagMeasure, measureReal_def] using P.diag_univ_toReal ξ
+theorem diag_real_univ (P : ProjValMeasure X H) (ξ : H) :
+    (P.diag ξ).real Set.univ = ‖ξ‖ ^ 2 := by
+  simpa only [measureReal_def] using P.diag_univ_toReal ξ
 
-/-- The total diagonal mass in `ℝ≥0∞`, without discarding infinite-value information. -/
+/-- The total mass of the diagonal measure in `ℝ≥0∞`. -/
 @[simp]
-theorem diagMeasure_univ (P : ProjValMeasure X H) (ξ : H) :
-    P.diagMeasure ξ Set.univ = ‖ξ‖ₑ ^ 2 := by
+theorem diag_univ (P : ProjValMeasure X H) (ξ : H) :
+    P.diag ξ Set.univ = ‖ξ‖ₑ ^ 2 := by
   calc
-    P.diagMeasure ξ Set.univ =
-        ENNReal.ofReal ((P.diagMeasure ξ Set.univ).toReal) :=
+    P.diag ξ Set.univ =
+        ENNReal.ofReal ((P.diag ξ Set.univ).toReal) :=
       (ENNReal.ofReal_toReal
-        (measure_ne_top (μ := P.diagMeasure ξ) (s := Set.univ))).symm
-    _ = ENNReal.ofReal (‖ξ‖ ^ 2) := by
-      simpa only [diagMeasure] using
-        congrArg ENNReal.ofReal (P.diag_univ_toReal ξ)
+        (measure_ne_top (μ := P.diag ξ) (s := Set.univ))).symm
+    _ = ENNReal.ofReal (‖ξ‖ ^ 2) :=
+      congrArg ENNReal.ofReal (P.diag_univ_toReal ξ)
     _ = ‖ξ‖ₑ ^ 2 := by
       rw [ENNReal.ofReal_pow (norm_nonneg ξ), ofReal_norm]
 
