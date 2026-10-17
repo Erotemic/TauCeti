@@ -33,9 +33,9 @@ public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 A projection-valued measure on the measurable sets of an arbitrary measurable
 space `X`, acting on a complex Hilbert space `H`.
 
-The finite diagonal scalar measures `diag ξ` are fields of the structure,
-related to the operator field by `inner_proj`. Countable additivity of these
-scalar measures supplies strong countable additivity of the projections.
+The finite diagonal scalar measures are provided by the DKPS donor's `diag`
+field and exposed through `diagMeasure`. Their measure-theoretic countable
+additivity supplies strong countable additivity of the projections.
 Idempotence, self-adjointness, positivity, and finite additivity are proved
 from the structure's laws.
 
@@ -51,6 +51,8 @@ from the structure's laws.
 * `hasSum_proj_of_pairwise_disjoint`: unconditional strong countable additivity
   (`HasSum`) on a pairwise-disjoint measurable family; `tendsto_sum_proj_of_pairwise_disjoint`
   gives convergence of the natural-order partial sums.
+* `diagMeasure`, `diagMeasure_real_univ`, `diagMeasure_univ`: the finite
+  diagonal scalar measure and its real/extended-real total masses.
 * `ext_of_diag`, `ext`, `ext_iff_diag`, `ext_iff`: extensionality from either
   data field.
 
@@ -81,7 +83,9 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteS
 complex Hilbert space `H`.
 
 The diagonal scalar measures `diag ξ` are supplied as finite measures,
-related to the projections by `inner_proj`. Idempotence, self-adjointness,
+related to the projections by `inner_proj`. This follows the donor's carrier
+representation, in which the diagonal measures are uniquely determined by
+`proj`. Idempotence, self-adjointness,
 positivity, finite additivity, contraction, and strong countable additivity
 follow from these laws. -/
 structure ProjValMeasure (X : Type*) [MeasurableSpace X] (H : Type*)
@@ -107,20 +111,27 @@ namespace ProjValMeasure
 
 /-! ## The classical axioms, recovered as theorems -/
 
-/-- Every diagonal measure is finite; this instance unpacks the `diag_finite` field.
-Its total mass is identified separately by `diag_univ_toReal`. -/
-instance instIsFiniteMeasureDiag (P : ProjValMeasure X H) (ξ : H) :
-    IsFiniteMeasure (P.diag ξ) :=
-  P.diag_finite ξ
-
-/-- The finite diagonal scalar measure associated to `ξ`. Its values are uniquely
-determined by the projection field through `inner_proj` and polarization. -/
-def diagMeasure (P : ProjValMeasure X H) (ξ : H) : Measure X := P.diag ξ
+/-- The finite diagonal scalar measure associated to `ξ`. The field `diag`
+is retained from the DKPS donor; its values are uniquely determined by the
+projection field through `inner_proj` and polarization. -/
+abbrev diagMeasure (P : ProjValMeasure X H) (ξ : H) : Measure X := P.diag ξ
 
 @[simp]
 lemma diagMeasure_apply (P : ProjValMeasure X H) (ξ : H) (B : Set X) :
-    P.diagMeasure ξ B = (P.diag ξ) B := by
-  simp only [diagMeasure]
+    P.diagMeasure ξ B = (P.diag ξ) B := rfl
+
+/-- The diagonal-measure accessor is finite. This unpacks the donor's
+`diag_finite` field; its total mass is computed by `diagMeasure_univ`. -/
+instance instIsFiniteMeasureDiag (P : ProjValMeasure X H) (ξ : H) :
+    IsFiniteMeasure (P.diagMeasure ξ) :=
+  P.diag_finite ξ
+
+/-- The projection--diagonal identity stated with the public `diagMeasure` accessor.
+For measurable sets its value is real, embedded in `ℂ`. -/
+lemma inner_proj_diagMeasure (P : ProjValMeasure X H) (B : Set X)
+    (hB : MeasurableSet B) (ξ : H) :
+    ⟪ξ, P.proj B hB ξ⟫_ℂ = (((P.diagMeasure ξ) B).toReal : ℂ) := by
+  simpa only [diagMeasure] using P.inner_proj B hB ξ
 
 /-- The diagonal identity with the projection in the first inner-product slot. -/
 lemma inner_proj_apply_left (P : ProjValMeasure X H) (B : Set X)
@@ -134,6 +145,8 @@ using Mathlib's polarization theorem `ext_inner_map`. -/
 private lemma eq_of_diagonal (S T : H →L[ℂ] H)
     (h : ∀ ξ : H, ⟪ξ, S ξ⟫_ℂ = ⟪ξ, T ξ⟫_ℂ) : S = T := by
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  -- `ext_inner_map` compares the underlying linear maps; their application
+  -- agrees definitionally with application of the continuous linear maps.
   change ⟪S ξ, ξ⟫_ℂ = ⟪T ξ, ξ⟫_ℂ
   rw [← inner_conj_symm (S ξ) ξ, ← inner_conj_symm (T ξ) ξ, h ξ]
 
@@ -273,26 +286,35 @@ lemma norm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
   rw [norm_sq_eq_re_inner (𝕜 := ℂ), h1, P.inner_proj, RCLike.re_eq_complex_re,
     Complex.ofReal_re]
 
-/-- Total mass: `diag ξ X = ‖ξ‖ ^ 2`. -/
+/-- Total mass of the diagonal scalar measure, as a real number. -/
 @[simp]
 lemma diag_univ_toReal (P : ProjValMeasure X H) (ξ : H) :
     ((P.diag ξ) Set.univ).toReal = ‖ξ‖ ^ 2 := by
-  have h := P.inner_proj Set.univ MeasurableSet.univ ξ
-  rw [P.proj_univ, ContinuousLinearMap.id_apply, inner_self_eq_norm_sq_to_K] at h
-  -- `h : (‖ξ‖ : ℂ) ^ 2 = ((diag ξ univ).toReal : ℂ)`; the ENNReal→ℂ coercion is
-  -- the real algebra map after `toReal`, so taking real parts both sides
-  -- discharges it:
-  have h1 : (‖ξ‖ : ℂ) ^ 2 = ((P.diag ξ Set.univ).toReal : ℝ) := by
-    simpa using h
-  have h2 : ‖ξ‖ ^ 2 = (P.diag ξ Set.univ).toReal := by
-    have h3 : ((P.diag ξ Set.univ).toReal : ℝ) = ‖ξ‖ ^ 2 := by
-      have h4 : RCLike.re ((‖ξ‖ : ℂ) ^ 2) = RCLike.re (((P.diag ξ Set.univ).toReal) : ℂ) :=
-        congrArg RCLike.re h1
-      rw [← RCLike.ofReal_re (K := ℂ) ((P.diag ξ Set.univ).toReal),
-        ← RCLike.re_ofReal_pow (K := ℂ) (a := ‖ξ‖) (n := 2)]
-      exact h4.symm
-    exact h3.symm
-  exact h2.symm
+  -- The projection of the whole space is the identity, so its norm identity
+  -- already computes the mass, without any complex-real coercion argument.
+  simpa [P.proj_univ] using
+    (P.norm_sq_proj_apply Set.univ MeasurableSet.univ ξ).symm
+
+/-- The real total mass of the canonical diagonal-measure accessor. -/
+@[simp]
+theorem diagMeasure_real_univ (P : ProjValMeasure X H) (ξ : H) :
+    (P.diagMeasure ξ).real Set.univ = ‖ξ‖ ^ 2 := by
+  simpa only [diagMeasure, measureReal_def] using P.diag_univ_toReal ξ
+
+/-- The total diagonal mass in `ℝ≥0∞`, without discarding infinite-value information. -/
+@[simp]
+theorem diagMeasure_univ (P : ProjValMeasure X H) (ξ : H) :
+    P.diagMeasure ξ Set.univ = ‖ξ‖ₑ ^ 2 := by
+  calc
+    P.diagMeasure ξ Set.univ =
+        ENNReal.ofReal ((P.diagMeasure ξ Set.univ).toReal) :=
+      (ENNReal.ofReal_toReal
+        (measure_ne_top (μ := P.diagMeasure ξ) (s := Set.univ))).symm
+    _ = ENNReal.ofReal (‖ξ‖ ^ 2) := by
+      simpa only [diagMeasure] using
+        congrArg ENNReal.ofReal (P.diag_univ_toReal ξ)
+    _ = ‖ξ‖ₑ ^ 2 := by
+      rw [ENNReal.ofReal_pow (norm_nonneg ξ), ofReal_norm]
 
 /-- For every measurable set `B`, `P(B)` is a contraction on vectors. -/
 lemma norm_proj_apply_le (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B)
@@ -318,6 +340,24 @@ private lemma inner_apply_of_isSelfAdjoint (T : H →L[ℂ] H)
     (hT : IsSelfAdjoint T) (x y : H) :
     ⟪T x, y⟫_ℂ = ⟪x, T y⟫_ℂ := by
   rw [← ContinuousLinearMap.adjoint_inner_right T x y, hT.adjoint_eq]
+
+/-- The Pythagorean subtraction identity for a self-adjoint idempotent `S`
+absorbed by `T`: `S * T = S`. No self-adjointness assumption on `T` is needed.
+This packages the algebra behind the distance estimate for PVM partial sums. -/
+private lemma norm_sub_sq_of_selfAdjoint_idempotent_absorption
+    (S T : H →L[ℂ] H) (hS : IsSelfAdjoint S)
+    (hSS : S * S = S) (hST : S * T = S) (ξ : H) :
+    ‖S ξ - T ξ‖ ^ 2 = ‖T ξ‖ ^ 2 - ‖S ξ‖ ^ 2 := by
+  have hcross : ⟪S ξ, T ξ⟫_ℂ = ⟪S ξ, S ξ⟫_ℂ := by
+    calc
+      ⟪S ξ, T ξ⟫_ℂ = ⟪ξ, S (T ξ)⟫_ℂ :=
+        inner_apply_of_isSelfAdjoint S hS ξ (T ξ)
+      _ = ⟪ξ, S ξ⟫_ℂ := by rw [← mul_apply_eq_comp, hST]
+      _ = ⟪ξ, S (S ξ)⟫_ℂ := by rw [← mul_apply_eq_comp, hSS]
+      _ = ⟪S ξ, S ξ⟫_ℂ :=
+        (inner_apply_of_isSelfAdjoint S hS ξ (S ξ)).symm
+  rw [norm_sub_sq (𝕜 := ℂ), hcross, ← norm_sq_eq_re_inner (𝕜 := ℂ)]
+  ring
 
 private def partialSum (P : ProjValMeasure X H) (f : ℕ → Set X)
     (hf : ∀ n, MeasurableSet (f n)) (n : ℕ) : H →L[ℂ] H :=
@@ -388,12 +428,11 @@ private theorem partialSum_mul_univ (P : ProjValMeasure X H) {f : ℕ → Set X}
 * **Measure-theoretic input** (`hUeq`): countable additivity of the measure
   `μ` gives `U = ∑' k, μ (f k)` — the only place a property of `Measure X`
   is used; everything else is linear algebra.
-* Each of the four diagonal inner products `⟪(S n) ξ, (S n) ξ⟫`,
-  `⟪(S n) ξ, (P_B) ξ⟫`, `⟪(P_B) ξ, (S n) ξ⟫`, `⟪(P_B) ξ, (P_B) ξ⟫` equals the
-  embedded real partial sum (or `U.toReal`), by the weld, self-adjointness,
-  idempotence, and `P_B · (S n) = (S n) = (S n) · P_B`.
-* Hence `‖(S n) ξ - (P_B) ξ‖² = U.toReal - (p n).toReal` — the mass of the
-  part of `B` not yet covered (`hdist`).
+* Self-adjointness, idempotence and absorption give the partial-sum norm
+  `‖(S n) ξ‖² = (p n).toReal` and the mixed inner product
+  `⟪(S n) ξ, P_B ξ⟫ = (p n).toReal`.
+* The Hilbert-space identity `norm_sub_sq` reduces the squared distance to
+  `‖(S n) ξ - (P_B) ξ‖² = U.toReal - (p n).toReal` (`hdist`).
 * The `p n` converge to `U` along the finite sets (`ENNReal.tendsto_nat_tsum`),
   so the uncovered real mass `U.toReal - (p n).toReal` converges to `0`
   (`h0`); `Real.sqrt` is continuous at `0`, and `‖x‖ = Real.sqrt (‖x‖²)`,
@@ -426,86 +465,56 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
   have hUle (n : ℕ) : p n ≤ U := by
     rw [hUeq, ENNReal.tsum_eq_iSup_sum]
     exact le_iSup (fun (s : Finset ℕ) => (∑ k ∈ s, (μ (f k) : ℝ≥0∞))) (Finset.range n)
-  -- (1) The four diagonal inner products.
+  -- (1) Diagonal inner products needed by the law of cosines.
   --
-  -- Core: `⟪ξ, (S n) ξ⟫` is the real diagonal partial sum, by induction:
-  have hdiagCore (n : ℕ) : (⟪ξ, (partialSum P f hf n) ξ⟫_ℂ) =
+  -- Map application and inner products both distribute over finite sums.
+  -- The only scalar conversion required is Mathlib's `ENNReal.toReal_sum`.
+  have hdiagCore (n : ℕ) : ⟪ξ, (partialSum P f hf n) ξ⟫_ℂ =
       (((p n).toReal) : ℂ) := by
-    induction n with
-    | zero =>
-      simp [partialSum, p]
-    | succ n ih =>
-      have h1 : (⟪ξ, (partialSum P f hf (n + 1)) (ξ)⟫_ℂ) =
-          (⟪ξ, ((partialSum P f hf n) (ξ) + ((P.proj (f n) (hf n)) (ξ)))⟫_ℂ) := by
-        rw [partialSum_succ, add_apply]
-      have h2 : (⟪ξ, ((partialSum P f hf n) (ξ) +
-          ((P.proj (f n) (hf n)) (ξ)))⟫_ℂ) =
-          (⟪ξ, (partialSum P f hf n) (ξ)⟫_ℂ) +
-            (⟪ξ, (P.proj (f n) (hf n)) (ξ)⟫_ℂ) := by
-        rw [inner_add_right]
-      rw [h1, h2, ih, P.inner_proj (f n) (hf n) ξ]
-      -- `p (n+1) = p n + μ (f n)` (the `ENNReal` partial-sum recursion):
-      have hsum : (p (n + 1)) = (p n) + (μ (f n) : ℝ≥0∞) := by
-        simp [p, Finset.sum_range_succ]
-      -- `toReal` distributes over that finite sum:
-      have hreal : ((p n).toReal) + (μ (f n)).toReal = ((p (n + 1)).toReal) := by
-        have hadd : (((p n) + (μ (f n) : ℝ≥0∞)).toReal) =
-            ((p n).toReal) + (μ (f n)).toReal :=
-          ENNReal.toReal_add
-            (show (p n) ≠ ⊤ from
-              ENNReal.sum_ne_top.mpr
-                (fun k _ => measure_ne_top (μ := μ) (s := f k)))
-            (measure_ne_top (μ := μ) (s := f n))
-        rw [hsum, ← hadd]
-      -- the `ℂ`-valued goal is the `ℝ`-valued one, coerced:
-      simpa using congrArg (fun x : ℝ => (x : ℂ)) hreal
-  -- `⟪(S n) ξ, (S n) ξ⟫`: self-adjointness and idempotence put it in the
-  -- core form:
-  have hdiag (n : ℕ) : (⟪(S n) ξ, (S n) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
-    have h1 : (⟪(S n) ξ, (S n) ξ⟫_ℂ) = (⟪ξ, (S n) ((S n) ξ)⟫_ℂ) :=
-      inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((S n) ξ)
-    rw [h1, show (S n) ((S n) ξ) = (S n) (ξ) by
-      rw [← mul_apply_eq_comp, partialSum_idem P hf hdisj n]]
-    simpa using hdiagCore n
-  -- `⟪(S n) ξ, (P_B) ξ⟫` and `⟪(P_B) ξ, (S n) ξ⟫`: the partial sums commute
-  -- with `P_B` in the strong sense `(S n) · (P_B) = (S n)` (and its mirror),
-  -- so both reduce to the core form:
-  have hcross (n : ℕ) : (⟪(S n) ξ, (P_B) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
-    have h1 : (⟪(S n) ξ, (P_B) ξ⟫_ℂ) = (⟪ξ, (S n) ((P_B) ξ)⟫_ℂ) :=
-      inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((P_B) ξ)
-    rw [h1, show (S n) ((P_B) ξ) = (S n) (ξ) by
-      rw [← mul_apply_eq_comp, partialSum_mul_univ P hf n]]
-    simpa using hdiagCore n
-  have hcross2 (n : ℕ) : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
+    have hfin : ∀ k ∈ Finset.range n, μ (f k) ≠ ⊤ :=
+      fun k _ => measure_ne_top (μ := μ) (s := f k)
+    have hmapsum :
+        (∑ k ∈ Finset.range n, (((μ (f k)).toReal) : ℂ)) =
+          (((∑ k ∈ Finset.range n, μ (f k)).toReal) : ℂ) := by
+      rw [ENNReal.toReal_sum hfin]
+      push_cast
+      rfl
     calc
-      _ = star (⟪(S n) ξ, (P_B) ξ⟫_ℂ) :=
-        (inner_conj_symm ((P_B) ξ) ((S n) ξ)).symm
+      ⟪ξ, (partialSum P f hf n) ξ⟫_ℂ =
+          ∑ k ∈ Finset.range n, ⟪ξ, P.proj (f k) (hf k) ξ⟫_ℂ := by
+        simp only [partialSum, Nat.Iio_eq_range, sum_apply, inner_sum]
+      _ = ∑ k ∈ Finset.range n, (((μ (f k)).toReal) : ℂ) := by
+        apply Finset.sum_congr rfl
+        intro k _
+        simpa only [μ] using P.inner_proj (f k) (hf k) ξ
       _ = (((p n).toReal) : ℂ) := by
-        rw [hcross n, Complex.star_def, Complex.conj_ofReal]
-  -- `⟪(P_B) ξ, (P_B) ξ⟫`: the same for `P_B` itself, with total mass `U`:
-  have htotal : (⟪(P_B) ξ, (P_B) ξ⟫_ℂ) = ((U).toReal : ℂ) := by
-    calc (⟪(P_B) ξ, (P_B) ξ⟫_ℂ)
-        _ = (⟪ξ, (P_B) ((P_B) ξ)⟫_ℂ) :=
-          inner_apply_of_isSelfAdjoint P_B (P.isSelfAdjoint_proj B hB) ξ ((P_B) ξ)
-        _ = (⟪ξ, (P_B) ξ⟫_ℂ) := by
-          have hP2 : (P_B) ((P_B) ξ) = (P_B) (ξ) := by
-            rw [← mul_apply_eq_comp, P.proj_idem B hB]
-          rw [hP2]
-        _ = (((U).toReal) : ℂ) := by
-          simpa [P_B, μ, U] using P.inner_proj B hB ξ
-  -- (2) The squared distance is the uncovered mass, in real form:
-  --     `‖u - v‖² = re (⟪u, u⟫ - (⟨u, v⟩ + (⟨v, u⟩ - (⟨v, v⟩ : ℂ))))`,
-  --     and all four inner products are the embedded reals above:
+        simpa only [p] using hmapsum
+  -- The scalar norm of the partial projection comes directly from the
+  -- diagonal core; the total projection's norm comes from `norm_sq_proj_apply`.
+  have hnormS (n : ℕ) : ‖(S n) ξ‖ ^ 2 = (p n).toReal := by
+    rw [norm_sq_eq_re_inner (𝕜 := ℂ)]
+    have hself : ⟪(S n) ξ, (S n) ξ⟫_ℂ = (((p n).toReal) : ℂ) := by
+      calc
+        ⟪(S n) ξ, (S n) ξ⟫_ℂ = ⟪ξ, (S n) ((S n) ξ)⟫_ℂ :=
+          inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((S n) ξ)
+        _ = ⟪ξ, (S n) ξ⟫_ℂ := by
+          rw [← mul_apply_eq_comp, partialSum_idem P hf hdisj n]
+        _ = (((p n).toReal) : ℂ) := hdiagCore n
+    rw [hself]
+    simp
+  have hnormB : ‖(P_B) ξ‖ ^ 2 = U.toReal := by
+    simpa [P_B, U, μ] using P.norm_sq_proj_apply B hB ξ
+  -- The generic projection-absorption identity replaces separate calculations
+  -- of both mixed inner products and the full Hilbert-space expansion.
   have hdist (n : ℕ) : ‖(S n) ξ - (P_B) ξ‖ ^ 2 = (U - p n).toReal := by
-    have hexp : ‖(S n) ξ - (P_B) ξ‖ ^ 2 =
-        RCLike.re (⟪(S n) ξ - (P_B) ξ, (S n) ξ - (P_B) ξ⟫_ℂ) := by
-      simpa using (inner_self_eq_norm_sq (𝕜 := ℂ) ((S n) ξ - (P_B) ξ)).symm
-    rw [hexp, inner_sub_left, inner_sub_right, inner_sub_right,
-      map_sub (f := RCLike.re (K := ℂ)), map_sub (f := RCLike.re (K := ℂ)),
-      map_sub (f := RCLike.re (K := ℂ)),
-      hdiag n, hcross n, hcross2 n, htotal]
-    simp only [RCLike.re_to_complex, Complex.ofReal_re, sub_self, zero_sub, neg_sub]
-    rw [ENNReal.toReal_sub_of_le (hUle n) hUfin]
+    calc
+      ‖(S n) ξ - (P_B) ξ‖ ^ 2 = ‖(P_B) ξ‖ ^ 2 - ‖(S n) ξ‖ ^ 2 :=
+        norm_sub_sq_of_selfAdjoint_idempotent_absorption (S n) P_B
+          (partialSum_selfAdjoint P hf n) (partialSum_idem P hf hdisj n)
+          (partialSum_mul_univ P hf n) ξ
+      _ = U.toReal - (p n).toReal := by rw [hnormB, hnormS n]
+      _ = (U - p n).toReal :=
+        (ENNReal.toReal_sub_of_le (hUle n) hUfin).symm
   -- (3) The uncovered mass `U.toReal - (p n).toReal` tends to `0`:
   have hT : Tendsto (fun n : ℕ => (p n).toReal) Filter.atTop (𝓝 (U.toReal)) := by
     -- the `ENNReal`-valued partial sums converge to their tsum, which is `U`:
@@ -554,6 +563,7 @@ theorem hasSum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ → S
     intro i j hij u w
     obtain ⟨x, hx⟩ := u.property
     obtain ⟨y, hy⟩ := w.property
+    -- The range's subtype isometry has the ambient inner product by definition.
     change ⟪(u : H), (w : H)⟫_ℂ = 0
     rw [← hx, ← hy]
     calc
