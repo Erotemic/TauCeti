@@ -13,7 +13,7 @@ Released under the Apache 2.0 license.
 -/
 module
 
-public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import TauCeti.Analysis.InnerProductSpace.OperatorIdentities
 public import Mathlib.Analysis.InnerProductSpace.LinearMap
 public import Mathlib.Analysis.InnerProductSpace.Positive
 public import Mathlib.Analysis.InnerProductSpace.Subspace
@@ -139,17 +139,6 @@ lemma inner_proj_apply_left (P : ProjValMeasure X H) (B : Set X)
     ⟪P.proj B hB ξ, ξ⟫_ℂ = (((P.diag ξ) B).toReal : ℂ) := by
   rw [← inner_conj_symm (P.proj B hB ξ) ξ, P.inner_proj, Complex.conj_ofReal]
 
-omit [CompleteSpace H] in
-/-- Equality of bounded operators from equality of their diagonal inner products,
-using Mathlib's polarization theorem `ext_inner_map`. -/
-private lemma eq_of_diagonal (S T : H →L[ℂ] H)
-    (h : ∀ ξ : H, ⟪ξ, S ξ⟫_ℂ = ⟪ξ, T ξ⟫_ℂ) : S = T := by
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- `ext_inner_map` compares the underlying linear maps; their application
-  -- agrees definitionally with application of the continuous linear maps.
-  change ⟪S ξ, ξ⟫_ℂ = ⟪T ξ, ξ⟫_ℂ
-  rw [← inner_conj_symm (S ξ) ξ, ← inner_conj_symm (T ξ) ξ, h ξ]
-
 /-- The projections do not depend on the measurability witness — proof
 irrelevance: only the set matters. -/
 lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
@@ -160,7 +149,7 @@ lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
 /-- The projection of the empty measurable set is zero. -/
 @[simp]
 lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 := by
-  apply eq_of_diagonal
+  apply ContinuousLinearMap.eq_of_diagonal
   intro ξ
   simp [P.inner_proj]
 
@@ -175,7 +164,7 @@ lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
 lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     IsSelfAdjoint (P.proj B hB) := by
   rw [ContinuousLinearMap.isSelfAdjoint_iff']
-  apply eq_of_diagonal
+  apply ContinuousLinearMap.eq_of_diagonal
   intro ξ
   rw [ContinuousLinearMap.adjoint_inner_right, P.inner_proj_apply_left,
     P.inner_proj]
@@ -262,7 +251,7 @@ lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
         (measure_ne_top (μ := P.diag ξ) (s := B₂))]
     push_cast
     ring
-  exact eq_of_diagonal _ _ hdiag
+  exact ContinuousLinearMap.eq_of_diagonal _ _ hdiag
 
 /-- **Complementation**: the projection of a complement is the complementary
 projection. -/
@@ -333,30 +322,6 @@ so `μ(B) = ∑' μ(B_k)` for every `ξ`; the squared distance
 `‖(S n) ξ - P(B) ξ‖²` then equals `μ(B) - ∑_{k < n} μ(B_k)` — the mass of
 `B` not yet covered — and that tends to `0`.  This is strong countable
 additivity: the partial sums converge strongly to `P(B)`. -/
-
-/-- Moving a self-adjoint continuous linear map between inner-product arguments. -/
-private lemma inner_apply_of_isSelfAdjoint (T : H →L[ℂ] H)
-    (hT : IsSelfAdjoint T) (x y : H) :
-    ⟪T x, y⟫_ℂ = ⟪x, T y⟫_ℂ := by
-  rw [← ContinuousLinearMap.adjoint_inner_right T x y, hT.adjoint_eq]
-
-/-- The Pythagorean subtraction identity for a self-adjoint idempotent `S`
-absorbed by `T`: `S * T = S`. No self-adjointness assumption on `T` is needed.
-This packages the algebra behind the distance estimate for PVM partial sums. -/
-private lemma norm_sub_sq_of_selfAdjoint_idempotent_absorption
-    (S T : H →L[ℂ] H) (hS : IsSelfAdjoint S)
-    (hSS : S * S = S) (hST : S * T = S) (ξ : H) :
-    ‖S ξ - T ξ‖ ^ 2 = ‖T ξ‖ ^ 2 - ‖S ξ‖ ^ 2 := by
-  have hcross : ⟪S ξ, T ξ⟫_ℂ = ⟪S ξ, S ξ⟫_ℂ := by
-    calc
-      ⟪S ξ, T ξ⟫_ℂ = ⟪ξ, S (T ξ)⟫_ℂ :=
-        inner_apply_of_isSelfAdjoint S hS ξ (T ξ)
-      _ = ⟪ξ, S ξ⟫_ℂ := by rw [← mul_apply_eq_comp, hST]
-      _ = ⟪ξ, S (S ξ)⟫_ℂ := by rw [← mul_apply_eq_comp, hSS]
-      _ = ⟪S ξ, S ξ⟫_ℂ :=
-        (inner_apply_of_isSelfAdjoint S hS ξ (S ξ)).symm
-  rw [norm_sub_sq (𝕜 := ℂ), hcross, ← norm_sq_eq_re_inner (𝕜 := ℂ)]
-  ring
 
 private def partialSum (P : ProjValMeasure X H) (f : ℕ → Set X)
     (hf : ∀ n, MeasurableSet (f n)) (n : ℕ) : H →L[ℂ] H :=
@@ -495,7 +460,7 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
     have hself : ⟪(S n) ξ, (S n) ξ⟫_ℂ = (((p n).toReal) : ℂ) := by
       calc
         ⟪(S n) ξ, (S n) ξ⟫_ℂ = ⟪ξ, (S n) ((S n) ξ)⟫_ℂ :=
-          inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((S n) ξ)
+          (partialSum_selfAdjoint P hf n).isSymmetric ξ ((S n) ξ)
         _ = ⟪ξ, (S n) ξ⟫_ℂ := by
           rw [← mul_apply_eq_comp, partialSum_idem P hf hdisj n]
         _ = (((p n).toReal) : ℂ) := hdiagCore n
@@ -508,7 +473,7 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
   have hdist (n : ℕ) : ‖(S n) ξ - (P_B) ξ‖ ^ 2 = (U - p n).toReal := by
     calc
       ‖(S n) ξ - (P_B) ξ‖ ^ 2 = ‖(P_B) ξ‖ ^ 2 - ‖(S n) ξ‖ ^ 2 :=
-        norm_sub_sq_of_selfAdjoint_idempotent_absorption (S n) P_B
+        ContinuousLinearMap.norm_sub_sq_of_selfAdjoint_idempotent_absorption (S n) P_B
           (partialSum_selfAdjoint P hf n) (partialSum_idem P hf hdisj n)
           (partialSum_mul_univ P hf n) ξ
       _ = U.toReal - (p n).toReal := by rw [hnormB, hnormS n]
@@ -568,7 +533,7 @@ theorem hasSum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ → S
     calc
       ⟪P.proj (f i) (hf i) x, P.proj (f j) (hf j) y⟫_ℂ =
           ⟪x, P.proj (f i) (hf i) (P.proj (f j) (hf j) y)⟫_ℂ :=
-        inner_apply_of_isSelfAdjoint _ (P.isSelfAdjoint_proj (f i) (hf i)) _ _
+        (P.isSelfAdjoint_proj (f i) (hf i)).isSymmetric _ _
       _ = 0 := by
         rw [← mul_apply_eq_comp,
           P.proj_mul_eq_zero_of_disjoint (hf i) (hf j) (hdisj hij), zero_apply,
@@ -615,7 +580,7 @@ theorem ext_of_diag {P Q : ProjValMeasure X H}
     (h : ∀ ξ : H, P.diag ξ = Q.diag ξ) : P = Q := by
   refine ext_fields ?_ (funext h)
   funext B hB
-  apply eq_of_diagonal
+  apply ContinuousLinearMap.eq_of_diagonal
   intro ξ
   rw [P.inner_proj, Q.inner_proj, h ξ]
 
