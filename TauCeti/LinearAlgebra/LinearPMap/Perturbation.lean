@@ -26,7 +26,7 @@ namespace LinearPMap
 
 section Algebraic
 
-variable {R E F : Type*} [CommRing R]
+variable {R E F : Type*} [Ring R]
 variable [AddCommGroup E] [AddCommGroup F] [Module R E] [Module R F]
 
 /-- Add a map defined on `dom A` to `A`, keeping the domain unchanged. -/

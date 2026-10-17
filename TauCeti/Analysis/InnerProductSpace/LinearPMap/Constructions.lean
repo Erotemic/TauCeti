@@ -15,7 +15,6 @@ documentation below.
 module
 
 public import TauCeti.Analysis.InnerProductSpace.LinearPMap.SelfAdjoint
-public import TauCeti.LinearAlgebra.LinearPMap.Perturbation
 
 /-!
 # Bounded perturbations and unitary conjugation of partial linear maps
