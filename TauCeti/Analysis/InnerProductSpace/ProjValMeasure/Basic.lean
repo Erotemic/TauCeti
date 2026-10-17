@@ -16,6 +16,7 @@ module
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.LinearMap
 public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.InnerProductSpace.Subspace
 public import Mathlib.MeasureTheory.Measure.Basic
 public import Mathlib.MeasureTheory.Measure.CompleteLattice
 public import Mathlib.MeasureTheory.Measure.Continuity
@@ -47,10 +48,11 @@ from the structure's laws.
 * `proj_idem`, `isSelfAdjoint_proj`, `isPositive_proj`, `proj_mul_eq_left_of_subset`,
   `proj_range_mono`, `proj_union`, `proj_compl`, `norm_proj_apply_le`:
   the classical PVM laws, recovered from the structure.
-* `tendsto_sum_proj_of_pairwise_disjoint`: strong countable additivity on a pairwise-disjoint
-  measurable family.
-* `ext_of_diag`, `ext_of_proj`, `ext_iff_diag`, `ext_iff_proj`: extensionality
-  from either data field.
+* `hasSum_proj_of_pairwise_disjoint`: unconditional strong countable additivity
+  (`HasSum`) on a pairwise-disjoint measurable family; `tendsto_sum_proj_of_pairwise_disjoint`
+  gives convergence of the natural-order partial sums.
+* `ext_of_diag`, `ext`, `ext_iff_diag`, `ext_iff`: extensionality from either
+  data field.
 
 ## References
 
@@ -105,11 +107,35 @@ namespace ProjValMeasure
 
 /-! ## The classical axioms, recovered as theorems -/
 
-/-- Every diagonal measure is finite, with total mass `‖ξ‖²`; unpacked from the
-`diag_finite` field so instance search can use it. -/
+/-- Every diagonal measure is finite; this instance unpacks the `diag_finite` field.
+Its total mass is identified separately by `diag_univ_toReal`. -/
 instance instIsFiniteMeasureDiag (P : ProjValMeasure X H) (ξ : H) :
     IsFiniteMeasure (P.diag ξ) :=
   P.diag_finite ξ
+
+/-- The finite diagonal scalar measure associated to `ξ`. Its values are uniquely
+determined by the projection field through `inner_proj` and polarization. -/
+def diagMeasure (P : ProjValMeasure X H) (ξ : H) : Measure X := P.diag ξ
+
+@[simp]
+lemma diagMeasure_apply (P : ProjValMeasure X H) (ξ : H) (B : Set X) :
+    P.diagMeasure ξ B = (P.diag ξ) B := by
+  simp only [diagMeasure]
+
+/-- The diagonal identity with the projection in the first inner-product slot. -/
+lemma inner_proj_apply_left (P : ProjValMeasure X H) (B : Set X)
+    (hB : MeasurableSet B) (ξ : H) :
+    ⟪P.proj B hB ξ, ξ⟫_ℂ = (((P.diag ξ) B).toReal : ℂ) := by
+  rw [← inner_conj_symm (P.proj B hB ξ) ξ, P.inner_proj, Complex.conj_ofReal]
+
+omit [CompleteSpace H] in
+/-- Equality of bounded operators from equality of their diagonal inner products,
+using Mathlib's polarization theorem `ext_inner_map`. -/
+private lemma eq_of_diagonal (S T : H →L[ℂ] H)
+    (h : ∀ ξ : H, ⟪ξ, S ξ⟫_ℂ = ⟪ξ, T ξ⟫_ℂ) : S = T := by
+  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  change ⟪S ξ, ξ⟫_ℂ = ⟪T ξ, ξ⟫_ℂ
+  rw [← inner_conj_symm (S ξ) ξ, ← inner_conj_symm (T ξ) ξ, h ξ]
 
 /-- The projections do not depend on the measurability witness — proof
 irrelevance: only the set matters. -/
@@ -121,15 +147,9 @@ lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
 /-- The projection of the empty measurable set is zero. -/
 @[simp]
 lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 := by
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- `ext_inner_map` sees the underlying linear maps; `change` exposes the continuous
-  -- map applications to match the diagonal identity `inner_proj`.
-  change ⟪P.proj ∅ MeasurableSet.empty ξ, ξ⟫_ℂ =
-    ⟪(0 : H →L[ℂ] H) ξ, ξ⟫_ℂ
-  rw [← inner_conj_symm (P.proj ∅ MeasurableSet.empty ξ) ξ,
-    ← inner_conj_symm ((0 : H →L[ℂ] H) ξ) ξ,
-    P.inner_proj, zero_apply, inner_zero_right, measure_empty]
-  simp
+  apply eq_of_diagonal
+  intro ξ
+  simp [P.inner_proj]
 
 /-- Every measurable-set projection is idempotent. -/
 @[simp]
@@ -142,13 +162,10 @@ lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
 lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     IsSelfAdjoint (P.proj B hB) := by
   rw [ContinuousLinearMap.isSelfAdjoint_iff']
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- `ext_inner_map` is about linear maps; the adjoint identity is about continuous
-  -- maps, so display the latter's applications before rewriting.
-  change ⟪((P.proj B hB)†) ξ, ξ⟫_ℂ = ⟪P.proj B hB ξ, ξ⟫_ℂ
-  rw [ContinuousLinearMap.adjoint_inner_left,
-    ← inner_conj_symm (P.proj B hB ξ) ξ,
-    P.inner_proj, Complex.conj_ofReal]
+  apply eq_of_diagonal
+  intro ξ
+  rw [ContinuousLinearMap.adjoint_inner_right, P.inner_proj_apply_left,
+    P.inner_proj]
 
 /-- For each measurable set `B`, the operator `P(B)` is positive. -/
 theorem isPositive_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
@@ -160,33 +177,49 @@ theorem isPositive_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet
     -- `reApplyInnerSelf` is `re ⟪T ξ, ξ⟫`; the weld gives `⟪ξ, T ξ⟫`, and its
     -- value is an embedded real, so flipping the slots by conjugation changes
     -- nothing — leaving the nonnegative real `toReal`:
-    have hval : (⟪(P.proj B hB) ξ, ξ⟫_ℂ) = (((P.diag ξ) B).toReal : ℂ) := by
-      -- flip the slots by conjugation, then the weld, then the real-ness of the
-      -- embedded value:
-      have hconj : (⟪(P.proj B hB) ξ, ξ⟫_ℂ) = star (⟪ξ, (P.proj B hB) ξ⟫_ℂ) := by
-        simp
-      have hslot : (⟪ξ, (P.proj B hB) ξ⟫_ℂ) = (((P.diag ξ) B).toReal : ℂ) :=
-        P.inner_proj B hB ξ
-      rw [hconj, hslot]
-      simp
+    have hval := P.inner_proj_apply_left B hB ξ
     rw [ContinuousLinearMap.reApplyInnerSelf, hval]
     simp
+
+/-- Each measurable-set value of a PVM is an orthogonal (`star`) projection. -/
+theorem isStarProjection_proj (P : ProjValMeasure X H) (B : Set X)
+    (hB : MeasurableSet B) : IsStarProjection (P.proj B hB) := by
+  exact (isStarProjection_iff' (p := P.proj B hB)).2
+    ⟨P.proj_idem B hB, (P.isSelfAdjoint_proj B hB).star_eq⟩
+
+/-- Measurable-set projections commute, because intersection is symmetric. -/
+theorem proj_mul_comm (P : ProjValMeasure X H) (B C : Set X)
+    (hB : MeasurableSet B) (hC : MeasurableSet C) :
+    P.proj B hB * P.proj C hC = P.proj C hC * P.proj B hB := by
+  calc
+    P.proj B hB * P.proj C hC = P.proj (B ∩ C) (hB.inter hC) :=
+      P.proj_inter B C hB hC
+    _ = P.proj (C ∩ B) (hC.inter hB) :=
+      P.proj_congr (Set.inter_comm B C) (hB.inter hC) (hC.inter hB)
+    _ = P.proj C hC * P.proj B hB := (P.proj_inter C B hC hB).symm
+
+/-- Projections of disjoint measurable sets have zero product. -/
+@[simp]
+theorem proj_mul_eq_zero_of_disjoint (P : ProjValMeasure X H)
+    {B C : Set X} (hB : MeasurableSet B) (hC : MeasurableSet C)
+    (hd : Disjoint B C) : P.proj B hB * P.proj C hC = 0 := by
+  rw [P.proj_inter B C hB hC,
+    P.proj_congr (Disjoint.inter_eq hd) (hB.inter hC) MeasurableSet.empty,
+    P.proj_empty]
 
 /-- For measurable `B ⊆ C`, the projection product `P(B) * P(C)` is `P(B)`. -/
 theorem proj_mul_eq_left_of_subset (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
     (hB : MeasurableSet B) (hC : MeasurableSet C) :
     P.proj B hB * P.proj C hC = P.proj B hB := by
   rw [P.proj_inter B C hB hC]
-  -- `B ∩ C = B` because `B ⊆ C`:
-  have hE : B ∩ C = B := by
-    ext x
-    rw [Set.mem_inter_iff]
-    constructor
-    · rintro ⟨h₁, h₂⟩
-      exact h₁
-    · rintro h₁
-      exact ⟨h₁, hBC h₁⟩
-  simp [hE]
+  exact P.proj_congr (Set.inter_eq_left.mpr hBC) (hB.inter hC) hB
+
+/-- Right absorption: if `B ⊆ C`, then `P(C) * P(B) = P(B)`. -/
+theorem proj_mul_eq_right_of_subset (P : ProjValMeasure X H) {B C : Set X}
+    (hBC : B ⊆ C) (hB : MeasurableSet B) (hC : MeasurableSet C) :
+    P.proj C hC * P.proj B hB = P.proj B hB := by
+  rw [P.proj_mul_comm C B hC hB]
+  exact P.proj_mul_eq_left_of_subset hBC hB hC
 
 /-- If measurable `B ⊆ C`, then the range of `P(B)` is contained in the
 range of `P(C)`. -/
@@ -195,17 +228,13 @@ theorem proj_range_mono (P : ProjValMeasure X H) {B C : Set X}
     (P.proj B hB).range ≤ (P.proj C hC).range := by
   intro v hv
   obtain ⟨x, hvx⟩ := hv
-  have hCB : C ∩ B = B := by
-    rw [Set.inter_comm, Set.inter_eq_left.mpr hBC]
-  -- `P(C) * P(B) = P(C ∩ B) = P(B)`: the absorption identity, by
-  -- multiplicativity and the inclusion:
-  have habs : (P.proj C hC) * (P.proj B hB) = P.proj B hB := by
-    rw [P.proj_inter C B hC hB, P.proj_congr hCB (hC.inter hB) hB]
-  -- `P(C) (P(B) x) = (P(C) * P(B)) x` definitionally (`mul_apply_eq_comp`):
   use (P.proj B hB) x
-  change ((P.proj C hC) * (P.proj B hB)) x = v
-  rw [habs]
-  exact hvx
+  calc
+    (P.proj C hC) ((P.proj B hB) x) =
+        ((P.proj C hC) * (P.proj B hB)) x :=
+          (mul_apply_eq_comp (P.proj C hC) (P.proj B hB) x).symm
+    _ = (P.proj B hB) x := by rw [P.proj_mul_eq_right_of_subset hBC hB hC]
+    _ = v := hvx
 
 /-- For disjoint measurable sets, the projection of their union is the sum of
 their projections. -/
@@ -220,13 +249,7 @@ lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
         (measure_ne_top (μ := P.diag ξ) (s := B₂))]
     push_cast
     ring
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- Reveal continuous-map applications hidden by the coercion to `LinearMap`,
-  -- allowing the previously proved diagonal equality to rewrite the goal.
-  change ⟪P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ, ξ⟫_ℂ =
-    ⟪(P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ, ξ⟫_ℂ
-  rw [← inner_conj_symm (P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ) ξ,
-    ← inner_conj_symm ((P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ) ξ, hdiag ξ]
+  exact eq_of_diagonal _ _ hdiag
 
 /-- **Complementation**: the projection of a complement is the complementary
 projection. -/
@@ -276,14 +299,10 @@ lemma norm_proj_apply_le (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
     (ξ : H) :
     ‖P.proj B hB ξ‖ ≤ ‖ξ‖ := by
   have hsq : ‖P.proj B hB ξ‖ ^ 2 ≤ ‖ξ‖ ^ 2 := by
-    have h : IsFiniteMeasure (P.diag ξ) := P.diag_finite ξ
     rw [norm_sq_proj_apply, ← P.diag_univ_toReal ξ]
     exact ENNReal.toReal_mono (measure_ne_top (μ := P.diag ξ) (s := Set.univ))
       (measure_mono (Set.subset_univ B))
-  calc ‖P.proj B hB ξ‖
-      = Real.sqrt (‖P.proj B hB ξ‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
-    _ ≤ Real.sqrt (‖ξ‖ ^ 2) := Real.sqrt_le_sqrt hsq
-    _ = ‖ξ‖ := Real.sqrt_sq (norm_nonneg _)
+  exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp hsq
 
 /-! ## Strong countable additivity
 
@@ -326,27 +345,13 @@ private theorem partialSum_idem (P : ProjValMeasure X H) {f : ℕ → Set X}
       apply Finset.sum_eq_zero
       intro k hk
       have hlt : k < n := by simpa using hk
-      have hdis : f k ∩ f n = ∅ := by
-        have hnd : Disjoint (f k) (f n) := by
-          apply hdisj
-          exact ne_of_lt hlt
-        exact Disjoint.inter_eq hnd
-      rw [P.proj_inter (f k) (f n) (hf k) (hf n),
-        P.proj_congr hdis (MeasurableSet.inter (hf k) (hf n)) MeasurableSet.empty,
-        P.proj_empty]
+      exact P.proj_mul_eq_zero_of_disjoint (hf k) (hf n) (hdisj (ne_of_lt hlt))
     have hzero' : P.proj (f n) (hf n) * partialSum P f hf n = 0 := by
       rw [partialSum, Finset.mul_sum]
       apply Finset.sum_eq_zero
       intro k hk
       have hlt : k < n := by simpa using hk
-      have hdis : f n ∩ f k = ∅ := by
-        have hnd : Disjoint (f n) (f k) := by
-          apply hdisj
-          exact by omega
-        exact Disjoint.inter_eq hnd
-      rw [P.proj_inter (f n) (f k) (hf n) (hf k),
-        P.proj_congr hdis (MeasurableSet.inter (hf n) (hf k)) MeasurableSet.empty,
-        P.proj_empty]
+      exact P.proj_mul_eq_zero_of_disjoint (hf n) (hf k) (hdisj (by omega))
     -- the only surviving term is `P_n P_n`, which is `P_n` again:
     have hsq : P.proj (f n) (hf n) * P.proj (f n) (hf n) = P.proj (f n) (hf n) :=
       P.proj_idem (f n) (hf n)
@@ -370,41 +375,12 @@ private theorem partialSum_mul_univ (P : ProjValMeasure X H) {f : ℕ → Set X}
   | zero => simp [partialSum_zero, zero_mul]
   | succ n ih =>
     rw [partialSum_succ, add_mul]
-    -- `P_n P_B = P(f_n ∩ B) = P_n` because `f_n ⊆ B`:
-    have hterm : P.proj (f n) (hf n) * P.proj (⋃ k, f k) (MeasurableSet.iUnion hf) =
-        P.proj (f n) (hf n) := by
-      have hE : (f n) ∩ (⋃ k, f k) = f n := by
-        ext x; simp only [Set.mem_inter_iff, Set.mem_iUnion]
-        constructor
-        · rintro ⟨h₁, h₂⟩; exact h₁
-        · intro h₁; exact ⟨h₁, ⟨n, h₁⟩⟩
-      rw [P.proj_inter (f n) (⋃ k, f k) (hf n) (MeasurableSet.iUnion hf),
-        P.proj_congr hE (MeasurableSet.inter (hf n) (MeasurableSet.iUnion hf)) (hf n)]
-    rw [ih, hterm]
+    rw [ih, P.proj_mul_eq_left_of_subset (Set.subset_iUnion f n)
+      (hf n) (MeasurableSet.iUnion hf)]
 
-private theorem univ_mul_partialSum (P : ProjValMeasure X H) {f : ℕ → Set X}
-    (hf : ∀ n, MeasurableSet (f n)) (n : ℕ) :
-    P.proj (⋃ k, f k) (MeasurableSet.iUnion hf) * partialSum P f hf n =
-      partialSum P f hf n := by
-  induction n with
-  | zero => simp [partialSum_zero, mul_zero]
-  | succ n ih =>
-    rw [partialSum_succ, mul_add]
-    have hterm : P.proj (⋃ k, f k) (MeasurableSet.iUnion hf) * P.proj (f n) (hf n) =
-        P.proj (f n) (hf n) := by
-      have hE : (⋃ k, f k) ∩ (f n) = f n := by
-        ext x; simp only [Set.mem_inter_iff, Set.mem_iUnion]
-        constructor
-        · rintro ⟨h₁, h₂⟩
-          -- the second conjunct is `x ∈ f n` (the first is `x ∈ ⋃ f`)
-          exact h₂
-        · intro h₁; exact ⟨⟨n, h₁⟩, h₁⟩
-      rw [P.proj_inter (⋃ k, f k) (f n) (MeasurableSet.iUnion hf) (hf n),
-        P.proj_congr hE (MeasurableSet.inter (MeasurableSet.iUnion hf) (hf n)) (hf n)]
-    rw [ih, hterm]
 
 /-
-**Strong countable additivity, stated at the operator level.**  Let
+**Strong countable additivity, vector-wise (in the strong operator topology).**  Let
 `(f n)` be a pairwise-disjoint family of measurable sets and write
 `B = ⋃ n, f n`; let `S n = ∑_{k < n} P(f k)`, `μ` the diagonal measure of
 `ξ`, `U = μ B`, and `p n = ∑_{k < n} μ (f k)`.  Then:
@@ -501,16 +477,11 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
       rw [← mul_apply_eq_comp, partialSum_mul_univ P hf n]]
     simpa using hdiagCore n
   have hcross2 (n : ℕ) : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
-    -- `⟪(P_B) ξ, (S n) ξ⟫ = ⟨(S n) ((P_B) ξ), ξ⟩` (`adjoint_inner_right` with
-    -- `A := (S n)`, since `(S n)† = (S n)`):
-    have h1 : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (⟪(S n) ((P_B) ξ), ξ⟫_ℂ) :=
-      (inner_apply_of_isSelfAdjoint (S n)
-        (partialSum_selfAdjoint P hf n) ((P_B) ξ) ξ).symm
-    rw [h1, show (S n) ((P_B) ξ) = (S n) (ξ) by
-      rw [← mul_apply_eq_comp, partialSum_mul_univ P hf n]]
-    -- `⟪(S n) ξ, ξ⟫ = ⟨ξ, (S n)† ξ⟩ = ⟨ξ, (S n) ξ⟩`:
-    rw [inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ξ]
-    simpa using hdiagCore n
+    calc
+      _ = star (⟪(S n) ξ, (P_B) ξ⟫_ℂ) :=
+        (inner_conj_symm ((P_B) ξ) ((S n) ξ)).symm
+      _ = (((p n).toReal) : ℂ) := by
+        rw [hcross n, Complex.star_def, Complex.conj_ofReal]
   -- `⟪(P_B) ξ, (P_B) ξ⟫`: the same for `P_B` itself, with total mass `U`:
   have htotal : (⟪(P_B) ξ, (P_B) ξ⟫_ℂ) = ((U).toReal : ℂ) := by
     calc (⟪(P_B) ξ, (P_B) ξ⟫_ℂ)
@@ -549,33 +520,14 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
         rw [← hUeq]
         exact hUfin)).tendsto.comp hTenn
   have h0 : Tendsto (fun n : ℕ => (U - p n).toReal) Filter.atTop (𝓝 0) := by
-    rw [tendsto_def]
-    intro W hW
-    -- `W` is a neighbourhood of `0`: take an `ε`-ball inside it:
-    rcases Metric.mem_nhds_iff.mp hW with ⟨ε, hε, hWb⟩
-    have hTball : (fun n : ℕ => (p n).toReal) ⁻¹' (Metric.ball (U.toReal) ε) ∈
-        (Filter.atTop : Filter ℕ) := by
-      rw [tendsto_def] at hT
-      exact hT (Metric.ball (U.toReal) ε) (Metric.ball_mem_nhds (U.toReal) hε)
-    rcases Filter.mem_atTop_sets.mp hTball with ⟨N, hN'⟩
-    rw [Filter.mem_atTop_sets]
-    use N
-    intro n hn
-    -- `hN'` says `|(p n).toReal - U.toReal| < ε`;
-    -- since `(p n).toReal ≤ U.toReal`, that absolute value is exactly
-    -- `U.toReal - (p n).toReal`:
-    have habs : |((p n).toReal) - U.toReal| < ε := by
-      simpa [Metric.mem_ball, Real.dist_eq] using hN' n hn
-    have hle : (p n).toReal ≤ U.toReal := ENNReal.toReal_mono hUfin (hUle n)
-    have habs2 : |((p n).toReal) - U.toReal| = U.toReal - (p n).toReal := by
-      rw [abs_of_nonpos (sub_nonpos_of_le hle), neg_sub]
-    have hval : (U - p n).toReal = U.toReal - (p n).toReal :=
-        ENNReal.toReal_sub_of_le (hUle n) hUfin
-    have hmem : (U - p n).toReal ∈ Metric.ball 0 ε := by
-      rw [Metric.mem_ball, hval, Real.dist_eq, sub_zero,
-        abs_of_nonneg (by linarith), ← habs2]
-      exact habs
-    exact hWb hmem
+    have heq : (fun n : ℕ => (U - p n).toReal) =
+        (fun n : ℕ => U.toReal - (p n).toReal) := by
+      funext n
+      exact ENNReal.toReal_sub_of_le (hUle n) hUfin
+    rw [heq]
+    have hconst : Tendsto (fun _ : ℕ => U.toReal) Filter.atTop (𝓝 U.toReal) :=
+      tendsto_const_nhds
+    simpa only [sub_self] using hconst.sub hT
   -- (4) The norm tends to `0`:
   --     `‖x‖ = Real.sqrt (‖x‖²)` and `Real.sqrt` is continuous at `0`:
   have hnorm : Tendsto (fun n => ‖(S n) ξ - (P_B) ξ‖) Filter.atTop (𝓝 0) := by
@@ -585,20 +537,52 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
       rw [(Real.sqrt_sq (norm_nonneg _)).symm, hdist n]
     rw [hsq, ← Function.comp_def, ← Real.sqrt_zero]
     exact (Continuous.tendsto Real.continuous_sqrt 0).comp h0
-  -- (5) The norm-limit is the vector-limit; add back the constant `P_B ξ`:
-  have hdiff : Tendsto (fun n : ℕ => (S n) ξ - (P_B) ξ) Filter.atTop (𝓝 0) :=
-    tendsto_zero_iff_norm_tendsto_zero.mpr hnorm
-  have hadd : Tendsto (fun n : ℕ => ((S n) ξ - (P_B) ξ) + (P_B) ξ)
-      Filter.atTop (𝓝 (0 + (P_B) ξ)) :=
-    Tendsto.add hdiff (tendsto_const_nhds :
-      Tendsto (fun _ : ℕ => (P_B) ξ) Filter.atTop (𝓝 ((P_B) ξ)))
-  -- `(x - y) + y = x`, so the limit is `S n ξ` at the constant `P_B ξ`:
-  have hfun : ∀ n : ℕ, ((S n) ξ - (P_B) ξ) + (P_B) ξ = (S n) ξ := by
-    intro n
-    simp
-  have hcongr : Tendsto (fun n => (S n) ξ) Filter.atTop (𝓝 (0 + (P_B) ξ)) :=
-    Tendsto.congr hfun hadd
-  simpa [S, B, P_B, partialSum, zero_add] using hcongr
+  -- (5) Norm convergence is precisely strong convergence at `P_B ξ`.
+  apply (tendsto_iff_norm_sub_tendsto_zero).2
+  simpa [S, B, P_B, partialSum] using hnorm
+
+/-- **Unconditional** strong countable additivity: disjoint measurable-set
+projections form a summable family of vectors, and their sum is the projection
+of the union. This is the `HasSum` interface needed by the spectral integral. -/
+theorem hasSum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ → Set X}
+    (hf : ∀ n, MeasurableSet (f n)) (hdisj : Pairwise (Disjoint on f)) (ξ : H) :
+    HasSum (fun n => P.proj (f n) (hf n) ξ)
+      (P.proj (⋃ n, f n) (MeasurableSet.iUnion hf) ξ) := by
+  let V : ℕ → Submodule ℂ H := fun n => (P.proj (f n) (hf n)).range
+  let v : ∀ n, V n := fun n => ⟨P.proj (f n) (hf n) ξ, ⟨ξ, rfl⟩⟩
+  have hV : OrthogonalFamily ℂ (fun n => V n) (fun n => (V n).subtypeₗᵢ) := by
+    intro i j hij u w
+    obtain ⟨x, hx⟩ := u.property
+    obtain ⟨y, hy⟩ := w.property
+    change ⟪(u : H), (w : H)⟫_ℂ = 0
+    rw [← hx, ← hy]
+    calc
+      ⟪P.proj (f i) (hf i) x, P.proj (f j) (hf j) y⟫_ℂ =
+          ⟪x, P.proj (f i) (hf i) (P.proj (f j) (hf j) y)⟫_ℂ :=
+        inner_apply_of_isSelfAdjoint _ (P.isSelfAdjoint_proj (f i) (hf i)) _ _
+      _ = 0 := by
+        rw [← mul_apply_eq_comp,
+          P.proj_mul_eq_zero_of_disjoint (hf i) (hf j) (hdisj hij), zero_apply,
+          inner_zero_right]
+  have hmass : (∑' n, (P.diag ξ) (f n)) ≠ ∞ := by
+    rw [← measure_iUnion₀ hdisj.aedisjoint (fun n => (hf n).nullMeasurableSet)]
+    exact measure_ne_top (μ := P.diag ξ) (s := ⋃ n, f n)
+  have hnorms : Summable (fun n => ‖v n‖ ^ 2) := by
+    have heq : (fun n => ‖v n‖ ^ 2) =
+        (fun n => ((P.diag ξ) (f n)).toReal) := by
+      funext n
+      -- The norm on the range subtype is the ambient Hilbert-space norm.
+      change ‖P.proj (f n) (hf n) ξ‖ ^ 2 = ((P.diag ξ) (f n)).toReal
+      exact P.norm_sq_proj_apply (f n) (hf n) ξ
+    rw [heq]
+    exact ENNReal.summable_toReal hmass
+  have hvsum : Summable (fun n => (V n).subtypeₗᵢ (v n)) :=
+    (hV.summable_iff_norm_sq_summable v).2 hnorms
+  have hsum : Summable (fun n => P.proj (f n) (hf n) ξ) := by
+    simpa [V, v] using hvsum
+  exact (hsum.hasSum_iff_tendsto_nat).2 (by
+    simpa only [Nat.Iio_eq_range, sum_apply] using
+      P.tendsto_sum_proj_of_pairwise_disjoint hf hdisj ξ)
 
 /-! ## Extensionality
 
@@ -608,7 +592,7 @@ fields; finite measure values are recovered from their real embeddings. -/
 
 /-- Two PVMs with the same data fields are equal; the remaining fields are
 propositions. -/
-lemma ext {P Q : ProjValMeasure X H} (hproj : P.proj = Q.proj)
+private lemma ext_fields {P Q : ProjValMeasure X H} (hproj : P.proj = Q.proj)
     (hdiag : P.diag = Q.diag) : P = Q := by
   obtain ⟨p, d, _, _, _, _⟩ := P
   obtain ⟨q, e, _, _, _, _⟩ := Q
@@ -620,20 +604,16 @@ lemma ext {P Q : ProjValMeasure X H} (hproj : P.proj = Q.proj)
 are equal. -/
 theorem ext_of_diag {P Q : ProjValMeasure X H}
     (h : ∀ ξ : H, P.diag ξ = Q.diag ξ) : P = Q := by
-  refine ext ?_ (funext h)
+  refine ext_fields ?_ (funext h)
   funext B hB
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- `ext_inner_map` views the projections as linear maps; expose continuous-map
-  -- applications so that `inner_proj` and the equality of diagonal measures apply.
-  change ⟪P.proj B hB ξ, ξ⟫_ℂ = ⟪Q.proj B hB ξ, ξ⟫_ℂ
-  rw [← inner_conj_symm (P.proj B hB ξ) ξ,
-    ← inner_conj_symm (Q.proj B hB ξ) ξ,
-    P.inner_proj, Q.inner_proj, h ξ]
+  apply eq_of_diagonal
+  intro ξ
+  rw [P.inner_proj, Q.inner_proj, h ξ]
 
 /-- Two projection-valued measures agreeing on all measurable-set projections
 are equal. -/
 @[ext]
-theorem ext_of_proj {P Q : ProjValMeasure X H}
+theorem ext {P Q : ProjValMeasure X H}
     (h : ∀ (B : Set X) (hB : MeasurableSet B), P.proj B hB = Q.proj B hB) :
     P = Q := by
   refine ext_of_diag fun ξ => Measure.ext fun B hB => ?_
@@ -649,11 +629,7 @@ theorem ext_iff_diag {P Q : ProjValMeasure X H} :
     P = Q ↔ ∀ ξ : H, P.diag ξ = Q.diag ξ :=
   ⟨fun h ξ => by rw [h], ext_of_diag⟩
 
-/-- Two projection-valued measures are equal exactly when they agree on every
-measurable set. -/
-theorem ext_iff_proj {P Q : ProjValMeasure X H} :
-    P = Q ↔ ∀ (B : Set X) (hB : MeasurableSet B), P.proj B hB = Q.proj B hB :=
-  ⟨fun h B hB => by rw [h], ext_of_proj⟩
+-- `@[ext]` on `ext` already generates `ProjValMeasure.ext_iff`.
 
 end ProjValMeasure
 
