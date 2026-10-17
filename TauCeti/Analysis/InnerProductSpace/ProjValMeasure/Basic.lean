@@ -28,11 +28,11 @@ space `X`, acting on a complex Hilbert space `H`.  **Mathlib has no such
 structure** — it has the continuous functional calculus but no Borel calculus
 and no spectral measures — so this is an addition rather than a duplication.
 
-The design point worth keeping: the diagonal scalar measures `diag ξ` are
-carried *as data* and welded to the operator field by `inner_proj`.
+The diagonal scalar measures `diag ξ` are carried as *data* of the
+structure and welded to the operator field by `inner_proj`.
 Countable additivity therefore never has to be stated, because it already
-lives inside `Measure X`; idempotence, self-adjointness, positivity and finite
-additivity all become theorems rather than axioms, and strong countable
+lives inside `Measure X`; idempotence, self-adjointness, positivity and
+finite additivity are theorems about the welded pair, and strong countable
 additivity follows from the diagonal measures being genuine measures
 (`strongLime_disjoint` below).
 
@@ -43,8 +43,8 @@ additivity follows from the diagonal measures being genuine measures
   `inner_proj`, the normalization `proj_univ : P(X) = 1`, and the
   multiplicativity law `proj_inter`.
 * `proj_idem`, `isSelfAdjoint_proj`, `isPositive_proj`, `proj_mono`,
-  `proj_union`, `proj_compl`, `norm_proj_apply_le`: the classical PVM laws,
-  recovered from the structure.
+  `proj_range_mono`, `proj_union`, `proj_compl`, `norm_proj_apply_le`:
+  the classical PVM laws, recovered from the structure.
 * `strongLime_disjoint`: strong countable additivity on a pairwise-disjoint
   measurable family.
 * `ext_of_diag`, `ext_of_proj`, `ext_iff_diag`, `ext_iff_proj`: extensionality
@@ -55,26 +55,30 @@ additivity follows from the diagonal measures being genuine measures
 * **Original repository:** Spectra,
   `https://github.com/adambornemann-glitch/Spectra`, commit
   `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`.
-* **Original module:** `Spectra/ProjValMeasure/Basic.lean`, which imports
-  **only Mathlib** — this is why it can be re-homed ahead of the rest of the
-  spectral-theory port.
+* **Original module:** `Spectra/ProjValMeasure/Basic.lean` (228 lines),
+  which imports **only Mathlib**.
 * **Original authors / copyright / licence:** Copyright (c) 2026 Spectra
   Formalization Project; `Authors: Adam Bornemann`; Apache 2.0.
 * **Intermediate port:** AIQ-Kitware/aiq-dkps-formalization,
   `ForTauCeti/Analysis/InnerProductSpace/ProjValMeasure/Basic.lean`
-  (Kitware, Inc., Apache 2.0), where the carrier was restricted to the Borel
-  sets of `ℝ`.
+  (Kitware, Inc., Apache 2.0; `Authors: Jon Crall, Claude Opus 5`), where
+  the carrier was restricted to the Borel sets of `ℝ`.
 * **Changes in this port relative to the intermediate donor:**
   * The carrier is generalized from `Set ℝ` / `Measure ℝ` to the measurable
     sets of an arbitrary measurable space `X` / `Measure X`.
-  * `isPositive_proj` (positivity as `IsPositive`) and `proj_mono`
-    (multiplicative monotonicity for `B ⊆ C`) are new here; the donor file
-    established only self-adjointness, with nonnegativity implicit in the
-    weld.
-  * `strongLime_disjoint` is new here: the donor established countable
-    additivity at the level of the diagonal `ℝ≥0∞`-valued measures only.
+  * New: `isPositive_proj` (positivity as `IsPositive`), `proj_mono` (the
+    absorption identity for `B ⊆ C`), `proj_range_mono` (the range
+    inclusion `range (P(B)) ⊆ range (P(C))` for `B ⊆ C`), and
+    `strongLime_disjoint` (strong countable additivity at the operator
+    level).  The donor file established only self-adjointness, with
+    nonnegativity implicit in the weld, and countable additivity at the
+    level of the diagonal `ℝ≥0∞`-valued measures only.
   * The polarization lemma `op_ext_of_inner_self` is moved into the
     `ProjValMeasure` namespace.
+  * The donor's representation of the diagonal scalar measures as *data* of
+    the structure is preserved: the finite measures supplied by the
+    structure and connected to the projections by `inner_proj` are the
+    diagonal measures, rather than being derived from them.
 -/
 
 public section
@@ -137,7 +141,7 @@ instance instIsFiniteMeasureDiag (P : ProjValMeasure X H) (ξ : H) :
   P.diag_finite ξ
 
 /-- The projections do not depend on the measurability witness — proof
-irrelevance: the witness is not set in stone, only the set is. -/
+irrelevance: only the set matters. -/
 lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
     (h₁ : MeasurableSet B₁) (h₂ : MeasurableSet B₂) :
     P.proj B₁ h₁ = P.proj B₂ h₂ := by
@@ -190,9 +194,10 @@ theorem isPositive_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet
     rw [ContinuousLinearMap.reApplyInnerSelf, hval]
     simp
 
-/-- **Monotonicity of PVM values.** If `B ⊆ C`, then the projection of `B`
-lies below the projection of `C` in the projection order:
-`P(B) * P(C) = P(B)`. -/
+/-- **Absorption identity for PVM values.** If `B ⊆ C`, then
+`P(B) * P(C) = P(B)`: composing with the projection of the larger set
+absorbs the projection of the smaller.  The range-inclusion form of PVM
+monotonicity is the corollary `proj_range_mono`. -/
 theorem proj_mono (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
     (hB : MeasurableSet B) (hC : MeasurableSet C) :
     P.proj B hB * P.proj C hC = P.proj B hB := by
@@ -207,6 +212,28 @@ theorem proj_mono (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
     · rintro h₁
       exact ⟨h₁, hBC h₁⟩
   simp [hE]
+
+/-- **Range monotonicity of PVM values.** If `B ⊆ C`, then
+`(P.proj B hB).range ⊆ (P.proj C hC).range`: every vector `P(B) x` lies in
+the range of `P(C)`, with preimage `P(B) x` itself, because
+`P(C) * P(B) = P(C ∩ B) = P(B)`.  This is the range-inclusion form of the
+absorption identity `proj_mono`. -/
+theorem proj_range_mono (P : ProjValMeasure X H) {B C : Set X}
+    (hBC : B ⊆ C) (hB : MeasurableSet B) (hC : MeasurableSet C) :
+    (P.proj B hB).range ≤ (P.proj C hC).range := by
+  intro v hv
+  obtain ⟨x, hvx⟩ := hv
+  have hCB : C ∩ B = B := by
+    rw [Set.inter_comm, Set.inter_eq_left.mpr hBC]
+  -- `P(C) * P(B) = P(C ∩ B) = P(B)`: the absorption identity, by
+  -- multiplicativity and the inclusion:
+  have habs : (P.proj C hC) * (P.proj B hB) = P.proj B hB := by
+    rw [P.proj_inter C B hC hB, P.proj_congr hCB (hC.inter hB) hB]
+  -- `P(C) (P(B) x) = (P(C) * P(B)) x` definitionally (`mul_apply_eq_comp`):
+  use (P.proj B hB) x
+  change ((P.proj C hC) * (P.proj B hB)) x = v
+  rw [habs]
+  exact hvx
 
 /-- Finite additivity is already a theorem: the diagonal measures are measures,
 and polarization lifts their additivity to the operators. -/
@@ -231,8 +258,8 @@ lemma proj_compl (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     P.proj_univ] at hsum
   linear_combination (norm := module) -hsum
 
-/-- The fundamental quadratic identity `‖proj B ξ‖ ^ 2 = diag ξ B` — idempotence
-and self-adjointness, two birds with one Stone. -/
+/-- The fundamental quadratic identity `‖proj B ξ‖ ^ 2 = diag ξ B`,
+from idempotence and self-adjointness. -/
 lemma norm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B)
     (ξ : H) :
     ‖P.proj B hB ξ‖ ^ 2 = ((P.diag ξ) B).toReal := by
@@ -642,13 +669,13 @@ theorem strongLime_disjoint {P : ProjValMeasure X H} {f : ℕ → Set X}
     Tendsto.congr hfun hadd
   simpa [S, B, P_B, partialSum, zero_add] using hcongr
 
-/-! ## Extensionality: the keystone's uniqueness engine
+/-! ## Extensionality
 
-A `ProjValMeasure` is determined by either of its two data fields.  The
-uniqueness half of the spectral theorem will run:
-
-  resolvent formula ⟹ equal Cauchy transforms ⟹ (scalar injectivity)
-  equal `diag` ⟹ `ext_of_diag` ⟹ equal PVMs.  Stone-cold. -/
+A `ProjValMeasure` is determined by either of its two data fields: the
+projection field or the diagonal measures.  The two determine each other —
+`diag` from `proj` by `inner_proj`, and `proj` from `diag` by
+`op_ext_of_inner_self` — so either field alone gives an extensionality
+principle. -/
 
 /-- Two PVMs with the same data fields are equal; the remaining fields are
 propositions. -/
@@ -682,8 +709,8 @@ theorem ext_of_proj {P Q : ProjValMeasure X H}
     (by exact_mod_cast hr)
 
 /-- Two projection-valued measures are equal exactly when all their diagonal
-measures agree.  This is the practical extensionality principle: diagonal
-measures are scalar and comparable. -/
+measures agree: the diagonal measures are scalar and comparable, unlike the
+operator field. -/
 theorem ext_iff_diag {P Q : ProjValMeasure X H} :
     P = Q ↔ ∀ ξ : H, P.diag ξ = Q.diag ξ :=
   ⟨fun h ξ => by rw [h], ext_of_diag⟩
