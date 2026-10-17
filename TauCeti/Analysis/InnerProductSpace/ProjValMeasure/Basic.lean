@@ -20,8 +20,6 @@ public import Mathlib.MeasureTheory.Measure.Basic
 public import Mathlib.MeasureTheory.Measure.CompleteLattice
 public import Mathlib.MeasureTheory.Measure.Continuity
 public import Mathlib.MeasureTheory.Measure.Filter
-public import Mathlib.MeasureTheory.Measure.Interval
-public import Mathlib.MeasureTheory.Measure.Module
 public import Mathlib.MeasureTheory.Measure.OuterMeasure
 public import Mathlib.MeasureTheory.Measure.Sum
 public import Mathlib.MeasureTheory.Measure.Typeclasses.Finite
@@ -101,6 +99,8 @@ structure ProjValMeasure (X : Type*) [MeasurableSpace X] (H : Type*)
   proj_inter : ∀ (B₁ B₂ : Set X) (hB₁ : MeasurableSet B₁) (hB₂ : MeasurableSet B₂),
     proj B₁ hB₁ * proj B₂ hB₂ = proj (B₁ ∩ B₂) (hB₁.inter hB₂)
 
+attribute [simp] ProjValMeasure.proj_univ
+
 namespace ProjValMeasure
 
 /-! ## The classical axioms, recovered as theorems -/
@@ -122,6 +122,8 @@ lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
 @[simp]
 lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 := by
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  -- `ext_inner_map` sees the underlying linear maps; `change` exposes the continuous
+  -- map applications to match the diagonal identity `inner_proj`.
   change ⟪P.proj ∅ MeasurableSet.empty ξ, ξ⟫_ℂ =
     ⟪(0 : H →L[ℂ] H) ξ, ξ⟫_ℂ
   rw [← inner_conj_symm (P.proj ∅ MeasurableSet.empty ξ) ξ,
@@ -130,6 +132,7 @@ lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 :
   simp
 
 /-- Every measurable-set projection is idempotent. -/
+@[simp]
 lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     P.proj B hB * P.proj B hB = P.proj B hB := by
   rw [P.proj_inter B B hB hB]
@@ -140,6 +143,8 @@ lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
     IsSelfAdjoint (P.proj B hB) := by
   rw [ContinuousLinearMap.isSelfAdjoint_iff']
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  -- `ext_inner_map` is about linear maps; the adjoint identity is about continuous
+  -- maps, so display the latter's applications before rewriting.
   change ⟪((P.proj B hB)†) ξ, ξ⟫_ℂ = ⟪P.proj B hB ξ, ξ⟫_ℂ
   rw [ContinuousLinearMap.adjoint_inner_left,
     ← inner_conj_symm (P.proj B hB ξ) ξ,
@@ -216,6 +221,8 @@ lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
     push_cast
     ring
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  -- Reveal continuous-map applications hidden by the coercion to `LinearMap`,
+  -- allowing the previously proved diagonal equality to rewrite the goal.
   change ⟪P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ, ξ⟫_ℂ =
     ⟪(P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ, ξ⟫_ℂ
   rw [← inner_conj_symm (P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ) ξ,
@@ -223,6 +230,7 @@ lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
 
 /-- **Complementation**: the projection of a complement is the complementary
 projection. -/
+@[simp]
 lemma proj_compl (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     P.proj Bᶜ hB.compl = ContinuousLinearMap.id ℂ H - P.proj B hB := by
   have hsum := P.proj_union hB hB.compl disjoint_compl_right
@@ -243,6 +251,7 @@ lemma norm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
     Complex.ofReal_re]
 
 /-- Total mass: `diag ξ X = ‖ξ‖ ^ 2`. -/
+@[simp]
 lemma diag_univ_toReal (P : ProjValMeasure X H) (ξ : H) :
     ((P.diag ξ) Set.univ).toReal = ‖ξ‖ ^ 2 := by
   have h := P.inner_proj Set.univ MeasurableSet.univ ξ
@@ -284,6 +293,12 @@ so `μ(B) = ∑' μ(B_k)` for every `ξ`; the squared distance
 `‖(S n) ξ - P(B) ξ‖²` then equals `μ(B) - ∑_{k < n} μ(B_k)` — the mass of
 `B` not yet covered — and that tends to `0`.  This is strong countable
 additivity: the partial sums converge strongly to `P(B)`. -/
+
+/-- Moving a self-adjoint continuous linear map between inner-product arguments. -/
+private lemma inner_apply_of_isSelfAdjoint (T : H →L[ℂ] H)
+    (hT : IsSelfAdjoint T) (x y : H) :
+    ⟪T x, y⟫_ℂ = ⟪x, T y⟫_ℂ := by
+  rw [← ContinuousLinearMap.adjoint_inner_right T x y, hT.adjoint_eq]
 
 private def partialSum (P : ProjValMeasure X H) (f : ℕ → Set X)
     (hf : ∀ n, MeasurableSet (f n)) (n : ℕ) : H →L[ℂ] H :=
@@ -410,6 +425,8 @@ private theorem univ_mul_partialSum (P : ProjValMeasure X H) {f : ℕ → Set X}
   normed space is convergent (`tendsto_zero_iff_norm_tendsto_zero`), leaving
   the constant `(P_B) ξ` behind.
 -/
+/-- For pairwise disjoint measurable sets, the finite sums of their projections,
+applied to any vector, converge to the projection of their union applied to that vector. -/
 theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ → Set X}
     (hf : ∀ n, MeasurableSet (f n)) (hdisj : Pairwise (Disjoint on f)) (ξ : H) :
     Tendsto (fun n => (∑ k < n, P.proj (f k) (hf k) : H →L[ℂ] H) ξ) Filter.atTop
@@ -469,16 +486,8 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
   -- `⟪(S n) ξ, (S n) ξ⟫`: self-adjointness and idempotence put it in the
   -- core form:
   have hdiag (n : ℕ) : (⟪(S n) ξ, (S n) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
-    have h1 : (⟪(S n) ξ, (S n) ξ⟫_ℂ) = (⟪ξ, (S n) ((S n) ξ)⟫_ℂ) := by
-      calc (⟪(S n) ξ, (S n) ξ⟫_ℂ)
-          _ = (⟪(star (star (S n))) ξ, (S n) ξ⟫_ℂ) := by
-            simp
-          _ = (⟪ξ, ((S n)†) ((S n) ξ)⟫_ℂ) := by
-            rw [ContinuousLinearMap.star_eq_adjoint (star (S n)),
-                ContinuousLinearMap.star_eq_adjoint (S n),
-                ContinuousLinearMap.adjoint_inner_left ((S n)†) ((S n) ξ) ξ]
-          _ = (⟪ξ, (S n) ((S n) ξ)⟫_ℂ) := by
-            rw [IsSelfAdjoint.adjoint_eq (partialSum_selfAdjoint P hf n)]
+    have h1 : (⟪(S n) ξ, (S n) ξ⟫_ℂ) = (⟪ξ, (S n) ((S n) ξ)⟫_ℂ) :=
+      inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((S n) ξ)
     rw [h1, show (S n) ((S n) ξ) = (S n) (ξ) by
       rw [← mul_apply_eq_comp, partialSum_idem P hf hdisj n]]
     simpa using hdiagCore n
@@ -486,49 +495,31 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
   -- with `P_B` in the strong sense `(S n) · (P_B) = (S n)` (and its mirror),
   -- so both reduce to the core form:
   have hcross (n : ℕ) : (⟪(S n) ξ, (P_B) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
-    have h1 : (⟪(S n) ξ, (P_B) ξ⟫_ℂ) = (⟪ξ, (S n) ((P_B) ξ)⟫_ℂ) := by
-      calc (⟪(S n) ξ, (P_B) ξ⟫_ℂ)
-          _ = (⟪(star (star (S n))) ξ, (P_B) ξ⟫_ℂ) := by
-            simp
-          _ = (⟪ξ, ((S n)†) ((P_B) ξ)⟫_ℂ) := by
-            rw [ContinuousLinearMap.star_eq_adjoint (star (S n)),
-                ContinuousLinearMap.star_eq_adjoint (S n),
-                ContinuousLinearMap.adjoint_inner_left ((S n)†) ((P_B) ξ) ξ]
-          _ = (⟪ξ, (S n) ((P_B) ξ)⟫_ℂ) := by
-            rw [IsSelfAdjoint.adjoint_eq (partialSum_selfAdjoint P hf n)]
+    have h1 : (⟪(S n) ξ, (P_B) ξ⟫_ℂ) = (⟪ξ, (S n) ((P_B) ξ)⟫_ℂ) :=
+      inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ((P_B) ξ)
     rw [h1, show (S n) ((P_B) ξ) = (S n) (ξ) by
       rw [← mul_apply_eq_comp, partialSum_mul_univ P hf n]]
     simpa using hdiagCore n
   have hcross2 (n : ℕ) : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (((p n).toReal) : ℂ) := by
     -- `⟪(P_B) ξ, (S n) ξ⟫ = ⟨(S n) ((P_B) ξ), ξ⟩` (`adjoint_inner_right` with
     -- `A := (S n)`, since `(S n)† = (S n)`):
-    have h1 : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (⟪(S n) ((P_B) ξ), ξ⟫_ℂ) := by
-      have h1a : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) =
-          (⟪(P_B) ξ, (ContinuousLinearMap.adjoint (S n)) ξ⟫_ℂ) := by
-        simp [S, IsSelfAdjoint.adjoint_eq (partialSum_selfAdjoint P hf n)]
-      rw [h1a, ContinuousLinearMap.adjoint_inner_right (S n) ((P_B) ξ) ξ]
+    have h1 : (⟪(P_B) ξ, (S n) ξ⟫_ℂ) = (⟪(S n) ((P_B) ξ), ξ⟫_ℂ) :=
+      (inner_apply_of_isSelfAdjoint (S n)
+        (partialSum_selfAdjoint P hf n) ((P_B) ξ) ξ).symm
     rw [h1, show (S n) ((P_B) ξ) = (S n) (ξ) by
       rw [← mul_apply_eq_comp, partialSum_mul_univ P hf n]]
     -- `⟪(S n) ξ, ξ⟫ = ⟨ξ, (S n)† ξ⟩ = ⟨ξ, (S n) ξ⟩`:
-    rw [show (⟪(S n) ξ, ξ⟫_ℂ) = (⟪ξ, (S n) ξ⟫_ℂ) by
-      rw [← ContinuousLinearMap.adjoint_inner_right (S n) ξ ξ,
-        IsSelfAdjoint.adjoint_eq (partialSum_selfAdjoint P hf n)]]
+    rw [inner_apply_of_isSelfAdjoint (S n) (partialSum_selfAdjoint P hf n) ξ ξ]
     simpa using hdiagCore n
   -- `⟪(P_B) ξ, (P_B) ξ⟫`: the same for `P_B` itself, with total mass `U`:
   have htotal : (⟪(P_B) ξ, (P_B) ξ⟫_ℂ) = ((U).toReal : ℂ) := by
     calc (⟪(P_B) ξ, (P_B) ξ⟫_ℂ)
-        _ = (⟪(star (star (P_B))) ξ, (P_B) ξ⟫_ℂ) := by
-          simp
-        _ = (⟪ξ, ((P_B)†) ((P_B) ξ)⟫_ℂ) := by
-          rw [ContinuousLinearMap.star_eq_adjoint (star (P_B)),
-              ContinuousLinearMap.star_eq_adjoint (P_B),
-              ContinuousLinearMap.adjoint_inner_left ((P_B)†) ((P_B) ξ) ξ]
-        _ = (⟪ξ, (P_B) ((P_B) ξ)⟫_ℂ) := by
-          rw [IsSelfAdjoint.adjoint_eq (P.isSelfAdjoint_proj B hB)]
+        _ = (⟪ξ, (P_B) ((P_B) ξ)⟫_ℂ) :=
+          inner_apply_of_isSelfAdjoint P_B (P.isSelfAdjoint_proj B hB) ξ ((P_B) ξ)
         _ = (⟪ξ, (P_B) ξ⟫_ℂ) := by
           have hP2 : (P_B) ((P_B) ξ) = (P_B) (ξ) := by
             rw [← mul_apply_eq_comp, P.proj_idem B hB]
-          simp [hP2]
+          rw [hP2]
         _ = (((U).toReal) : ℂ) := by
           simpa [P_B, μ, U] using P.inner_proj B hB ξ
   -- (2) The squared distance is the uncovered mass, in real form:
@@ -632,6 +623,8 @@ theorem ext_of_diag {P Q : ProjValMeasure X H}
   refine ext ?_ (funext h)
   funext B hB
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  -- `ext_inner_map` views the projections as linear maps; expose continuous-map
+  -- applications so that `inner_proj` and the equality of diagonal measures apply.
   change ⟪P.proj B hB ξ, ξ⟫_ℂ = ⟪Q.proj B hB ξ, ξ⟫_ℂ
   rw [← inner_conj_symm (P.proj B hB ξ) ξ,
     ← inner_conj_symm (Q.proj B hB ξ) ξ,
@@ -639,6 +632,7 @@ theorem ext_of_diag {P Q : ProjValMeasure X H}
 
 /-- Two projection-valued measures agreeing on all measurable-set projections
 are equal. -/
+@[ext]
 theorem ext_of_proj {P Q : ProjValMeasure X H}
     (h : ∀ (B : Set X) (hB : MeasurableSet B), P.proj B hB = Q.proj B hB) :
     P = Q := by
