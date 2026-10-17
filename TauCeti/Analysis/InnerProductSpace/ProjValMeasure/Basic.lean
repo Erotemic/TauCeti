@@ -54,35 +54,15 @@ from the structure's laws.
 * `ext_of_diag`, `ext_of_proj`, `ext_iff_diag`, `ext_iff_proj`: extensionality
   from either data field.
 
-## Provenance
+## References
 
-* **Original repository:** Spectra,
-  `https://github.com/adambornemann-glitch/Spectra`, commit
-  `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`.
-* **Original module:** `Spectra/ProjValMeasure/Basic.lean` (228 lines),
-  which imports **only Mathlib**.
-* **Original authors / copyright / licence:** Copyright (c) 2026 Spectra
-  Formalization Project; `Authors: Adam Bornemann`; Apache 2.0.
-* **Intermediate port:** AIQ-Kitware/aiq-dkps-formalization,
-  `ForTauCeti/Analysis/InnerProductSpace/ProjValMeasure/Basic.lean`
-  (Kitware, Inc., Apache 2.0; `Authors: Jon Crall, Claude Opus 5`), where
-  the carrier was restricted to the Borel sets of `ℝ`.
-* **Changes in this port relative to the intermediate donor:**
-  * The carrier is generalized from `Set ℝ` / `Measure ℝ` to the measurable
-    sets of an arbitrary measurable space `X` / `Measure X`.
-  * New: `isPositive_proj` (positivity as `IsPositive`), `proj_mul_eq_left_of_subset` (the
-    absorption identity for `B ⊆ C`), `proj_range_mono` (the range
-    inclusion `range (P(B)) ⊆ range (P(C))` for `B ⊆ C`), and
-    `tendsto_sum_proj_of_pairwise_disjoint` (strong countable additivity at the operator
-    level).  The donor file established only self-adjointness, with
-    nonnegativity implicit in the weld, and countable additivity at the
-    level of the diagonal `ℝ≥0∞`-valued measures only.
-  * The polarization lemma `op_ext_of_inner_self` is moved into the
-    `ProjValMeasure` namespace.
-  * The donor's representation of the diagonal scalar measures as *data* of
-    the structure is preserved: the finite measures supplied by the
-    structure and connected to the projections by `inner_proj` are the
-    diagonal measures, rather than being derived from them.
+* Adam Bornemann, *Spectra*, `Spectra/ProjValMeasure/Basic.lean`,
+  https://github.com/adambornemann-glitch/Spectra
+  (commit `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`).
+* AIQ-Kitware, *DKPS formalization*,
+  `ForTauCeti/Analysis/InnerProductSpace/ProjValMeasure/Basic.lean`,
+  https://github.com/AIQ-Kitware/aiq-dkps-formalization.
+
 -/
 
 public section
@@ -123,18 +103,6 @@ structure ProjValMeasure (X : Type*) [MeasurableSpace X] (H : Type*)
 
 namespace ProjValMeasure
 
-/-! ## Polarization: the diagonal determines the operator -/
-
-omit [CompleteSpace H] in
-/-- Two bounded operators on a complex inner product space agree if their
-diagonal inner products agree at every vector. -/
-lemma op_ext_of_inner_self {S T : H →L[ℂ] H}
-    (h : ∀ ξ : H, ⟪ξ, S ξ⟫_ℂ = ⟪ξ, T ξ⟫_ℂ) : S = T := by
-  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
-  -- states the goal as the inner-product identity the structure lemma expects.
-  change ⟪S ξ, ξ⟫_ℂ = ⟪T ξ, ξ⟫_ℂ
-  rw [← inner_conj_symm (S ξ) ξ, ← inner_conj_symm (T ξ) ξ, h ξ]
-
 /-! ## The classical axioms, recovered as theorems -/
 
 /-- Every diagonal measure is finite, with total mass `‖ξ‖²`; unpacked from the
@@ -152,10 +120,14 @@ lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
 
 /-- The projection of the empty measurable set is zero. -/
 @[simp]
-lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 :=
-  op_ext_of_inner_self fun ξ => by
-    rw [P.inner_proj, zero_apply, inner_zero_right, measure_empty]
-    simp
+lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 := by
+  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  change ⟪P.proj ∅ MeasurableSet.empty ξ, ξ⟫_ℂ =
+    ⟪(0 : H →L[ℂ] H) ξ, ξ⟫_ℂ
+  rw [← inner_conj_symm (P.proj ∅ MeasurableSet.empty ξ) ξ,
+    ← inner_conj_symm ((0 : H →L[ℂ] H) ξ) ξ,
+    P.inner_proj, zero_apply, inner_zero_right, measure_empty]
+  simp
 
 /-- Every measurable-set projection is idempotent. -/
 lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
@@ -167,8 +139,10 @@ lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
 lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     IsSelfAdjoint (P.proj B hB) := by
   rw [ContinuousLinearMap.isSelfAdjoint_iff']
-  refine op_ext_of_inner_self fun ξ => ?_
-  rw [ContinuousLinearMap.adjoint_inner_right, ← inner_conj_symm (P.proj B hB ξ) ξ,
+  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  change ⟪((P.proj B hB)†) ξ, ξ⟫_ℂ = ⟪P.proj B hB ξ, ξ⟫_ℂ
+  rw [ContinuousLinearMap.adjoint_inner_left,
+    ← inner_conj_symm (P.proj B hB ξ) ξ,
     P.inner_proj, Complex.conj_ofReal]
 
 /-- For each measurable set `B`, the operator `P(B)` is positive. -/
@@ -232,15 +206,20 @@ theorem proj_range_mono (P : ProjValMeasure X H) {B C : Set X}
 their projections. -/
 lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
     (hB₁ : MeasurableSet B₁) (hB₂ : MeasurableSet B₂) (hd : Disjoint B₁ B₂) :
-    P.proj (B₁ ∪ B₂) (hB₁.union hB₂) = P.proj B₁ hB₁ + P.proj B₂ hB₂ :=
-  op_ext_of_inner_self fun ξ => by
-    -- `P.inner_proj` appeared three times in the `rw` chain this replaced, once per
-    -- occurrence; `simp only` reaches all three in one pass.
+    P.proj (B₁ ∪ B₂) (hB₁.union hB₂) = P.proj B₁ hB₁ + P.proj B₂ hB₂ := by
+  have hdiag (ξ : H) :
+      ⟪ξ, P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ⟫_ℂ =
+        ⟪ξ, (P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ⟫_ℂ := by
     simp only [add_apply, inner_add_right, P.inner_proj, measure_union hd hB₂,
       ENNReal.toReal_add (measure_ne_top (μ := P.diag ξ) (s := B₁))
         (measure_ne_top (μ := P.diag ξ) (s := B₂))]
     push_cast
     ring
+  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  change ⟪P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ, ξ⟫_ℂ =
+    ⟪(P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ, ξ⟫_ℂ
+  rw [← inner_conj_symm (P.proj (B₁ ∪ B₂) (hB₁.union hB₂) ξ) ξ,
+    ← inner_conj_symm ((P.proj B₁ hB₁ + P.proj B₂ hB₂) ξ) ξ, hdiag ξ]
 
 /-- **Complementation**: the projection of a complement is the complementary
 projection. -/
@@ -409,40 +388,6 @@ private theorem univ_mul_partialSum (P : ProjValMeasure X H) {f : ℕ → Set X}
         P.proj_congr hE (MeasurableSet.inter (MeasurableSet.iUnion hf) (hf n)) (hf n)]
     rw [ih, hterm]
 
-/-- The `ℝ≥0∞` sum of the diagonal values of the first `n` sets of a finite
-measure is not `⊤`, since each individual value is not. -/
-private lemma finset_sum_ne_top {μ : Measure X} [IsFiniteMeasure μ]
-    (f : ℕ → Set X) (n : ℕ) :
-    (∑ k ∈ Finset.range n, (μ (f k) : ℝ≥0∞)) ≠ ⊤ := by
-  induction n with
-  | zero =>
-    intro h
-    rw [Finset.sum_range_zero] at h
-    exact ENNReal.zero_ne_top h
-  | succ n ih =>
-    intro h
-    rw [Finset.sum_range_succ] at h
-    cases ENNReal.add_eq_top.mp h with
-    | inl h1 => exact ih h1
-    | inr h2 => exact (measure_ne_top (μ := μ) (s := f n)) h2
-
-/-- For a finite measure, `toReal` of the finite `ℝ≥0∞` sum of the diagonal
-values of the first `n` sets equals the real sum of the individual `toReal`
-values. -/
-private theorem toReal_finset_sum {μ : Measure X} [IsFiniteMeasure μ]
-    (f : ℕ → Set X) (n : ℕ) :
-    (∑ k ∈ Finset.range n, ((μ (f k) : ℝ≥0∞).toReal)) =
-      (∑ k ∈ Finset.range n, (μ (f k) : ℝ≥0∞)).toReal := by
-  induction n with
-  | zero =>
-    simp
-  | succ n ih =>
-    rw [Finset.sum_range_succ, Finset.sum_range_succ,
-      ENNReal.toReal_add (finset_sum_ne_top (μ := μ) f n)
-        (measure_ne_top (μ := μ) (s := f n)),
-      ih]
-
-
 /-
 **Strong countable additivity, stated at the operator level.**  Let
 `(f n)` be a pairwise-disjoint family of measurable sets and write
@@ -513,7 +458,10 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
       have hreal : ((p n).toReal) + (μ (f n)).toReal = ((p (n + 1)).toReal) := by
         have hadd : (((p n) + (μ (f n) : ℝ≥0∞)).toReal) =
             ((p n).toReal) + (μ (f n)).toReal :=
-          ENNReal.toReal_add (finset_sum_ne_top (μ := μ) f n)
+          ENNReal.toReal_add
+            (show (p n) ≠ ⊤ from
+              ENNReal.sum_ne_top.mpr
+                (fun k _ => measure_ne_top (μ := μ) (s := f k)))
             (measure_ne_top (μ := μ) (s := f n))
         rw [hsum, ← hadd]
       -- the `ℂ`-valued goal is the `ℝ`-valued one, coerced:
@@ -663,11 +611,9 @@ theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ 
 
 /-! ## Extensionality
 
-A `ProjValMeasure` is determined by either of its two data fields: the
-projection field or the diagonal measures.  The two determine each other —
-`diag` from `proj` by `inner_proj`, and `proj` from `diag` by
-`op_ext_of_inner_self` — so either field alone gives an extensionality
-principle. -/
+A `ProjValMeasure` is determined by either its projection field or its
+finite diagonal scalar measures. The identity `inner_proj` relates these
+fields; finite measure values are recovered from their real embeddings. -/
 
 /-- Two PVMs with the same data fields are equal; the remaining fields are
 propositions. -/
@@ -685,7 +631,11 @@ theorem ext_of_diag {P Q : ProjValMeasure X H}
     (h : ∀ ξ : H, P.diag ξ = Q.diag ξ) : P = Q := by
   refine ext ?_ (funext h)
   funext B hB
-  exact op_ext_of_inner_self fun ξ => by rw [P.inner_proj, Q.inner_proj, h ξ]
+  refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
+  change ⟪P.proj B hB ξ, ξ⟫_ℂ = ⟪Q.proj B hB ξ, ξ⟫_ℂ
+  rw [← inner_conj_symm (P.proj B hB ξ) ξ,
+    ← inner_conj_symm (Q.proj B hB ξ) ξ,
+    P.inner_proj, Q.inner_proj, h ξ]
 
 /-- Two projection-valued measures agreeing on all measurable-set projections
 are equal. -/
