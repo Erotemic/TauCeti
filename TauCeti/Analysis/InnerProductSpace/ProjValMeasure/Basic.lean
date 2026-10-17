@@ -287,7 +287,6 @@ lemma norm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
     Complex.ofReal_re]
 
 /-- Total mass of the diagonal scalar measure, as a real number. -/
-@[simp]
 lemma diag_univ_toReal (P : ProjValMeasure X H) (ξ : H) :
     ((P.diag ξ) Set.univ).toReal = ‖ξ‖ ^ 2 := by
   -- The projection of the whole space is the identity, so its norm identity
