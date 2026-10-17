@@ -3,6 +3,14 @@ Copyright (c) 2026 Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Crall, Claude Opus 5, qwen3.8-27b-dbirks-hyperqwen-huge
 -/
+/-
+Adapted from: Spectra (https://github.com/adambornemann-glitch/Spectra),
+  `Spectra/ProjValMeasure/Basic.lean` at commit
+  `8dbaaf6728d1342ae16acf79fd7eef7c59b37e63`.
+Copyright (c) 2026 Spectra Formalization Project.
+Authors: Adam Bornemann
+Released under the Apache 2.0 license.
+-/
 module
 
 public import Mathlib.Analysis.InnerProductSpace.Adjoint
@@ -24,17 +32,13 @@ public import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 # Projection-valued measures
 
 A projection-valued measure on the measurable sets of an arbitrary measurable
-space `X`, acting on a complex Hilbert space `H`.  **Mathlib has no such
-structure** — it has the continuous functional calculus but no Borel calculus
-and no spectral measures — so this is an addition rather than a duplication.
+space `X`, acting on a complex Hilbert space `H`.
 
-The diagonal scalar measures `diag ξ` are carried as *data* of the
-structure and welded to the operator field by `inner_proj`.
-Countable additivity therefore never has to be stated, because it already
-lives inside `Measure X`; idempotence, self-adjointness, positivity and
-finite additivity are theorems about the welded pair, and strong countable
-additivity follows from the diagonal measures being genuine measures
-(`strongLime_disjoint` below).
+The finite diagonal scalar measures `diag ξ` are fields of the structure,
+related to the operator field by `inner_proj`. Countable additivity of these
+scalar measures supplies strong countable additivity of the projections.
+Idempotence, self-adjointness, positivity, and finite additivity are proved
+from the structure's laws.
 
 ## Main declarations
 
@@ -42,10 +46,10 @@ additivity follows from the diagonal measures being genuine measures
   operators, the diagonal measures `diag : H → Measure X`, the weld
   `inner_proj`, the normalization `proj_univ : P(X) = 1`, and the
   multiplicativity law `proj_inter`.
-* `proj_idem`, `isSelfAdjoint_proj`, `isPositive_proj`, `proj_mono`,
+* `proj_idem`, `isSelfAdjoint_proj`, `isPositive_proj`, `proj_mul_eq_left_of_subset`,
   `proj_range_mono`, `proj_union`, `proj_compl`, `norm_proj_apply_le`:
   the classical PVM laws, recovered from the structure.
-* `strongLime_disjoint`: strong countable additivity on a pairwise-disjoint
+* `tendsto_sum_proj_of_pairwise_disjoint`: strong countable additivity on a pairwise-disjoint
   measurable family.
 * `ext_of_diag`, `ext_of_proj`, `ext_iff_diag`, `ext_iff_proj`: extensionality
   from either data field.
@@ -66,10 +70,10 @@ additivity follows from the diagonal measures being genuine measures
 * **Changes in this port relative to the intermediate donor:**
   * The carrier is generalized from `Set ℝ` / `Measure ℝ` to the measurable
     sets of an arbitrary measurable space `X` / `Measure X`.
-  * New: `isPositive_proj` (positivity as `IsPositive`), `proj_mono` (the
+  * New: `isPositive_proj` (positivity as `IsPositive`), `proj_mul_eq_left_of_subset` (the
     absorption identity for `B ⊆ C`), `proj_range_mono` (the range
     inclusion `range (P(B)) ⊆ range (P(C))` for `B ⊆ C`), and
-    `strongLime_disjoint` (strong countable additivity at the operator
+    `tendsto_sum_proj_of_pairwise_disjoint` (strong countable additivity at the operator
     level).  The donor file established only self-adjointness, with
     nonnegativity implicit in the weld, and countable additivity at the
     level of the diagonal `ℝ≥0∞`-valued measures only.
@@ -86,6 +90,8 @@ public section
 open MeasureTheory Filter Function
 open scoped InnerProduct InnerProductSpace ENNReal Topology
 
+namespace TauCeti
+
 variable {X : Type*} [MeasurableSpace X]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
@@ -94,11 +100,10 @@ variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteS
 /-- A **projection-valued measure** on the measurable sets of `X`, acting on a
 complex Hilbert space `H`.
 
-The diagonal scalar measures `diag ξ = ⟪ξ, proj · ξ⟫` are carried as data and
-welded to the operator field by `inner_proj`; consequently countable
-additivity never needs to be stated — it lives inside `Measure X`.
-Idempotence, self-adjointness, positivity, finite additivity, and
-`‖proj B ξ‖ ≤ ‖ξ‖` are all theorems below. -/
+The diagonal scalar measures `diag ξ` are supplied as finite measures,
+related to the projections by `inner_proj`. Idempotence, self-adjointness,
+positivity, finite additivity, contraction, and strong countable additivity
+follow from these laws. -/
 structure ProjValMeasure (X : Type*) [MeasurableSpace X] (H : Type*)
     [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H] where
   /-- The projection assigned to each measurable set. -/
@@ -121,10 +126,8 @@ namespace ProjValMeasure
 /-! ## Polarization: the diagonal determines the operator -/
 
 omit [CompleteSpace H] in
-/-- On a **complex** Hilbert space, an operator is determined by its diagonal
-matrix elements `⟪ξ, T ξ⟫`.  (False over `ℝ` — a rotation by `π/2` of the plane
-has vanishing diagonal.)  Mathlib's `ext_inner_map` carries the polarization;
-we merely flip slots by conjugation. -/
+/-- Two bounded operators on a complex inner product space agree if their
+diagonal inner products agree at every vector. -/
 lemma op_ext_of_inner_self {S T : H →L[ℂ] H}
     (h : ∀ ξ : H, ⟪ξ, S ξ⟫_ℂ = ⟪ξ, T ξ⟫_ℂ) : S = T := by
   refine ContinuousLinearMap.coe_injective ((ext_inner_map _ _).mp fun ξ => ?_)
@@ -147,22 +150,20 @@ lemma proj_congr (P : ProjValMeasure X H) {B₁ B₂ : Set X} (h : B₁ = B₂)
     P.proj B₁ h₁ = P.proj B₂ h₂ := by
   subst h; rfl
 
-/-- The projection of the empty set is zero — the first classical PVM axiom,
-recovered here from the diagonal-measure characterisation rather than assumed. -/
+/-- The projection of the empty measurable set is zero. -/
 @[simp]
 lemma proj_empty (P : ProjValMeasure X H) : P.proj ∅ MeasurableSet.empty = 0 :=
   op_ext_of_inner_self fun ξ => by
     rw [P.inner_proj, zero_apply, inner_zero_right, measure_empty]
     simp
 
-/-- Idempotence, from multiplicativity at `B ∩ B`. -/
+/-- Every measurable-set projection is idempotent. -/
 lemma proj_idem (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     P.proj B hB * P.proj B hB = P.proj B hB := by
   rw [P.proj_inter B B hB hB]
   exact P.proj_congr (Set.inter_self B) (hB.inter hB) hB
 
-/-- Self-adjointness: the diagonal is a real coercion, hence conjugation-fixed,
-hence the operator equals its adjoint by polarization. -/
+/-- Every measurable-set projection is self-adjoint. -/
 lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     IsSelfAdjoint (P.proj B hB) := by
   rw [ContinuousLinearMap.isSelfAdjoint_iff']
@@ -170,9 +171,7 @@ lemma isSelfAdjoint_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSe
   rw [ContinuousLinearMap.adjoint_inner_right, ← inner_conj_symm (P.proj B hB ξ) ξ,
     P.inner_proj, Complex.conj_ofReal]
 
-/-- **Positivity of PVM values.** Every value `P(B)` is a positive operator:
-self-adjoint (by `isSelfAdjoint_proj`) with nonnegative diagonal form values,
-the nonnegativity being that of the diagonal measure through the weld. -/
+/-- For each measurable set `B`, the operator `P(B)` is positive. -/
 theorem isPositive_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     (P.proj B hB).IsPositive := by
   rw [ContinuousLinearMap.isPositive_def']
@@ -194,11 +193,8 @@ theorem isPositive_proj (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet
     rw [ContinuousLinearMap.reApplyInnerSelf, hval]
     simp
 
-/-- **Absorption identity for PVM values.** If `B ⊆ C`, then
-`P(B) * P(C) = P(B)`: composing with the projection of the larger set
-absorbs the projection of the smaller.  The range-inclusion form of PVM
-monotonicity is the corollary `proj_range_mono`. -/
-theorem proj_mono (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
+/-- For measurable `B ⊆ C`, the projection product `P(B) * P(C)` is `P(B)`. -/
+theorem proj_mul_eq_left_of_subset (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
     (hB : MeasurableSet B) (hC : MeasurableSet C) :
     P.proj B hB * P.proj C hC = P.proj B hB := by
   rw [P.proj_inter B C hB hC]
@@ -213,11 +209,8 @@ theorem proj_mono (P : ProjValMeasure X H) {B C : Set X} (hBC : B ⊆ C)
       exact ⟨h₁, hBC h₁⟩
   simp [hE]
 
-/-- **Range monotonicity of PVM values.** If `B ⊆ C`, then
-`(P.proj B hB).range ⊆ (P.proj C hC).range`: every vector `P(B) x` lies in
-the range of `P(C)`, with preimage `P(B) x` itself, because
-`P(C) * P(B) = P(C ∩ B) = P(B)`.  This is the range-inclusion form of the
-absorption identity `proj_mono`. -/
+/-- If measurable `B ⊆ C`, then the range of `P(B)` is contained in the
+range of `P(C)`. -/
 theorem proj_range_mono (P : ProjValMeasure X H) {B C : Set X}
     (hBC : B ⊆ C) (hB : MeasurableSet B) (hC : MeasurableSet C) :
     (P.proj B hB).range ≤ (P.proj C hC).range := by
@@ -235,8 +228,8 @@ theorem proj_range_mono (P : ProjValMeasure X H) {B C : Set X}
   rw [habs]
   exact hvx
 
-/-- Finite additivity is already a theorem: the diagonal measures are measures,
-and polarization lifts their additivity to the operators. -/
+/-- For disjoint measurable sets, the projection of their union is the sum of
+their projections. -/
 lemma proj_union (P : ProjValMeasure X H) {B₁ B₂ : Set X}
     (hB₁ : MeasurableSet B₁) (hB₂ : MeasurableSet B₂) (hd : Disjoint B₁ B₂) :
     P.proj (B₁ ∪ B₂) (hB₁.union hB₂) = P.proj B₁ hB₁ + P.proj B₂ hB₂ :=
@@ -258,8 +251,8 @@ lemma proj_compl (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B) :
     P.proj_univ] at hsum
   linear_combination (norm := module) -hsum
 
-/-- The fundamental quadratic identity `‖proj B ξ‖ ^ 2 = diag ξ B`,
-from idempotence and self-adjointness. -/
+/-- The squared norm of the projection of `ξ` equals its diagonal measure
+on the measurable set, interpreted as a real number. -/
 lemma norm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B)
     (ξ : H) :
     ‖P.proj B hB ξ‖ ^ 2 = ((P.diag ξ) B).toReal := by
@@ -290,8 +283,7 @@ lemma diag_univ_toReal (P : ProjValMeasure X H) (ξ : H) :
     exact h3.symm
   exact h2.symm
 
-/-- Every projection of the measure is a contraction — monotonicity of the
-diagonal measure does all the work. -/
+/-- For every measurable set `B`, `P(B)` is a contraction on vectors. -/
 lemma norm_proj_apply_le (P : ProjValMeasure X H) (B : Set X) (hB : MeasurableSet B)
     (ξ : H) :
     ‖P.proj B hB ξ‖ ≤ ‖ξ‖ := by
@@ -473,7 +465,7 @@ private theorem toReal_finset_sum {μ : Measure X} [IsFiniteMeasure μ]
   normed space is convergent (`tendsto_zero_iff_norm_tendsto_zero`), leaving
   the constant `(P_B) ξ` behind.
 -/
-theorem strongLime_disjoint {P : ProjValMeasure X H} {f : ℕ → Set X}
+theorem tendsto_sum_proj_of_pairwise_disjoint {P : ProjValMeasure X H} {f : ℕ → Set X}
     (hf : ∀ n, MeasurableSet (f n)) (hdisj : Pairwise (Disjoint on f)) (ξ : H) :
     Tendsto (fun n => (∑ k < n, P.proj (f k) (hf k) : H →L[ℂ] H) ξ) Filter.atTop
         (𝓝 (P.proj (⋃ k, f k) (MeasurableSet.iUnion hf) ξ)) := by
@@ -687,17 +679,16 @@ lemma ext {P Q : ProjValMeasure X H} (hproj : P.proj = Q.proj)
   obtain rfl : d = e := hdiag
   rfl
 
-/-- **A projection-valued measure is determined by its diagonal measures.**
-The diagonal matrix elements agree by `inner_proj`, and complex polarization
-recovers the operators. -/
+/-- Two projection-valued measures with the same diagonal scalar measures
+are equal. -/
 theorem ext_of_diag {P Q : ProjValMeasure X H}
     (h : ∀ ξ : H, P.diag ξ = Q.diag ξ) : P = Q := by
   refine ext ?_ (funext h)
   funext B hB
   exact op_ext_of_inner_self fun ξ => by rw [P.inner_proj, Q.inner_proj, h ξ]
 
-/-- Conversely, **the projections determine the diagonal measures**: finiteness
-lets `toReal` be cancelled on every measurable set. -/
+/-- Two projection-valued measures agreeing on all measurable-set projections
+are equal. -/
 theorem ext_of_proj {P Q : ProjValMeasure X H}
     (h : ∀ (B : Set X) (hB : MeasurableSet B), P.proj B hB = Q.proj B hB) :
     P = Q := by
@@ -708,9 +699,8 @@ theorem ext_of_proj {P Q : ProjValMeasure X H}
       (measure_ne_top (μ := Q.diag ξ) (s := B))).mp
     (by exact_mod_cast hr)
 
-/-- Two projection-valued measures are equal exactly when all their diagonal
-measures agree: the diagonal measures are scalar and comparable, unlike the
-operator field. -/
+/-- Equality of projection-valued measures is equivalent to equality of all
+diagonal scalar measures. -/
 theorem ext_iff_diag {P Q : ProjValMeasure X H} :
     P = Q ↔ ∀ ξ : H, P.diag ξ = Q.diag ξ :=
   ⟨fun h ξ => by rw [h], ext_of_diag⟩
@@ -722,3 +712,5 @@ theorem ext_iff_proj {P Q : ProjValMeasure X H} :
   ⟨fun h B hB => by rw [h], ext_of_proj⟩
 
 end ProjValMeasure
+
+end TauCeti
