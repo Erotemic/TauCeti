@@ -40,22 +40,27 @@ theorem eq_of_diagonal (S T : H →L[ℂ] H)
   change ⟪S x, x⟫_ℂ = ⟪T x, x⟫_ℂ
   rw [← inner_conj_symm (S x) x, ← inner_conj_symm (T x) x, h x]
 
-variable [CompleteSpace H]
+section RCLike
 
-/-- If `S` is self-adjoint, idempotent, and satisfies `S * T = S`, then the
-squared norm of `(S - T) x` is the difference of the squared norms. The operator
-`T` need not be self-adjoint. -/
+variable {𝕜 E : Type*} [RCLike 𝕜]
+variable [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [CompleteSpace E]
+
+/-- Over either the real or complex scalars, if `S` is self-adjoint, idempotent,
+and satisfies `S * T = S`, then the squared norm of `(S - T) x` is the difference
+of the squared norms. The operator `T` need not be self-adjoint. -/
 theorem norm_sub_sq_of_selfAdjoint_idempotent_absorption
-    (S T : H →L[ℂ] H) (hS : IsSelfAdjoint S)
-    (hSS : S * S = S) (hST : S * T = S) (x : H) :
+    (S T : E →L[𝕜] E) (hS : IsSelfAdjoint S)
+    (hSS : S * S = S) (hST : S * T = S) (x : E) :
     ‖S x - T x‖ ^ 2 = ‖T x‖ ^ 2 - ‖S x‖ ^ 2 := by
-  have hcross : ⟪S x, T x⟫_ℂ = ⟪S x, S x⟫_ℂ := by
+  have hcross : ⟪S x, T x⟫_𝕜 = ⟪S x, S x⟫_𝕜 := by
     calc
-      ⟪S x, T x⟫_ℂ = ⟪x, S (T x)⟫_ℂ := hS.isSymmetric x (T x)
-      _ = ⟪x, S x⟫_ℂ := by rw [← mul_apply_eq_comp, hST]
-      _ = ⟪x, S (S x)⟫_ℂ := by rw [← mul_apply_eq_comp, hSS]
-      _ = ⟪S x, S x⟫_ℂ := (hS.isSymmetric x (S x)).symm
-  rw [norm_sub_sq (𝕜 := ℂ), hcross, ← norm_sq_eq_re_inner (𝕜 := ℂ)]
+      ⟪S x, T x⟫_𝕜 = ⟪x, S (T x)⟫_𝕜 := hS.isSymmetric x (T x)
+      _ = ⟪x, S x⟫_𝕜 := by rw [← mul_apply_eq_comp, hST]
+      _ = ⟪x, S (S x)⟫_𝕜 := by rw [← mul_apply_eq_comp, hSS]
+      _ = ⟪S x, S x⟫_𝕜 := (hS.isSymmetric x (S x)).symm
+  rw [norm_sub_sq (𝕜 := 𝕜), hcross, ← norm_sq_eq_re_inner (𝕜 := 𝕜)]
   ring
+
+end RCLike
 
 end ContinuousLinearMap
