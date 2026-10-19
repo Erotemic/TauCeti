@@ -10,13 +10,14 @@ public import TauCeti.Analysis.InnerProductSpace.ProjValMeasure.Basic
 /-!
 # Orthogonal countable splitting for projection-valued measures
 
-A projection-valued measure splits the squared norm of a vector across a
-countable measurable partition. The proof reduces the projected squared
-norms to the diagonal scalar measure and applies countable additivity.
+The diagonal scalar measure records the squared norm of the projection of a
+Hilbert-space vector onto a measurable spectral region. For a countable
+measurable partition, these squared norms sum to the squared norm of the
+original vector. The identity applies to projection-valued measures on
+arbitrary measurable spaces.
 
-This proves SA-B24 of the SelfAdjointSpectralTheory roadmap, generalizing
-`ForTauCeti/Analysis/InnerProductSpace/ProjValMeasure/Additivity.lean`
-from Borel subsets of `ℝ` to an arbitrary measurable space.
+Adapted from Kitware's DKPS formalization in
+`ForTauCeti/Analysis/InnerProductSpace/ProjValMeasure/Additivity.lean`.
 -/
 
 public section
@@ -46,9 +47,8 @@ theorem enorm_sq_proj_apply (P : ProjValMeasure X H) (B : Set X)
       rw [P.norm_sq_proj_apply B hB ξ]
     _ = (P.diag ξ) B := ENNReal.ofReal_toReal hfin
 
-/-- **SA-B24.** For a countable measurable partition, the squared extended
-norms of the projected components sum to the squared extended norm of the
-original vector. -/
+/-- For a countable measurable partition, the squared extended norms of the
+projected components sum to the squared extended norm of the original vector. -/
 theorem tsum_enorm_sq_proj (P : ProjValMeasure X H) {ι : Type*} [Countable ι]
     (B : ι → Set X) (hB : ∀ k, MeasurableSet (B k))
     (hdisj : Pairwise (Function.onFun Disjoint B)) (hcov : (⋃ k, B k) = Set.univ)
