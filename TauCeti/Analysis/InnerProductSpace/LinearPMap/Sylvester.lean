@@ -24,7 +24,7 @@ Adapted from the Kitware DKPS formalization,
 
 public section
 
-namespace TauCeti.LinearPMap
+namespace LinearPMap
 
 universe u v w
 
@@ -64,7 +64,7 @@ theorem ofBounded
   · intro x
     have hx := congrArg (fun T : F →L[𝕜] E => T (x : F)) hEq
     change A (X (x : F)) - X (B (x : F)) = C (x : F)
-    simpa only [ContinuousLinearMap.comp_apply, sub_apply] using hx
+    simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply] using hx
 
 /-- The zero map solves the homogeneous domain-aware equation. -/
 theorem zero (A : E →ₗ.[𝕜] E) (B : F →ₗ.[𝕜] F) :
@@ -150,4 +150,4 @@ theorem smul {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
       _ = c • C (x : F) := by rw [hEqX]
 
 end SylvesterEquation
-end TauCeti.LinearPMap
+end LinearPMap
