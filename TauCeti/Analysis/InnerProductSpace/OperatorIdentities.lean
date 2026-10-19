@@ -19,8 +19,12 @@ This module collects operator identities independent of projection-valued measur
 * `ContinuousLinearMap.norm_sub_sq_of_selfAdjoint_idempotent_absorption` computes the squared
   distance between `S x` and `T x` when `S` is a self-adjoint idempotent absorbed by `T`.
 
-These proofs were extracted from the DKPS projection-valued-measure port. Self-adjointness
-identities already available as `IsSelfAdjoint.isSymmetric` are used directly.
+Use `eq_of_diagonal` to identify bounded complex-linear operators when
+their diagonal inner products agree on every vector. Use
+`norm_sub_sq_of_selfAdjoint_idempotent_absorption` to compare two operators
+when the first is a self-adjoint projection absorbed by the second.
+The latter identity applies over real or complex scalars and does not
+require the second operator to be self-adjoint.
 -/
 
 public section
