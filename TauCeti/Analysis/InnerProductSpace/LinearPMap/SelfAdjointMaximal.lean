@@ -20,7 +20,7 @@ Adapted from the Kitware DKPS formalization,
 
 public section
 
-namespace TauCeti.LinearPMap
+namespace LinearPMap
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
@@ -34,4 +34,4 @@ theorem eq_of_le_of_isSelfAdjoint {A B : H →ₗ.[ℂ] H}
     hB.mem_resolventSet_of_im_ne_zero (by simp)
   exact _root_.LinearPMap.eq_of_le_of_mem_resolventSet hAB hAi hBi
 
-end TauCeti.LinearPMap
+end LinearPMap
