@@ -30,10 +30,10 @@ public section
 open MeasureTheory
 open scoped InnerProductSpace ENNReal CompactlySupported
 
-namespace TauCeti.BorelCalculus
-
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 variable {a : H →L[ℂ] H}
+
+namespace MeasureTheory.Measure
 
 /-- Every integrable complex symbol on the compact spectrum of a bounded operator can be
 approximated in `L¹` by a continuous symbol. -/
@@ -47,8 +47,6 @@ theorem exists_continuous_integral_norm_sub_le (ν : Measure (spectrum ℂ a))
     hmem.exists_boundedContinuous_eLpNorm_sub_le (p := 1) (by simp)
       (ε := ENNReal.ofReal ε) (by simp only [ne_eq, ENNReal.ofReal_eq_zero, not_le]; exact hε)
   have hgint : Integrable (fun x => g x) ν := memLp_one_iff_integrable.mp hgmem
-  refine ⟨g.toContinuousMap, hgint, ?_⟩
-  change (∫ x, ‖f x - g x‖ ∂ν) ≤ ε
   have hsub_meas : AEStronglyMeasurable (f - ⇑g) ν :=
     (hf.sub hgint).aestronglyMeasurable
   have hint : ∫ x, ‖f x - g x‖ ∂ν = (eLpNorm (f - ⇑g) 1 ν).toReal := by
@@ -56,20 +54,29 @@ theorem exists_continuous_integral_norm_sub_le (ν : Measure (spectrum ℂ a))
       integral_norm_eq_lintegral_enorm (μ := ν) (f := fun x => f x - g x)
         hsub_meas]
     rfl
-  rw [hint]
-  calc (eLpNorm (f - ⇑g) 1 ν).toReal ≤ (ENNReal.ofReal ε).toReal := by
+  have happrox : (∫ x, ‖f x - g x‖ ∂ν) ≤ ε := by
+    rw [hint]
+    calc
+      (eLpNorm (f - ⇑g) 1 ν).toReal ≤ (ENNReal.ofReal ε).toReal := by
         apply ENNReal.toReal_mono _ hgle
         simp
-    _ = ε := ENNReal.toReal_ofReal hε.le
+      _ = ε := ENNReal.toReal_ofReal hε.le
+  refine ⟨g.toContinuousMap, ?_, ?_⟩
+  · simpa only [BoundedContinuousFunction.coe_toContinuousMap] using hgint
+  · simpa only [BoundedContinuousFunction.coe_toContinuousMap] using happrox
 
-/-- For any finite family of finite Borel measures on the compact spectrum, a bounded
-measurable symbol has one continuous approximant
-whose `L¹` error is at most `ε` against *each* measure. -/
+end MeasureTheory.Measure
+
+namespace TauCeti.BorelCalculus
+
+/-- A symbol integrable against every measure in a finite family of finite Borel measures
+on a compact operator spectrum has a single continuous approximant whose `L¹` error is
+at most `ε` for every measure. -/
 theorem exists_continuous_simultaneous_integral_norm_sub_le
     {ι : Type*} [Finite ι] (μ : ι → Measure (spectrum ℂ a))
     (hμ : ∀ i, μ i Set.univ < ⊤)
-    {f : spectrum ℂ a → ℂ} (hfm : Measurable f) {M : ℝ}
-    (hfb : ∀ x, ‖f x‖ ≤ M) {ε : ℝ} (hε : 0 < ε) :
+    {f : spectrum ℂ a → ℂ} (hf : ∀ i, Integrable f (μ i))
+    {ε : ℝ} (hε : 0 < ε) :
     ∃ g : C(spectrum ℂ a, ℂ), ∀ i,
       ∫ x, ‖f x - g x‖ ∂(μ i) ≤ ε := by
   classical
@@ -77,12 +84,13 @@ theorem exists_continuous_simultaneous_integral_norm_sub_le
   let ν : Measure (spectrum ℂ a) := ∑ i, μ i
   have hν : IsFiniteMeasure ν := by
     refine ⟨?_⟩
-    change (∑ i, μ i) Set.univ < ⊤
+    dsimp [ν]
     rw [Measure.coe_finsetSum, Finset.sum_apply]
     exact ENNReal.sum_lt_top.mpr (fun i _ => hμ i)
-  have hfi : Integrable f ν :=
-    (integrable_const M).mono' hfm.aestronglyMeasurable (Filter.Eventually.of_forall hfb)
-  obtain ⟨g, hg, hgle⟩ := exists_continuous_integral_norm_sub_le ν hfi hε
+  have hfi : Integrable f ν := by
+    dsimp [ν]
+    exact integrable_finsetSum_measure.mpr (fun i _ => hf i)
+  obtain ⟨g, hg, hgle⟩ := ν.exists_continuous_integral_norm_sub_le hfi hε
   refine ⟨g, fun i => ?_⟩
   have hdom : μ i ≤ ν := by
     dsimp [ν]
