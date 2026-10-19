@@ -25,7 +25,7 @@ Adapted from the Kitware DKPS formalization,
 
 public section
 
-namespace TauCeti.LinearPMap
+namespace LinearPMap
 
 universe u v w
 
@@ -81,4 +81,4 @@ theorem SpectralSetsSeparated.mono_sets
   intro a ha has' b hb hbt'
   exact h a ha (hs has') b hb (ht hbt')
 
-end TauCeti.LinearPMap
+end LinearPMap
