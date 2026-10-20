@@ -23,6 +23,9 @@ identities to bounded Borel symbols.
 Adapted from `ForTauCeti/Analysis/InnerProductSpace/BorelCalculus/Polarization.lean` in the
 Kitware DKPS formalization. The one-measure proof is retained; the finite-family result isolates
 its simultaneous form for use without the polarized pairing or Borel-operator construction.
+
+The approximation theorems are stated for arbitrary compact metric Borel
+spaces; an operator spectrum is a special case.
 -/
 
 public section
@@ -35,12 +38,15 @@ variable {a : H →L[ℂ] H}
 
 namespace MeasureTheory.Measure
 
-/-- Every integrable complex symbol on the compact spectrum of a bounded operator can be
-approximated in `L¹` by a continuous symbol. -/
-theorem exists_continuous_integral_norm_sub_le (ν : Measure (spectrum ℂ a))
-    [IsFiniteMeasure ν] {f : spectrum ℂ a → ℂ} (hf : Integrable f ν)
+/-- An integrable complex-valued function on a compact metric Borel space can
+be approximated in `L¹` by a continuous function for any finite measure. -/
+theorem exists_continuous_integral_norm_sub_le
+    {X : Type*} [MetricSpace X] [CompactSpace X]
+    [MeasurableSpace X] [BorelSpace X]
+    (ν : Measure (X))
+    [IsFiniteMeasure ν] {f : X → ℂ} (hf : Integrable f ν)
     {ε : ℝ} (hε : 0 < ε) :
-    ∃ g : C(spectrum ℂ a, ℂ), Integrable (fun x => g x) ν ∧
+    ∃ g : C(X, ℂ), Integrable (fun x => g x) ν ∧
       ∫ x, ‖f x - g x‖ ∂ν ≤ ε := by
   have hmem : MemLp f 1 ν := memLp_one_iff_integrable.mpr hf
   obtain ⟨g, hgle, hgmem⟩ :=
@@ -69,19 +75,21 @@ end MeasureTheory.Measure
 
 namespace TauCeti.BorelCalculus
 
-/-- A symbol integrable against every measure in a finite family of finite Borel measures
-on a compact operator spectrum has a single continuous approximant whose `L¹` error is
-at most `ε` for every measure. -/
+/-- On a compact metric Borel space, one continuous function can approximate
+a complex-valued symbol simultaneously in the prescribed finite family
+of `L¹` bounds. -/
 theorem exists_continuous_simultaneous_integral_norm_sub_le
-    {ι : Type*} [Finite ι] (μ : ι → Measure (spectrum ℂ a))
+    {X : Type*} [MetricSpace X] [CompactSpace X]
+    [MeasurableSpace X] [BorelSpace X]
+    {ι : Type*} [Finite ι] (μ : ι → Measure (X))
     (hμ : ∀ i, μ i Set.univ < ⊤)
-    {f : spectrum ℂ a → ℂ} (hf : ∀ i, Integrable f (μ i))
+    {f : X → ℂ} (hf : ∀ i, Integrable f (μ i))
     {ε : ℝ} (hε : 0 < ε) :
-    ∃ g : C(spectrum ℂ a, ℂ), ∀ i,
+    ∃ g : C(X, ℂ), ∀ i,
       ∫ x, ‖f x - g x‖ ∂(μ i) ≤ ε := by
   classical
   let fintype : Fintype ι := Fintype.ofFinite ι
-  let ν : Measure (spectrum ℂ a) := ∑ i, μ i
+  let ν : Measure (X) := ∑ i, μ i
   have hν : IsFiniteMeasure ν := by
     refine ⟨?_⟩
     dsimp [ν]
