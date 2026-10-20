@@ -72,11 +72,11 @@ theorem norm_apply_le_of_hermitianDilation (A : E →ₗ[𝕜] F) {c : ℝ}
 /-- A nonnegative pointwise norm bound holds for a rectangular map if and only if it holds
 for its Hermitian dilation. -/
 theorem norm_hermitianDilation_apply_le_iff (A : E →ₗ[𝕜] F) {c : ℝ} (hc : 0 ≤ c) :
-    (∀ x : E, ‖A x‖ ≤ c * ‖x‖) ↔
-      (∀ z : WithLp 2 (E × F), ‖A.hermitianDilation z‖ ≤ c * ‖z‖) := by
+    (∀ z : WithLp 2 (E × F), ‖A.hermitianDilation z‖ ≤ c * ‖z‖) ↔
+      (∀ x : E, ‖A x‖ ≤ c * ‖x‖) := by
   constructor
-  · exact A.norm_hermitianDilation_apply_le hc
   · exact A.norm_apply_le_of_hermitianDilation
+  · exact A.norm_hermitianDilation_apply_le hc
 
 /-- Hermitian dilation is an isometry for the operator norm. Continuous linear maps give
 operator norms to the finite-dimensional algebraic linear maps on both sides. -/
