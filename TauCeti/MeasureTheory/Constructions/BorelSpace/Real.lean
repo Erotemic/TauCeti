@@ -24,7 +24,7 @@ distribution of an extended-valued random variable.
 
 Each half-open real grid cell is Borel measurable, so it can be used as a
 measurable set in spectral measure constructions. The corresponding measure
-splitting result is in `TauCeti.MeasureTheory.Measure.RealGrid`.
+splitting result is in `TauCeti.MeasureTheory.Measure.Real.Grid`.
 -/
 
 public section

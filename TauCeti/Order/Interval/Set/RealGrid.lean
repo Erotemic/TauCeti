@@ -21,8 +21,9 @@ from a point to the cell's left endpoint is bounded by the width.
 The partition properties follow from Mathlib's integer-smul interval lemmas:
 `Set.pairwise_disjoint_Ico_zsmul` and `Set.iUnion_Ico_zsmul`. The named grid-cell
 results provide the disjointness and covering facts for constructions that operate
-on this family. Its Borel measurability and the associated countable measure
-decomposition are developed in `TauCeti.MeasureTheory.Constructions.BorelSpace.Real`.
+on this family. Borel measurability is developed in
+`TauCeti.MeasureTheory.Constructions.BorelSpace.Real`, and countable measure
+decomposition in `TauCeti.MeasureTheory.Measure.Real.Grid`.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/LinearPMap/SpectralGrid.lean`.
