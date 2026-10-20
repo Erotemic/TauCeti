@@ -45,6 +45,8 @@ separated. Three forms of this hypothesis are named here, all stated over restri
 of two operators `A` on `E` and `B` on `F`: a *separation* `δ ≤ |μ - ν|` with no ordering, an
 *ordered gap* `μ + δ ≤ ν`, and an *interval/exterior gap*, where the spectrum of `A` lies in
 `[a, b]` and that of `B` outside `(a - δ, b + δ)`. The latter two imply the first.
+An *internal gap* additionally records invariance of a subspace and separation of its point
+spectrum from that of its orthogonal complement.
 
 ## Main definitions
 
@@ -56,6 +58,8 @@ of two operators `A` on `E` and `B` on `F`: a *separation* `δ ≤ |μ - ν|` wi
 * `Module.End.PointOrderedGap A U B V δ`: the first lies below the second with margin `δ`.
 * `Module.End.PointIntervalExteriorGap A U B V a b δ`: the first lies in `[a, b]` and the second
   outside `(a - δ, b + δ)`.
+* `Module.End.PointInternalGap A U δ`: invariance of `U` together with spectral separation
+  between `U` and its orthogonal complement.
 
 ## Main statements
 
@@ -80,6 +84,8 @@ of two operators `A` on `E` and `B` on `F`: a *separation* `δ ≤ |μ - ν|` wi
 * `Module.End.PointOrderedGap.pointSpectraSeparated`,
   `Module.End.PointIntervalExteriorGap.pointSpectraSeparated`: ordered and interval/exterior gaps
   are separations.
+* `Module.End.pointInternalGap_pointSpectralSubspace`: a spectral block of a finite-dimensional
+  symmetric operator has an internal gap when the selected and complementary spectra are separated.
 * `Module.End.PointOrderedGap.of_pointSpectrumIn`,
   `Module.End.PointOrderedGap.of_re_inner_apply_self`: containment on opposite sides of a cut, or
   opposite quadratic-form bounds, give an ordered gap.
@@ -675,6 +681,54 @@ theorem exists_pos_pointSpectraSeparated_iff_disjoint [FiniteDimensional 𝕜 E]
   obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.mp hD.isClosed.isOpen_compl 0 h0
   refine ⟨ε, hε, fun μ hμ ν hν ↦ not_lt.mp fun hlt ↦ hball ?_ (Set.mem_image2_of_mem hμ hν)⟩
   simpa [Real.dist_eq] using hlt
+
+end Separation
+
+section Separation
+
+-- Adapted from the Kitware DKPS formalization,
+-- `ForTauCeti/Analysis/InnerProductSpace/Spectral/Gap.lean`.
+-- Original port authors: Jon Crall and OpenAI GPT 5.6 High.
+
+variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+  {A : Module.End 𝕜 E} {U : Submodule 𝕜 E} {δ δ' : ℝ}
+
+/-- An invariant subspace whose restricted point spectrum is separated by at least `δ`
+from the restricted point spectrum of its orthogonal complement. -/
+structure PointInternalGap (A : Module.End 𝕜 E) (U : Submodule 𝕜 E) (δ : ℝ) : Prop where
+  /-- The selected subspace is preserved by the operator. -/
+  invariant : ∀ x ∈ U, A x ∈ U
+  /-- The restricted point spectra on the subspace and its complement are separated. -/
+  pointSpectraSeparated : A.PointSpectraSeparated U A Uᗮ δ
+
+/-- Weakening the separation bound preserves an internal point-spectrum gap. -/
+theorem PointInternalGap.mono_gap (h : A.PointInternalGap U δ) (hδ : δ' ≤ δ) :
+    A.PointInternalGap U δ' :=
+  ⟨h.invariant, h.pointSpectraSeparated.mono le_rfl le_rfl hδ⟩
+
+/-- An invariant subspace with an ordered gap from its complement has an internal gap. -/
+theorem PointInternalGap.of_pointOrderedGap (hU : ∀ x ∈ U, A x ∈ U)
+    (h : A.PointOrderedGap U A Uᗮ δ) : A.PointInternalGap U δ :=
+  ⟨hU, h.pointSpectraSeparated⟩
+
+/-- Spectral containment in separated sets gives an internal point-spectrum gap. -/
+theorem PointInternalGap.of_pointSpectrumIn {s t : Set ℝ}
+    (hU : ∀ x ∈ U, A x ∈ U) (hs : A.PointSpectrumIn U s)
+    (ht : A.PointSpectrumIn Uᗮ t)
+    (hsep : ∀ a ∈ s, ∀ b ∈ t, δ ≤ |a - b|) : A.PointInternalGap U δ :=
+  ⟨hU, PointSpectraSeparated.of_pointSpectrumIn hs ht hsep⟩
+
+/-- A symmetric operator has an internal gap on the spectral subspace selected by `Ω`
+when the selected eigenvalues are separated from the unselected ones. -/
+theorem pointInternalGap_pointSpectralSubspace [FiniteDimensional 𝕜 E]
+    (hA : A.IsSymmetric) (Ω : Set ℝ)
+    (hΩ : ∀ μ ∈ Ω, ∀ ν ∈ Ωᶜ, δ ≤ |μ - ν|) :
+    A.PointInternalGap (A.pointSpectralSubspace Ω) δ := by
+  refine ⟨?_, ?_⟩
+  · intro x hx
+    exact A.map_pointSpectralSubspace_le (Submodule.mem_map_of_mem hx)
+  · rw [hA.orthogonal_pointSpectralSubspace Ω]
+    exact A.pointSpectraSeparated_pointSpectralSubspace A hΩ
 
 end Separation
 
