@@ -51,7 +51,6 @@ theorem mem_ae_iff (P : ProjValMeasure X H) (s : Set X) :
   simp only [ae, Filter.mem_iSup, MeasureTheory.mem_ae_iff]
 
 /-- A set is null for the PVM iff each diagonal measure vanishes on it. -/
-@[simp]
 theorem compl_mem_ae_iff (P : ProjValMeasure X H) (s : Set X) :
     sᶜ ∈ P.ae ↔ ∀ ξ : H, (P.diag ξ) s = 0 := by
   simpa only [compl_compl] using P.mem_ae_iff sᶜ
