@@ -722,9 +722,7 @@ theorem PointInternalGap.of_pointSpectrumIn {s t : Set ℝ}
   ⟨hU, PointSpectraSeparated.of_pointSpectrumIn hs ht hsep⟩
 
 /-- The orthogonal complement of the point-spectral subspace selected by `Ω` carries
-no eigenvalues belonging to `Ω`. No symmetry or finite-dimensionality assumption is needed:
-an eigenvector at a selected eigenvalue lies in the spectral subspace, and a vector in its
-intersection with the orthogonal complement must be zero. -/
+no eigenvalues belonging to `Ω`. No symmetry or finite-dimensionality assumption is needed. -/
 theorem pointSpectrumIn_orthogonal_pointSpectralSubspace (A : Module.End 𝕜 E) (Ω : Set ℝ) :
     A.PointSpectrumIn (A.pointSpectralSubspace Ω)ᗮ Ωᶜ := by
   refine pointSpectrumIn_iff.mpr fun x hxOrth hx0 μ hxEig ↦ ?_
