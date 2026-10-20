@@ -10,12 +10,13 @@ public import Mathlib.Analysis.InnerProductSpace.Adjoint
 /-!
 # Reassembling lower bounds from norm-splitting blocks
 
-A family of bounded operators may split squared vector norms even when the
-operators are not spectral projections. If a lower bound holds after applying
-all the blocks to a pair of vectors, it also holds for the original vectors.
+Suppose maps from one normed additive commutative group to another split the
+squared extended norms of vectors. A common lower bound for the images of
+each pair of vectors then gives the same bound for the original pair.
 
-The result uses extended nonnegative norms, so neither summability nor finiteness
-of the index type needs to be assumed.
+The maps need not be linear, continuous, or endomorphisms, and neither space
+requires an inner product. The use of extended nonnegative norms also avoids
+any summability or finiteness assumption on the index type.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/BlockLowerBound.lean`.
@@ -27,12 +28,13 @@ open scoped ENNReal
 
 namespace TauCeti
 
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+variable {H K : Type*} [NormedAddCommGroup H] [NormedAddCommGroup K]
 
-/-- A lower bound holding on every member of a squared-norm-splitting family of
-bounded operators also holds for the original pair of vectors. -/
+/-- Reassemble a lower bound from a family of arbitrary maps that splits the
+squared extended norms of the source space. The maps may take values in a
+different normed additive commutative group. -/
 theorem enorm_ge_of_blocks {c : ℝ≥0∞} {ι : Type*}
-    (blocks : ι → (H →L[ℂ] H))
+    (blocks : ι → H → K)
     (hsplit : ∀ f : H, ∑' i, ‖blocks i f‖ₑ ^ 2 = ‖f‖ₑ ^ 2)
     {x y : H} (hblock : ∀ i, c * ‖blocks i x‖ₑ ≤ ‖blocks i y‖ₑ) :
     c * ‖x‖ₑ ≤ ‖y‖ₑ := by
