@@ -65,7 +65,7 @@ theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
   simpa only [gridCell] using (iUnion_Ico_zsmul hε)
 
 /-- For positive width, the index of the grid cell containing `s` is `⌊s / ε⌋`. -/
-@[simp] theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
+theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
     s ∈ gridCell ε k ↔ ⌊s / ε⌋ = k := by
   rw [mem_gridCell, Int.floor_eq_iff]
   constructor
