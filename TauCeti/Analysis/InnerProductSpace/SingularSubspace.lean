@@ -40,14 +40,12 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
 
 /-- The right singular subspace of `A`, selected by the squared singular
 values in `Ω`, is the point-spectral subspace of `A† A` on its source. -/
-@[expose]
 noncomputable def rightSingularSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Submodule 𝕜 E :=
   Module.End.pointSpectralSubspace (A.adjoint ∘ₗ A) Ω
 
 /-- The left singular subspace of `A`, selected by the squared singular
 values in `Ω`, is the point-spectral subspace of `A A†` on its target. -/
-@[expose]
 noncomputable def leftSingularSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Submodule 𝕜 F :=
   Module.End.pointSpectralSubspace (A ∘ₗ A.adjoint) Ω
@@ -56,48 +54,50 @@ noncomputable def leftSingularSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
 theorem rightSingularSubspace_eq_pointSpectralSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     A.rightSingularSubspace Ω =
       Module.End.pointSpectralSubspace (A.adjoint ∘ₗ A) Ω :=
-  rfl
+  (rfl)
 
 /-- The defining point-spectral-subspace formula for the left singular block. -/
 theorem leftSingularSubspace_eq_pointSpectralSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     A.leftSingularSubspace Ω =
       Module.End.pointSpectralSubspace (A ∘ₗ A.adjoint) Ω :=
-  rfl
+  (rfl)
 
 /-- Enlarging the selected squared singular values enlarges the right block. -/
 theorem rightSingularSubspace_mono (A : E →ₗ[𝕜] F) {Ω Ω' : Set ℝ}
     (hΩ : Ω ⊆ Ω') : A.rightSingularSubspace Ω ≤ A.rightSingularSubspace Ω' := by
-  simpa only [rightSingularSubspace] using
+  simpa only [rightSingularSubspace_eq_pointSpectralSubspace] using
     (Module.End.pointSpectralSubspace_mono (A := A.adjoint ∘ₗ A) hΩ)
 
 /-- Enlarging the selected squared singular values enlarges the left block. -/
 theorem leftSingularSubspace_mono (A : E →ₗ[𝕜] F) {Ω Ω' : Set ℝ}
     (hΩ : Ω ⊆ Ω') : A.leftSingularSubspace Ω ≤ A.leftSingularSubspace Ω' := by
-  simpa only [leftSingularSubspace] using
+  simpa only [leftSingularSubspace_eq_pointSpectralSubspace] using
     (Module.End.pointSpectralSubspace_mono (A := A ∘ₗ A.adjoint) hΩ)
 
 /-- The right singular block is invariant under the right Gram operator. -/
 theorem map_rightSingularSubspace_le (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Submodule.map (A.adjoint ∘ₗ A) (A.rightSingularSubspace Ω) ≤
       A.rightSingularSubspace Ω := by
-  simpa only [rightSingularSubspace] using
+  simpa only [rightSingularSubspace_eq_pointSpectralSubspace] using
     (Module.End.map_pointSpectralSubspace_le (A := A.adjoint ∘ₗ A) (Ω := Ω))
 
 /-- The left singular block is invariant under the left Gram operator. -/
 theorem map_leftSingularSubspace_le (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Submodule.map (A ∘ₗ A.adjoint) (A.leftSingularSubspace Ω) ≤
       A.leftSingularSubspace Ω := by
-  simpa only [leftSingularSubspace] using
+  simpa only [leftSingularSubspace_eq_pointSpectralSubspace] using
     (Module.End.map_pointSpectralSubspace_le (A := A ∘ₗ A.adjoint) (Ω := Ω))
 
 /-- All real eigenvalues carried by the right singular block lie in `Ω`. -/
 theorem pointSpectrumIn_rightSingularSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Module.End.PointSpectrumIn (A.adjoint ∘ₗ A) (A.rightSingularSubspace Ω) Ω := by
-  exact Module.End.pointSpectrumIn_pointSpectralSubspace (A.adjoint ∘ₗ A) Ω
+  simpa only [rightSingularSubspace_eq_pointSpectralSubspace] using
+    Module.End.pointSpectrumIn_pointSpectralSubspace (A.adjoint ∘ₗ A) Ω
 
 /-- All real eigenvalues carried by the left singular block lie in `Ω`. -/
 theorem pointSpectrumIn_leftSingularSubspace (A : E →ₗ[𝕜] F) (Ω : Set ℝ) :
     Module.End.PointSpectrumIn (A ∘ₗ A.adjoint) (A.leftSingularSubspace Ω) Ω := by
-  exact Module.End.pointSpectrumIn_pointSpectralSubspace (A ∘ₗ A.adjoint) Ω
+  simpa only [leftSingularSubspace_eq_pointSpectralSubspace] using
+    Module.End.pointSpectrumIn_pointSpectralSubspace (A ∘ₗ A.adjoint) Ω
 
 end LinearMap
