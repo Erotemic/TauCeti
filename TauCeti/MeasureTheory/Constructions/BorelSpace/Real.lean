@@ -7,6 +7,8 @@ module
 
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 public import Mathlib.Topology.EMetricSpace.Weak
+public import TauCeti.Order.Interval.Set.RealGrid
+import Mathlib.Tactic.Measurability
 
 /-!
 # Measurability of the extended distance on `ℝ≥0∞`
@@ -28,3 +30,14 @@ open scoped ENNReal
 theorem ENNReal.measurable_edist : Measurable fun z : ℝ≥0∞ × ℝ≥0∞ ↦ edist z.1 z.2 := by
   simp only [ENNReal.edist_eq_max]
   fun_prop
+
+namespace TauCeti
+
+/-- The half-open cell of a uniform real grid is Borel measurable. -/
+@[simp, measurability]
+theorem measurableSet_gridCell (ε : ℝ) (k : ℤ) :
+    MeasurableSet (gridCell ε k) := by
+  rw [gridCell_eq_Ico]
+  exact measurableSet_Ico
+
+end TauCeti
