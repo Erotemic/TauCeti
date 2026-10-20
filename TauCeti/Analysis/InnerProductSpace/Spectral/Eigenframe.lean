@@ -14,7 +14,7 @@ public import TauCeti.Analysis.InnerProductSpace.Spectrum
 An eigenfamily records orthonormal eigenvectors and their real eigenvalues without choosing an
 entire eigenbasis. An ordered eigenframe associates the vectors with specified indices in the
 sorted eigenvalue list of a finite-dimensional symmetric operator. Two such frames give
-corresponding eigenblocks when they use the same ordered index embedding.
+corresponding eigenblocks when they select the same indices in both operators.
 
 The frame formulation allows the selected vectors to vary inside repeated eigenspaces; the
 canonical eigenvector basis gives one instance of the interface.
@@ -122,137 +122,156 @@ namespace LinearMap.IsSymmetric
 
 variable {𝕜 : Type*} [RCLike 𝕜]
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-variable [FiniteDimensional 𝕜 E] {n d : ℕ} {T S : E →ₗ[𝕜] E}
+variable [FiniteDimensional 𝕜 E] {n : ℕ} {T S : E →ₗ[𝕜] E}
+variable {ι : Type*}
 
 /-- An orthonormal eigenframe whose eigenvalues are taken at given sorted-spectrum indices. -/
 def IsOrderedEigenframe (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
-    (e : Fin d ↪ Fin n) (w : Fin d → E) : Prop :=
+    (e : ι ↪ Fin n) (w : ι → E) : Prop :=
   Module.End.IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w
 
 /-- An ordered eigenframe is an eigenfamily with the corresponding eigenvalue list. -/
 theorem isOrderedEigenframe_iff {hT : T.IsSymmetric} {hn : finrank 𝕜 E = n}
-    {e : Fin d ↪ Fin n} {w : Fin d → E} :
+    {e : ι ↪ Fin n} {w : ι → E} :
     IsOrderedEigenframe hT hn e w ↔
       Module.End.IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w :=
   Iff.rfl
 
 /-- An ordered eigenframe spans a subspace of dimension equal to its number of indices. -/
-theorem IsOrderedEigenframe.finrank_span {hT : T.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {w : Fin d → E}
+theorem IsOrderedEigenframe.finrank_span [Fintype ι] {hT : T.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {w : ι → E}
     (h : IsOrderedEigenframe hT hn e w) :
-    finrank 𝕜 (Submodule.span 𝕜 (Set.range w)) = d := by
-  simpa only [Fintype.card_fin] using (isOrderedEigenframe_iff.mp h).finrank_span
+    finrank 𝕜 (Submodule.span 𝕜 (Set.range w)) = Fintype.card ι :=
+  (isOrderedEigenframe_iff.mp h).finrank_span
+
+/-- Reindex an ordered eigenframe along an injection preserving the selected eigenvalues. -/
+theorem IsOrderedEigenframe.reindex {κ : Type*} {hT : T.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {e' : κ ↪ Fin n} {w : ι → E}
+    (h : IsOrderedEigenframe hT hn e w) (f : κ ↪ ι)
+    (hf : ∀ i, e (f i) = e' i) :
+    IsOrderedEigenframe hT hn e' (w ∘ f) := by
+  have hcomp : Module.End.IsEigenfamily T
+      (fun i : κ => hT.eigenvalues hn (e (f i))) (w ∘ f) :=
+    (isOrderedEigenframe_iff.mp h).comp f
+  apply isOrderedEigenframe_iff.mpr
+  simpa only [hf] using hcomp
 
 /-- Two spectral blocks correspond when they are spanned by ordered eigenframes selected at
 identical eigenvalue indices of their respective symmetric operators. -/
 def CorrespondingEigenblocks (hT : T.IsSymmetric) (hS : S.IsSymmetric)
-    (hn : finrank 𝕜 E = n) (e : Fin d ↪ Fin n)
+    (hn : finrank 𝕜 E = n) (e : ι ↪ Fin n)
     (U V : Submodule 𝕜 E) : Prop :=
-  ∃ w u : Fin d → E,
+  ∃ w u : ι → E,
     IsOrderedEigenframe hT hn e w ∧ IsOrderedEigenframe hS hn e u ∧
       U = Submodule.span 𝕜 (Set.range w) ∧ V = Submodule.span 𝕜 (Set.range u)
 
 /-- A pair of blocks corresponds exactly when it has ordered-eigenframe witnesses for both
 operators and the blocks are their spans. -/
 theorem correspondingEigenblocks_iff {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E} :
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E} :
     CorrespondingEigenblocks hT hS hn e U V ↔
-      ∃ w u : Fin d → E,
+      ∃ w u : ι → E,
         IsOrderedEigenframe hT hn e w ∧ IsOrderedEigenframe hS hn e u ∧
           U = Submodule.span 𝕜 (Set.range w) ∧
             V = Submodule.span 𝕜 (Set.range u) :=
   Iff.rfl
 
-/-- Corresponding blocks depend only on the set of eigenvalue indices, not their order. -/
-theorem CorrespondingEigenblocks.congr_range {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e e' : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+/-- Reindex corresponding blocks along an equivalence preserving the eigenvalue indices. -/
+theorem CorrespondingEigenblocks.reindex {κ : Type*}
+    {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {e' : κ ↪ Fin n}
+    {U V : Submodule 𝕜 E}
+    (h : CorrespondingEigenblocks hT hS hn e U V)
+    (f : κ ≃ ι) (hf : ∀ i, e (f i) = e' i) :
+    CorrespondingEigenblocks hT hS hn e' U V := by
+  obtain ⟨w, u, hw, hu, hU, hV⟩ := correspondingEigenblocks_iff.mp h
+  have hrange (v : ι → E) : Set.range (v ∘ f) = Set.range v := by
+    rw [Set.range_comp, f.surjective.range_eq, Set.image_univ]
+  exact correspondingEigenblocks_iff.mpr
+    ⟨w ∘ f, u ∘ f, hw.reindex f.toEmbedding hf,
+      hu.reindex f.toEmbedding hf, by simpa only [hrange w] using hU,
+      by simpa only [hrange u] using hV⟩
+
+/-- Reindex corresponding blocks along any other embedding with the same range. -/
+theorem CorrespondingEigenblocks.reindex_of_range_eq {κ : Type*}
+    {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {e' : κ ↪ Fin n}
+    {U V : Submodule 𝕜 E}
+    (h : CorrespondingEigenblocks hT hS hn e U V)
+    (he : Set.range e = Set.range e') :
+    CorrespondingEigenblocks hT hS hn e' U V := by
+  classical
+  let f : κ ≃ ι :=
+    (Equiv.ofInjective (e' : κ → Fin n) e'.injective).trans
+      ((Set.equivOfEq he.symm).trans
+        (Equiv.ofInjective (e : ι → Fin n) e.injective).symm)
+  have hf (i : κ) : e (f i) = e' i := by
+    calc
+      e (f i) =
+          ((Set.equivOfEq he.symm)
+            ((Equiv.ofInjective (e' : κ → Fin n) e'.injective) i) : Fin n) :=
+        Equiv.apply_ofInjective_symm e.injective _
+      _ = e' i := rfl
+  exact h.reindex f hf
+
+/-- Corresponding blocks depend only on their selected index set, not its enumeration. -/
+theorem CorrespondingEigenblocks.congr_range {κ : Type*}
+    {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {e' : κ ↪ Fin n}
+    {U V : Submodule 𝕜 E}
     (he : Set.range e = Set.range e') :
     CorrespondingEigenblocks hT hS hn e U V ↔
-      CorrespondingEigenblocks hT hS hn e' U V := by
-  classical
-  have transfer (a b : Fin d ↪ Fin n) (hab : Set.range a = Set.range b)
-      (h : CorrespondingEigenblocks hT hS hn a U V) :
-      CorrespondingEigenblocks hT hS hn b U V := by
-    have hb (i : Fin d) : b i ∈ Set.range a := by
-      rw [hab]
-      exact Set.mem_range_self i
-    let f : Fin d → Fin d := fun i => Classical.choose (hb i)
-    have hf (i : Fin d) : a (f i) = b i := Classical.choose_spec (hb i)
-    have hfi : Function.Injective f := by
-      intro i j hij
-      apply b.injective
-      calc
-        b i = a (f i) := (hf i).symm
-        _ = a (f j) := by rw [hij]
-        _ = b j := hf j
-    have hfs : Function.Surjective f := Finite.surjective_of_injective hfi
-    let fe : Fin d ↪ Fin d := ⟨f, hfi⟩
-    have hrange (v : Fin d → E) : Set.range (v ∘ f) = Set.range v := by
-      rw [Set.range_comp, hfs.range_eq, Set.image_univ]
-    obtain ⟨w, u, hw, hu, hU, hV⟩ := correspondingEigenblocks_iff.mp h
-    have hw' : IsOrderedEigenframe hT hn b (w ∘ f) := by
-      apply isOrderedEigenframe_iff.mpr
-      have hwf : Module.End.IsEigenfamily T
-          (fun i : Fin d => hT.eigenvalues hn (a (f i))) (w ∘ f) :=
-        (isOrderedEigenframe_iff.mp hw).comp fe
-      simpa only [hf] using hwf
-    have hu' : IsOrderedEigenframe hS hn b (u ∘ f) := by
-      apply isOrderedEigenframe_iff.mpr
-      have huf : Module.End.IsEigenfamily S
-          (fun i : Fin d => hS.eigenvalues hn (a (f i))) (u ∘ f) :=
-        (isOrderedEigenframe_iff.mp hu).comp fe
-      simpa only [hf] using huf
-    exact correspondingEigenblocks_iff.mpr
-      ⟨w ∘ f, u ∘ f, hw', hu', by simpa only [hrange w] using hU,
-        by simpa only [hrange u] using hV⟩
-  exact ⟨transfer e e' he, transfer e' e he.symm⟩
+      CorrespondingEigenblocks hT hS hn e' U V :=
+  ⟨fun h => h.reindex_of_range_eq he, fun h => h.reindex_of_range_eq he.symm⟩
 
 /-- Correspondence of eigenblocks is symmetric in the two operators. -/
 theorem CorrespondingEigenblocks.symm {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) :
     CorrespondingEigenblocks hS hT hn e V U := by
   obtain ⟨w, u, hw, hu, hU, hV⟩ := correspondingEigenblocks_iff.mp h
   exact correspondingEigenblocks_iff.mpr ⟨u, w, hu, hw, hV, hU⟩
 
-/-- The first block of a pair of corresponding eigenblocks has dimension `d`. -/
-theorem CorrespondingEigenblocks.finrank_left {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
-    (h : CorrespondingEigenblocks hT hS hn e U V) : finrank 𝕜 U = d := by
+/-- The first corresponding block has dimension equal to the cardinality of its indices. -/
+theorem CorrespondingEigenblocks.finrank_left [Fintype ι] {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
+    (h : CorrespondingEigenblocks hT hS hn e U V) :
+    finrank 𝕜 U = Fintype.card ι := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact hw.finrank_span
 
-/-- The second block of a pair of corresponding eigenblocks has dimension `d`. -/
-theorem CorrespondingEigenblocks.finrank_right {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
-    (h : CorrespondingEigenblocks hT hS hn e U V) : finrank 𝕜 V = d := by
+/-- The second corresponding block has dimension equal to the cardinality of its indices. -/
+theorem CorrespondingEigenblocks.finrank_right [Fintype ι] {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
+    (h : CorrespondingEigenblocks hT hS hn e U V) :
+    finrank 𝕜 V = Fintype.card ι := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact hu.finrank_span
 
 /-- The first corresponding block is invariant under the first operator. -/
 theorem CorrespondingEigenblocks.map_left_le {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) : Submodule.map T U ≤ U := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact (isOrderedEigenframe_iff.mp hw).map_span_le
 
 /-- The second corresponding block is invariant under the second operator. -/
 theorem CorrespondingEigenblocks.map_right_le {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) : Submodule.map S V ≤ V := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact (isOrderedEigenframe_iff.mp hu).map_span_le
 
 /-- Applying the first operator to a vector in its corresponding block stays in that block. -/
 theorem CorrespondingEigenblocks.apply_mem_left {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) {x : E} (hx : x ∈ U) :
     T x ∈ U :=
   h.map_left_le (Submodule.mem_map_of_mem hx)
 
 /-- Applying the second operator to a vector in its corresponding block stays in that block. -/
 theorem CorrespondingEigenblocks.apply_mem_right {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) {x : E} (hx : x ∈ V) :
     S x ∈ V :=
   h.map_right_le (Submodule.mem_map_of_mem hx)
@@ -260,20 +279,20 @@ theorem CorrespondingEigenblocks.apply_mem_right {hT : T.IsSymmetric} {hS : S.Is
 /-- The first block's restricted point spectrum is exactly its selected eigenvalues. -/
 theorem CorrespondingEigenblocks.restrictedPointSpectrum_left_eq
     {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) :
     Module.End.restrictedPointSpectrum T U =
-      Set.range (fun i : Fin d => hT.eigenvalues hn (e i)) := by
+      Set.range (fun i : ι => hT.eigenvalues hn (e i)) := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact (isOrderedEigenframe_iff.mp hw).restrictedPointSpectrum_span_eq
 
 /-- The second block's restricted point spectrum is exactly its selected eigenvalues. -/
 theorem CorrespondingEigenblocks.restrictedPointSpectrum_right_eq
     {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    {hn : finrank 𝕜 E = n} {e : ι ↪ Fin n} {U V : Submodule 𝕜 E}
     (h : CorrespondingEigenblocks hT hS hn e U V) :
     Module.End.restrictedPointSpectrum S V =
-      Set.range (fun i : Fin d => hS.eigenvalues hn (e i)) := by
+      Set.range (fun i : ι => hS.eigenvalues hn (e i)) := by
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact (isOrderedEigenframe_iff.mp hu).restrictedPointSpectrum_span_eq
 
@@ -281,7 +300,7 @@ theorem CorrespondingEigenblocks.restrictedPointSpectrum_right_eq
 
 /-- Selecting an indexed subfamily of the canonical eigenbasis gives an ordered eigenframe. -/
 theorem isOrderedEigenframe_eigenvectorBasis (hT : T.IsSymmetric)
-    (hn : finrank 𝕜 E = n) (e : Fin d ↪ Fin n) :
+    (hn : finrank 𝕜 E = n) (e : ι ↪ Fin n) :
     IsOrderedEigenframe hT hn e (fun i => hT.eigenvectorBasis hn (e i)) :=
   isOrderedEigenframe_iff.mpr
     { orthonormal := (hT.eigenvectorBasis hn).orthonormal.comp _ e.injective
@@ -289,7 +308,7 @@ theorem isOrderedEigenframe_eigenvectorBasis (hT : T.IsSymmetric)
 
 /-- The canonical eigenvector spans at the same indices form corresponding eigenblocks. -/
 theorem correspondingEigenblocks_eigenvectorBasis (hT : T.IsSymmetric)
-    (hS : S.IsSymmetric) (hn : finrank 𝕜 E = n) (e : Fin d ↪ Fin n) :
+    (hS : S.IsSymmetric) (hn : finrank 𝕜 E = n) (e : ι ↪ Fin n) :
     CorrespondingEigenblocks hT hS hn e
       (hT.eigenvectorSpan hn (Set.range e))
       (hS.eigenvectorSpan hn (Set.range e)) := by
