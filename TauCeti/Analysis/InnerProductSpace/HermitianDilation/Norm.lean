@@ -17,7 +17,7 @@ In particular, the difference of two dilations has exactly the same operator nor
 difference of the rectangular maps.
 
 Moreover, a nonnegative pointwise norm bound holds for `A` if and only if it holds for
-its Hermitian dilation. The same bound also holds for the adjoint of `A`.
+its Hermitian dilation.
 
 ## References
 
@@ -99,10 +99,11 @@ theorem norm_toContinuousLinearMap_hermitianDilation (A : E →ₗ[𝕜] F) :
 
 /-- The operator norm of the difference of Hermitian dilations equals the operator norm
 of the original rectangular perturbation. -/
+@[simp]
 theorem norm_toContinuousLinearMap_hermitianDilation_sub (A B : E →ₗ[𝕜] F) :
-    ‖(A.hermitianDilation - B.hermitianDilation).toContinuousLinearMap‖ =
-      ‖(A - B).toContinuousLinearMap‖ := by
-  rw [← hermitianDilation_sub]
-  exact norm_toContinuousLinearMap_hermitianDilation (A - B)
+    ‖A.hermitianDilation.toContinuousLinearMap - B.hermitianDilation.toContinuousLinearMap‖ =
+      ‖A.toContinuousLinearMap - B.toContinuousLinearMap‖ := by
+  simpa only [← map_sub, ← hermitianDilation_sub] using
+    (norm_toContinuousLinearMap_hermitianDilation (A - B))
 
 end LinearMap
