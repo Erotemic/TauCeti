@@ -90,12 +90,10 @@ theorem mul_norm_sub_starProjection_pointSpectralSubspace_le
   let V : Submodule 𝕜 E := Module.End.pointSpectralSubspace (B : E →ₗ[𝕜] E) t
   have hU : ∀ x ∈ U, A x ∈ U := by
     intro x hx
-    change (A : E →ₗ[𝕜] E) x ∈ Module.End.pointSpectralSubspace (A : E →ₗ[𝕜] E) s
     exact (Module.End.map_pointSpectralSubspace_le
       (A := (A : E →ₗ[𝕜] E)) (Ω := s)) (Submodule.mem_map_of_mem hx)
   have hV : ∀ x ∈ V, B x ∈ V := by
     intro x hx
-    change (B : E →ₗ[𝕜] E) x ∈ Module.End.pointSpectralSubspace (B : E →ₗ[𝕜] E) t
     exact (Module.End.map_pointSpectralSubspace_le
       (A := (B : E →ₗ[𝕜] E)) (Ω := t)) (Submodule.mem_map_of_mem hx)
   have h := Submodule.mul_projectionGap_le_norm_sub_of_pointIntervalExteriorGap
