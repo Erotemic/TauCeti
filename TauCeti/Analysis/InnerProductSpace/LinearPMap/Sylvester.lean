@@ -45,12 +45,6 @@ structure SylvesterEquation
 
 namespace SylvesterEquation
 
-/-- Extract the domain-transport condition from a Sylvester equation. -/
-theorem mapsTo {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
-    {X C : F →L[𝕜] E} (h : SylvesterEquation A B X C) :
-    ∀ x : B.domain, X (x : F) ∈ A.domain :=
-  h.mapsTo_domain
-
 /-- An ordinary bounded Sylvester equation induces an equation between the
 corresponding full-domain partial operators. -/
 theorem ofBounded
