@@ -84,7 +84,8 @@ spectrum from that of its orthogonal complement.
 * `Module.End.PointOrderedGap.pointSpectraSeparated`,
   `Module.End.PointIntervalExteriorGap.pointSpectraSeparated`: ordered and interval/exterior gaps
   are separations.
-* `Module.End.pointInternalGap_pointSpectralSubspace`: a spectral block of a finite-dimensional
+* `LinearMap.IsSymmetric.pointInternalGap_pointSpectralSubspace`:
+  a spectral block of a finite-dimensional
   symmetric operator has an internal gap when the selected and complementary spectra are separated.
 * `Module.End.PointOrderedGap.of_pointSpectrumIn`,
   `Module.End.PointOrderedGap.of_re_inner_apply_self`: containment on opposite sides of a cut, or
@@ -720,7 +721,7 @@ theorem PointInternalGap.of_pointSpectrumIn {s t : Set ℝ}
 
 /-- A symmetric operator has an internal gap on the spectral subspace selected by `Ω`
 when the selected eigenvalues are separated from the unselected ones. -/
-theorem pointInternalGap_pointSpectralSubspace [FiniteDimensional 𝕜 E]
+theorem _root_.LinearMap.IsSymmetric.pointInternalGap_pointSpectralSubspace [FiniteDimensional 𝕜 E]
     (hA : A.IsSymmetric) (Ω : Set ℝ)
     (hΩ : ∀ μ ∈ Ω, ∀ ν ∈ Ωᶜ, δ ≤ |μ - ν|) :
     A.PointInternalGap (A.pointSpectralSubspace Ω) δ := by
