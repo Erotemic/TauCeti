@@ -7,7 +7,6 @@ module
 
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Tactic.Linarith
 
 /-!
 # Uniform interval grids on the real line
@@ -20,6 +19,12 @@ from a point to the cell's left endpoint is bounded by the width.
 Mathlib's integer-smul interval lemmas give disjointness and covering directly
 after unfolding `gridCell`. The grid can be used to decompose real spectral parameters
 or to bound functions locally on each interval.
+
+For the partition properties, use `Set.pairwise_disjoint_Ico_zsmul` from
+`Mathlib.Algebra.Order.Interval.Set.Group`, `Set.iUnion_Ico_zsmul` from
+`Mathlib.Algebra.Order.ToIntervalMod`, and `existsUnique_zsmul_near_of_pos` from
+`Mathlib.Algebra.Order.Archimedean.Basic`. Measurability follows from
+`measurableSet_Ico` in `Mathlib.MeasureTheory.Constructions.BorelSpace.Order`.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/LinearPMap/SpectralGrid.lean`.

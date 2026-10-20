@@ -7,10 +7,9 @@ module
 
 public import Mathlib.MeasureTheory.Constructions.BorelSpace.Real
 public import Mathlib.Topology.EMetricSpace.Weak
-import Mathlib.Tactic.Measurability
 
 /-!
-# Borel measurability of the extended distance on `ℝ≥0∞`
+# Measurability of the extended distance on `ℝ≥0∞`
 
 `ℝ≥0∞` carries the extended distance `edist a b = max (a - b) (b - a)` of a weak extended metric
 space, which is not jointly continuous for the order topology, so Mathlib's `measurable_edist`
