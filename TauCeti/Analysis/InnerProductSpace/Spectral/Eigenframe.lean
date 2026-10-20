@@ -211,7 +211,8 @@ theorem CorrespondingEigenblocks.reindex_of_range_eq {κ : Type*}
           ((Set.equivOfEq he.symm)
             ((Equiv.ofInjective (e' : κ → Fin n) e'.injective) i) : Fin n) :=
         Equiv.apply_ofInjective_symm e.injective _
-      _ = e' i := rfl
+      _ = e' i := by
+        simp only [Set.equivOfEq_apply, Equiv.ofInjective_apply]
   exact h.reindex f hf
 
 /-- Corresponding blocks depend only on their selected index set, not its enumeration. -/

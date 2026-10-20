@@ -237,8 +237,7 @@ theorem span_range_eigenvectorBasis_apply_eq_eigenvectorSpan (hT : T.IsSymmetric
     (hn : Module.finrank 𝕜 E = n) {ι : Type*} (e : ι ↪ Fin n) :
     Submodule.span 𝕜 (Set.range fun i => hT.eigenvectorBasis hn (e i)) =
       hT.eigenvectorSpan hn (Set.range e) := by
-  rw [eigenvectorSpan, ← Set.range_comp]
-  rfl
+  rw [eigenvectorSpan, ← Set.range_comp, Function.comp_def]
 
 /-- A vector belongs to an eigenvector span exactly when its eigenbasis representation is
 supported on the selected indices. -/
