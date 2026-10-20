@@ -10,12 +10,13 @@ public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Frob
 public import Mathlib.Data.Finsupp.Order
 
 /-!
-# Frobenius sine distance between subspaces
+# Directed Frobenius sine between subspaces
 
 For subspaces `U` and `V` of a finite-dimensional inner product space, the Frobenius sine
 `U.sinThetaFrobenius V` is the Frobenius seminorm of the directed sine map `P_{Vᗮ} P_U`.
 It packages the quantity used in Frobenius subspace perturbation inequalities without
-selecting bases.
+selecting bases. The quantity is not generally symmetric and vanishes exactly when
+`U ≤ V`, so it is not a distance on arbitrary subspaces.
 
 The Frobenius sine is the square root of the sum of the squared principal sines.
 The operator norm of the directed sine map sees only the largest principal sine;
