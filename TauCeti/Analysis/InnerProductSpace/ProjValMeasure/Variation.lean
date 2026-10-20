@@ -16,14 +16,14 @@ projection-valued measure, we prove
 
 `(P.polarizedComplexMeasure ψ ξ).variation univ ≤ ofReal (‖ψ‖ * ‖ξ‖)`.
 
-The central argument is the weighted arithmetic-geometric mean inequality. For a measurable
-set `B`, the projection identity and Cauchy-Schwarz show that
+This sharp bound makes the polarized complex measure a finite-variation measure, with
+its total variation controlled by the product of the norms of the two vectors. It gives
+uniform norm control for integration against polarized spectral measures: integrating
+a bounded measurable function is bounded in absolute value by its supremum norm times
+`‖ψ‖ * ‖ξ‖`.
 
-`‖⟪ψ, P(B) ξ⟫‖ ≤ ‖P(B) ψ‖ * ‖P(B) ξ‖`.
-
-Weighting the two finite diagonal measures by `‖ξ‖/(2‖ψ‖)` and `‖ψ‖/(2‖ξ‖)`
-gives a positive measure dominating the vector measure's total variation and having
-mass exactly `‖ψ‖ * ‖ξ‖`. Zero vectors are handled separately.
+The finite-variation instance makes this property available to the vector-measure
+integration API and subsequent spectral-integral estimates.
 
 The underlying PVM and polarized-measure constructions are adapted from the
 AIQ-Kitware DKPS formalization (Apache-2.0):
