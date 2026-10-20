@@ -232,6 +232,14 @@ noncomputable def eigenvectorSpan (hT : T.IsSymmetric) (hn : Module.finrank 𝕜
     (s : Set (Fin n)) : Submodule 𝕜 E :=
   Submodule.span 𝕜 (hT.eigenvectorBasis hn '' s)
 
+/-- The span of the eigenvectors at embedded indices equals their canonical eigenvector span. -/
+theorem span_eigenvectorBasis_comp_embedding (hT : T.IsSymmetric)
+    (hn : Module.finrank 𝕜 E = n) {d : ℕ} (e : Fin d ↪ Fin n) :
+    Submodule.span 𝕜 (Set.range fun i => hT.eigenvectorBasis hn (e i)) =
+      hT.eigenvectorSpan hn (Set.range e) := by
+  rw [eigenvectorSpan, ← Set.range_comp]
+  rfl
+
 /-- A vector belongs to an eigenvector span exactly when its eigenbasis representation is
 supported on the selected indices. -/
 @[simp]
