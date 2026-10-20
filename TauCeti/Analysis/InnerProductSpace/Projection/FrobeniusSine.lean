@@ -92,11 +92,14 @@ theorem directedProjectionGap_le_sinThetaFrobenius (U V : Submodule 𝕜 E)
 theorem sinThetaFrobenius_eq_zero_iff (U V : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
     U.sinThetaFrobenius V = 0 ↔ U ≤ V := by
-  rw [sinThetaFrobenius_def,
-    ← TauCeti.UnitarilyInvariantSeminorm.schatten_two,
-    TauCeti.UnitarilyInvariantSeminorm.schatten_apply_eq_zero_iff,
-    ← ContinuousLinearMap.toLinearMap_zero, ContinuousLinearMap.coe_inj,
-    sinThetaMap_eq_zero_iff]
+  constructor
+  · intro h
+    exact (U.directedProjectionGap_eq_zero_iff V).mp <|
+      le_antisymm (h ▸ U.directedProjectionGap_le_sinThetaFrobenius V)
+        (U.directedProjectionGap_nonneg V)
+  · intro h
+    rw [sinThetaFrobenius_def, (U.sinThetaMap_eq_zero_iff V).mpr h]
+    simp
 
 /-- The Frobenius sine from a subspace to itself is zero. -/
 @[simp]
