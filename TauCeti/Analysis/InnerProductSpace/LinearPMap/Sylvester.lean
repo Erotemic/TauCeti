@@ -29,8 +29,8 @@ namespace LinearPMap
 universe u v w
 
 variable {𝕜 : Type u} [RCLike 𝕜]
-variable {E : Type v} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-variable {F : Type w} [NormedAddCommGroup F] [InnerProductSpace 𝕜 F]
+variable {E : Type v} [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+variable {F : Type w} [NormedAddCommGroup F] [NormedSpace 𝕜 F]
 
 /-- A domain-aware Sylvester equation `A X - X B = C`: `X` maps the domain
 of `B` into the domain of `A`, and the operator identity holds there. -/
@@ -57,8 +57,29 @@ theorem ofBounded
     simp
   · intro x
     have hx := congrArg (fun T : F →L[𝕜] E => T (x : F)) hEq
+    -- A continuous linear map embedded as `toPMap ⊤` has the full domain.
+    -- Evaluating that partial map on its domain subtype is definitionally
+    -- the original bounded-map application; `change` exposes this equality.
     change A (X (x : F)) - X (B (x : F)) = C (x : F)
     simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply] using hx
+
+/-- The domain-aware equation for full-domain partial operators is equivalent
+to the ordinary bounded Sylvester equation. -/
+@[simp] theorem ofBounded_iff
+    {A : E →L[𝕜] E} {B : F →L[𝕜] F} {X C : F →L[𝕜] E} :
+    SylvesterEquation (A.toLinearMap.toPMap ⊤) (B.toLinearMap.toPMap ⊤) X C ↔
+      A ∘L X - X ∘L B = C := by
+  constructor
+  · intro h
+    apply ContinuousLinearMap.ext
+    intro x
+    have hx : (x : F) ∈ (B.toLinearMap.toPMap ⊤).domain := by simp
+    have hpoint : A (X x) - X (B x) = C x := by
+      -- Full-domain `toPMap ⊤` applications reduce definitionally to the
+      -- bounded maps, just as in `ofBounded`.
+      exact h.equation ⟨x, hx⟩
+    simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply] using hpoint
+  · exact ofBounded
 
 /-- The zero map solves the homogeneous domain-aware equation. -/
 theorem zero (A : E →ₗ.[𝕜] E) (B : F →ₗ.[𝕜] F) :
@@ -67,6 +88,8 @@ theorem zero (A : E →ₗ.[𝕜] E) (B : F →ₗ.[𝕜] F) :
   · intro x
     simp
   · intro x
+    -- The zero bounded map evaluates to zero. The zero vector supplied with
+    -- the domain-transport proof is definitionally `0` in `A.domain`.
     change A (0 : A.domain) - 0 = (0 : E)
     simp
 
@@ -88,6 +111,8 @@ theorem add {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
       simpa [uX] using hX.equation x
     have hEqY : A uY - Y (B x) = D (x : F) := by
       simpa [uY] using hY.equation x
+    -- Addition of continuous maps is pointwise. The domain member made from
+    -- `hX.mapsTo_domain` and `hY.mapsTo_domain` is definitionally `uX + uY`.
     change A (uX + uY) - (X (B x) + Y (B x)) = C (x : F) + D (x : F)
     calc
       A (uX + uY) - (X (B x) + Y (B x)) =
@@ -109,6 +134,8 @@ theorem neg {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
     let uX : A.domain := ⟨X (x : F), hxX⟩
     have hEqX : A uX - X (B x) = C (x : F) := by
       simpa [uX] using hX.equation x
+    -- Negating the continuous maps is pointwise, and the domain witness
+    -- supplied by `neg_mem` is definitionally the subtype vector `-uX`.
     change A (-uX) - (-X (B x)) = -C (x : F)
     calc
       A (-uX) - (-X (B x)) = -(A uX - X (B x)) := by
@@ -137,6 +164,8 @@ theorem smul {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
     let uX : A.domain := ⟨X (x : F), hxX⟩
     have hEqX : A uX - X (B x) = C (x : F) := by
       simpa [uX] using hX.equation x
+    -- Scalar multiplication of continuous maps is pointwise, and the domain
+    -- member supplied by `smul_mem` is definitionally the vector `c • uX`.
     change A (c • uX) - c • X (B x) = c • C (x : F)
     calc
       A (c • uX) - c • X (B x) = c • (A uX - X (B x)) := by
