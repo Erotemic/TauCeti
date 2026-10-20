@@ -6,7 +6,7 @@ Authors: Jon Crall, GPT-6
 module
 
 public import TauCeti.Analysis.InnerProductSpace.Projection.PrincipalAngle
-public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Frobenius
+public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Schatten
 public import Mathlib.Data.Finsupp.Order
 
 /-!
@@ -55,9 +55,8 @@ theorem sinThetaFrobenius_def (U V : Submodule 𝕜 E)
 theorem sinThetaFrobenius_nonneg (U V : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
     0 ≤ U.sinThetaFrobenius V := by
-  rw [sinThetaFrobenius_def,
-    TauCeti.UnitarilyInvariantSeminorm.frobenius_apply_eq_sqrt_sum_sq_singularValues]
-  exact Real.sqrt_nonneg _
+  rw [sinThetaFrobenius_def]
+  exact apply_nonneg _ _
 
 /-- The Frobenius sine is the Euclidean norm of the principal-sine list. -/
 theorem sinThetaFrobenius_eq_sqrt_sum_sq_principalSines (U V : Submodule 𝕜 E)
@@ -79,35 +78,25 @@ theorem sq_sinThetaFrobenius (U V : Submodule 𝕜 E)
 theorem directedProjectionGap_le_sinThetaFrobenius (U V : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
     U.directedProjectionGap V ≤ U.sinThetaFrobenius V := by
-  have hsq : (U.principalSines V 0) ^ 2 ≤
-      (U.principalSines V).sum (fun _ s => s ^ 2) := by
-    exact Finsupp.single_eval_le_sum (U.principalSines V)
-      (g := fun s : ℝ => s ^ 2) (by simp) (fun s => sq_nonneg s) 0
-  calc
-    U.directedProjectionGap V = U.principalSines V 0 := (U.principalSines_zero V).symm
-    _ = √((U.principalSines V 0) ^ 2) :=
-      (Real.sqrt_sq (U.principalSines_nonneg V 0)).symm
-    _ ≤ √((U.principalSines V).sum (fun _ s => s ^ 2)) := Real.sqrt_le_sqrt hsq
-    _ = U.sinThetaFrobenius V :=
-      (U.sinThetaFrobenius_eq_sqrt_sum_sq_principalSines V).symm
+  have h := TauCeti.UnitarilyInvariantSeminorm.opNorm_apply_le_schatten_apply 2
+    (U.sinThetaMap V : E →ₗ[𝕜] E)
+  rw [TauCeti.UnitarilyInvariantSeminorm.opNorm_apply,
+    TauCeti.UnitarilyInvariantSeminorm.schatten_two] at h
+  have hcont : LinearMap.toContinuousLinearMap
+      (U.sinThetaMap V : E →ₗ[𝕜] E) = U.sinThetaMap V :=
+    (LinearMap.toContinuousLinearMap_eq_iff_eq_toLinearMap _ _).2 rfl
+  simpa only [hcont, U.norm_sinThetaMap V, sinThetaFrobenius_def] using h
 
 /-- The Frobenius sine vanishes precisely when the first subspace is contained in the second. -/
 @[simp]
 theorem sinThetaFrobenius_eq_zero_iff (U V : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
     U.sinThetaFrobenius V = 0 ↔ U ≤ V := by
-  constructor
-  · intro h
-    have hgap : U.directedProjectionGap V = 0 := by
-      apply le_antisymm
-      · simpa only [h] using (U.directedProjectionGap_le_sinThetaFrobenius V)
-      · rw [← U.norm_sinThetaMap V]
-        exact norm_nonneg _
-    exact (U.directedProjectionGap_eq_zero_iff V).mp hgap
-  · intro h
-    rw [sinThetaFrobenius_eq_sqrt_sum_sq_principalSines,
-      (U.principalSines_eq_zero_iff V).mpr h]
-    simp
+  rw [sinThetaFrobenius_def,
+    ← TauCeti.UnitarilyInvariantSeminorm.schatten_two,
+    TauCeti.UnitarilyInvariantSeminorm.schatten_apply_eq_zero_iff,
+    ← ContinuousLinearMap.toLinearMap_zero, ContinuousLinearMap.coe_inj,
+    sinThetaMap_eq_zero_iff]
 
 /-- The Frobenius sine from a subspace to itself is zero. -/
 @[simp]
