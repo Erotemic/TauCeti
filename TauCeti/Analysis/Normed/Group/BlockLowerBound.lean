@@ -12,13 +12,13 @@ import Mathlib.Tactic.Push
 /-!
 # Reassembling lower bounds from norm-splitting blocks
 
-Suppose maps from one normed additive commutative group to another split the
+Suppose maps from one seminormed additive commutative group to another split the
 squared extended norms of vectors. A common lower bound for the images of
 each pair of vectors then gives the same bound for the original pair.
 
-The maps need not be linear, continuous, or endomorphisms, and neither space
-requires an inner product. The use of extended nonnegative norms also avoids
-any summability or finiteness assumption on the index type.
+The maps need not be linear, continuous, or endomorphisms. Neither space
+needs a definite norm or an inner product. The use of extended nonnegative
+norms also avoids any summability or finiteness assumption on the index type.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/BlockLowerBound.lean`.
@@ -30,11 +30,11 @@ open scoped ENNReal
 
 namespace TauCeti
 
-variable {H K : Type*} [NormedAddCommGroup H] [NormedAddCommGroup K]
+variable {H K : Type*} [SeminormedAddCommGroup H] [SeminormedAddCommGroup K]
 
 /-- Reassemble a lower bound from a family of arbitrary maps that splits the
 squared extended norms of the source space. The maps may take values in a
-different normed additive commutative group. -/
+different seminormed additive commutative group. -/
 theorem enorm_ge_of_blocks {c : ℝ≥0∞} {ι : Type*}
     (blocks : ι → H → K)
     (hsplit : ∀ f : H, ∑' i, ‖blocks i f‖ₑ ^ 2 = ‖f‖ₑ ^ 2)
