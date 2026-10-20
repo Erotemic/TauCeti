@@ -33,15 +33,11 @@ variable {Z : Type*} [MeasurableSpace Z]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
 /-- Push a projection-valued measure forward along a measurable map. -/
-@[expose]
 noncomputable def map (P : ProjValMeasure X H) (f : X → Y) (hf : Measurable f) :
     ProjValMeasure Y H where
   proj B hB := P.proj (f ⁻¹' B) (hf hB)
   diag ξ := Measure.map f (P.diag ξ)
-  diag_finite ξ := by
-    refine ⟨?_⟩
-    rw [Measure.map_apply hf MeasurableSet.univ, Set.preimage_univ]
-    exact (P.diag_finite ξ).measure_univ_lt_top
+  diag_finite _ := inferInstance
   inner_proj B hB ξ := by
     simpa only [Measure.map_apply hf hB] using
       P.inner_proj (f ⁻¹' B) (hf hB) ξ
@@ -56,13 +52,13 @@ noncomputable def map (P : ProjValMeasure X H) (f : X → Y) (hf : Measurable f)
 theorem map_proj (P : ProjValMeasure X H) (f : X → Y) (hf : Measurable f)
     (B : Set Y) (hB : MeasurableSet B) :
     (P.map f hf).proj B hB = P.proj (f ⁻¹' B) (hf hB) :=
-  rfl
+  (rfl)
 
 /-- Diagonal scalar measures are pushed forward by the same measurable map. -/
 @[simp]
 theorem map_diag (P : ProjValMeasure X H) (f : X → Y) (hf : Measurable f) (ξ : H) :
     (P.map f hf).diag ξ = Measure.map f (P.diag ξ) :=
-  rfl
+  (rfl)
 
 /-- Transport along the identity measurable map leaves the PVM unchanged. -/
 @[simp]
@@ -70,7 +66,7 @@ theorem map_id (P : ProjValMeasure X H) :
     P.map (id : X → X) measurable_id = P := by
   apply ProjValMeasure.ext
   intro B hB
-  rfl
+  simp only [map_proj, Set.preimage_id]
 
 /-- Transport along two measurable maps equals transport along their composition. -/
 @[simp]
@@ -79,6 +75,6 @@ theorem map_map (P : ProjValMeasure X H) (f : X → Y) (g : Y → Z)
     (P.map f hf).map g hg = P.map (g ∘ f) (hg.comp hf) := by
   apply ProjValMeasure.ext
   intro B hB
-  rfl
+  simp only [map_proj, Set.preimage_comp]
 
 end TauCeti.ProjValMeasure
