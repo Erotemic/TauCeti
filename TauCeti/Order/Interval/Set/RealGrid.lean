@@ -5,9 +5,6 @@ Authors: Jon Crall, Claude Opus 5
 -/
 module
 
-public import Mathlib.Algebra.Order.ToIntervalMod
-public import Mathlib.Algebra.Order.Interval.Set.Group
-public import Mathlib.Algebra.Order.Archimedean.Basic
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.Algebra.Order.Floor.Ring
 import Mathlib.Tactic.Linarith
@@ -20,8 +17,8 @@ For a positive width `ε`, the half-open intervals
 A point belongs to the cell indexed by `⌊s / ε⌋`, and the distance
 from a point to the cell's left endpoint is bounded by the width.
 
-The disjointness and covering results specialize Mathlib's integer-smul
-interval lemmas. The grid can be used to decompose real spectral parameters
+Mathlib's integer-smul interval lemmas give disjointness and covering directly
+after unfolding `gridCell`. The grid can be used to decompose real spectral parameters
 or to bound functions locally on each interval.
 
 Adapted from the Kitware DKPS formalization,
@@ -49,21 +46,6 @@ theorem gridCell_eq_Ico (ε : ℝ) (k : ℤ) :
   rw [gridCell_eq_Ico]
   exact Iff.rfl
 
-/-- Distinct grid cells are disjoint, even when the width is nonpositive. -/
-theorem pairwise_disjoint_gridCell (ε : ℝ) :
-    Pairwise (Function.onFun Disjoint (gridCell ε)) := by
-  intro k l hkl
-  -- Work pointwise: `simp [gridCell]` does not unfold the partially applied
-  -- function `gridCell ε` underneath `Function.onFun`.
-  change Disjoint (Ico (k • ε) ((k + 1) • ε))
-    (Ico (l • ε) ((l + 1) • ε))
-  exact (Set.pairwise_disjoint_Ico_zsmul ε) hkl
-
-/-- Grid cells with positive width cover the real line. -/
-theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
-    (⋃ k : ℤ, gridCell ε k) = univ := by
-  simpa only [gridCell] using (iUnion_Ico_zsmul hε)
-
 /-- For positive width, the index of the grid cell containing `s` is `⌊s / ε⌋`. -/
 theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
     s ∈ gridCell ε k ↔ ⌊s / ε⌋ = k := by
@@ -78,12 +60,6 @@ theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
 theorem mem_gridCell_floor {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
     s ∈ gridCell ε ⌊s / ε⌋ := by
   rw [mem_gridCell_iff_floor hε]
-
-/-- Every real number lies in exactly one cell when the width is positive. -/
-theorem existsUnique_mem_gridCell {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
-    ∃! k : ℤ, s ∈ gridCell ε k := by
-  simpa only [gridCell, Set.mem_Ico] using
-    (existsUnique_zsmul_near_of_pos hε s)
 
 /-- A cell containing a point must have strictly positive width. -/
 theorem pos_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
