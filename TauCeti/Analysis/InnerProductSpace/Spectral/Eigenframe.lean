@@ -89,11 +89,15 @@ theorem restrictedPointSpectrum_span_subset (h : IsEigenfamily T c y) :
     rintro _ ⟨i, rfl⟩
     exact Module.End.eigenspace_le_pointSpectralSubspace (A := T)
       (show c i ∈ Set.range c from ⟨i, rfl⟩) (h.mem_eigenspace i)
+  -- PointSpectrumIn is an exported containment predicate; reuse its monotonicity
+  -- before converting the result to its pointwise eigenvector formulation.
+  have hcontain :
+      Module.End.PointSpectrumIn T (Submodule.span 𝕜 (Set.range y)) (Set.range c) :=
+    (Module.End.pointSpectrumIn_pointSpectralSubspace T (Set.range c)).mono
+      hspan subset_rfl
   intro μ hμ
-  obtain ⟨x, hx, hx0, hTx⟩ := Module.End.mem_restrictedPointSpectrum_iff.mp
-    (Module.End.restrictedPointSpectrum_mono hspan hμ)
-  exact (Module.End.pointSpectrumIn_iff.mp
-    (Module.End.pointSpectrumIn_pointSpectralSubspace T (Set.range c))) x hx hx0 μ hTx
+  obtain ⟨x, hx, hx0, hTx⟩ := Module.End.mem_restrictedPointSpectrum_iff.mp hμ
+  exact (Module.End.pointSpectrumIn_iff.mp hcontain) x hx hx0 μ hTx
 
 /-- A recorded eigenvalue belongs to the point spectrum restricted to the family's span. -/
 theorem eigenvalue_mem_restrictedPointSpectrum (h : IsEigenfamily T c y) (i : ι) :
@@ -110,7 +114,16 @@ theorem restrictedPointSpectrum_span_eq (h : IsEigenfamily T c y) :
   exact h.eigenvalue_mem_restrictedPointSpectrum i
 
 end IsEigenfamily
+end TauCeti
 
+/-! ### Ordered eigenframes and corresponding eigenblocks -/
+
+namespace LinearMap.IsSymmetric
+
+open TauCeti
+
+variable {𝕜 : Type*} [RCLike 𝕜]
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 variable [FiniteDimensional 𝕜 E] {n d : ℕ} {T S : E →ₗ[𝕜] E}
 
 /-- An orthonormal eigenframe whose eigenvalues are taken at given sorted-spectrum indices. -/
@@ -222,37 +235,7 @@ theorem CorrespondingEigenblocks.restrictedPointSpectrum_right_eq
   obtain ⟨w, u, hw, hu, rfl, rfl⟩ := correspondingEigenblocks_iff.mp h
   exact (isOrderedEigenframe_iff.mp hu).restrictedPointSpectrum_span_eq
 
-/-- The first block carries only eigenvalues assigned to the selected indices of `T`. -/
-theorem CorrespondingEigenblocks.restrictedPointSpectrum_left_subset
-    {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
-    (h : CorrespondingEigenblocks hT hS hn e U V) :
-    Module.End.restrictedPointSpectrum T U ⊆
-      Set.range (fun i : Fin d => hT.eigenvalues hn (e i)) := by
-  intro μ hμ
-  simpa only [h.restrictedPointSpectrum_left_eq] using hμ
-
-/-- The second block carries only eigenvalues assigned to the selected indices of `S`. -/
-theorem CorrespondingEigenblocks.restrictedPointSpectrum_right_subset
-    {hT : T.IsSymmetric} {hS : S.IsSymmetric}
-    {hn : finrank 𝕜 E = n} {e : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
-    (h : CorrespondingEigenblocks hT hS hn e U V) :
-    Module.End.restrictedPointSpectrum S V ⊆
-      Set.range (fun i : Fin d => hS.eigenvalues hn (e i)) := by
-  intro μ hμ
-  simpa only [h.restrictedPointSpectrum_right_eq] using hμ
-
-end TauCeti
-
 /-! ### Canonical eigenframe constructors -/
-
-namespace LinearMap.IsSymmetric
-
-open TauCeti
-
-variable {𝕜 : Type*} [RCLike 𝕜]
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-variable [FiniteDimensional 𝕜 E] {n d : ℕ} {T S : E →ₗ[𝕜] E}
 
 /-- Selecting an indexed subfamily of the canonical eigenbasis gives an ordered eigenframe. -/
 theorem isOrderedEigenframe_eigenvectorBasis (hT : T.IsSymmetric)
@@ -271,7 +254,7 @@ theorem correspondingEigenblocks_eigenvectorBasis (hT : T.IsSymmetric)
   refine correspondingEigenblocks_iff.mpr
     ⟨_, _, isOrderedEigenframe_eigenvectorBasis hT hn e,
       isOrderedEigenframe_eigenvectorBasis hS hn e, ?_, ?_⟩
-  · exact (span_eigenvectorBasis_comp_embedding hT hn e).symm
-  · exact (span_eigenvectorBasis_comp_embedding hS hn e).symm
+  · exact (span_range_eigenvectorBasis_apply_eq_eigenvectorSpan hT hn e).symm
+  · exact (span_range_eigenvectorBasis_apply_eq_eigenvectorSpan hS hn e).symm
 
 end LinearMap.IsSymmetric
