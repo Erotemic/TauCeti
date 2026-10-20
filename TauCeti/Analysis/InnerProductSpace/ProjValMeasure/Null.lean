@@ -5,7 +5,7 @@ Authors: Jon Crall, GPT-6
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.ProjValMeasure.Basic
+public import TauCeti.Analysis.InnerProductSpace.ProjValMeasure.Additivity
 public import Mathlib.MeasureTheory.OuterMeasure.AE
 
 /-!
@@ -39,9 +39,23 @@ variable {X H : Type*} [MeasurableSpace X]
   [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
 /-- The filter of sets conull for every diagonal measure of the PVM. -/
-@[expose]
 noncomputable def ae (P : ProjValMeasure X H) : Filter X :=
   ⨆ ξ : H, MeasureTheory.ae (P.diag ξ)
+
+/-- PVM-almost-everywhere predicates hold for every diagonal scalar measure. -/
+theorem eventually_ae_iff (P : ProjValMeasure X H) (R : X → Prop) :
+    (∀ᶠ x in P.ae, R x) ↔ ∀ ξ : H, ∀ᵐ x ∂(P.diag ξ), R x := by
+  simp only [Filter.Eventually, ae, Filter.mem_iSup]
+
+/-- The almost-everywhere filter of each diagonal measure lies below the PVM filter. -/
+theorem ae_diag_le_ae (P : ProjValMeasure X H) (ξ : H) :
+    MeasureTheory.ae (P.diag ξ) ≤ P.ae := by
+  simpa only [ae] using (le_iSup (fun η : H => MeasureTheory.ae (P.diag η)) ξ)
+
+/-- A PVM-almost-everywhere statement holds for an individual diagonal measure. -/
+theorem ae_diag_of_ae (P : ProjValMeasure X H) (ξ : H) {R : X → Prop}
+    (hR : ∀ᶠ x in P.ae, R x) : ∀ᵐ x ∂(P.diag ξ), R x := by
+  exact (P.ae_diag_le_ae ξ) hR
 
 /-- Membership in the PVM's almost-everywhere filter is simultaneous conullity
 for all its diagonal scalar measures. -/
@@ -57,17 +71,13 @@ theorem compl_mem_ae_iff (P : ProjValMeasure X H) (s : Set X) :
 
 /-- A measurable spectral projection is zero exactly when every diagonal measure
 assigns its set zero mass. -/
-theorem proj_eq_zero_iff_diag_zero (P : ProjValMeasure X H)
+theorem proj_eq_zero_iff_forall_diag_apply_eq_zero (P : ProjValMeasure X H)
     (s : Set X) (hs : MeasurableSet s) :
     P.proj s hs = 0 ↔ ∀ ξ : H, (P.diag ξ) s = 0 := by
   constructor
   · intro h ξ
-    have hr : ((P.diag ξ) s).toReal = 0 := by
-      simpa [h] using (P.norm_sq_proj_apply s hs ξ).symm
-    have hfin : (P.diag ξ) s ≠ ⊤ :=
-      ne_of_lt ((measure_mono (Set.subset_univ s)).trans_lt
-        (P.diag_finite ξ).measure_univ_lt_top)
-    exact ((ENNReal.toReal_eq_zero_iff _).mp hr).resolve_right hfin
+    rw [← P.enorm_sq_proj_apply s hs ξ, h]
+    simp
   · intro h
     apply ContinuousLinearMap.eq_of_diagonal
     intro ξ
@@ -78,26 +88,26 @@ theorem proj_eq_zero_iff_diag_zero (P : ProjValMeasure X H)
 theorem proj_eq_zero_iff_compl_mem_ae (P : ProjValMeasure X H)
     (s : Set X) (hs : MeasurableSet s) :
     P.proj s hs = 0 ↔ sᶜ ∈ P.ae := by
-  rw [P.proj_eq_zero_iff_diag_zero s hs, P.compl_mem_ae_iff]
+  rw [P.proj_eq_zero_iff_forall_diag_apply_eq_zero s hs, P.compl_mem_ae_iff]
 
 /-- PVM-null measurable sets are downward closed. -/
 theorem proj_eq_zero_of_subset (P : ProjValMeasure X H)
     {s t : Set X} (hst : s ⊆ t) (hs : MeasurableSet s)
     (ht : MeasurableSet t) (h : P.proj t ht = 0) :
     P.proj s hs = 0 := by
-  apply (P.proj_eq_zero_iff_diag_zero s hs).2
+  apply (P.proj_eq_zero_iff_forall_diag_apply_eq_zero s hs).2
   intro ξ
-  exact measure_mono_null hst ((P.proj_eq_zero_iff_diag_zero t ht).1 h ξ)
+  exact measure_mono_null hst ((P.proj_eq_zero_iff_forall_diag_apply_eq_zero t ht).1 h ξ)
 
 /-- PVM-null measurable sets are closed under countable unions. -/
-theorem proj_iUnion_eq_zero (P : ProjValMeasure X H)
-    (s : ℕ → Set X) (hs : ∀ i, MeasurableSet (s i))
+theorem proj_iUnion_eq_zero (P : ProjValMeasure X H) {ι : Type*} [Countable ι]
+    (s : ι → Set X) (hs : ∀ i, MeasurableSet (s i))
     (h : ∀ i, P.proj (s i) (hs i) = 0) :
     P.proj (⋃ i, s i) (MeasurableSet.iUnion hs) = 0 := by
-  apply (P.proj_eq_zero_iff_diag_zero _ _).2
+  apply (P.proj_eq_zero_iff_forall_diag_apply_eq_zero _ _).2
   intro ξ
   exact measure_iUnion_null fun i =>
-    (P.proj_eq_zero_iff_diag_zero (s i) (hs i)).1 (h i) ξ
+    (P.proj_eq_zero_iff_forall_diag_apply_eq_zero (s i) (hs i)).1 (h i) ξ
 
 end ProjValMeasure
 end TauCeti
