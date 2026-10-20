@@ -5,7 +5,9 @@ Authors: Jon Crall, Claude Opus 5
 -/
 module
 
-public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+import Mathlib.Tactic.GCongr
+import Mathlib.Tactic.Push
 
 /-!
 # Reassembling lower bounds from norm-splitting blocks
