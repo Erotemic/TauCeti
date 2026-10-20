@@ -28,7 +28,7 @@ namespace LinearPMap
 
 universe u v w
 
-variable {𝕜 : Type u} [RCLike 𝕜]
+variable {𝕜 : Type u} [NontriviallyNormedField 𝕜]
 variable {E : Type v} [NormedAddCommGroup E] [NormedSpace 𝕜 E]
 variable {F : Type w} [NormedAddCommGroup F] [NormedSpace 𝕜 F]
 
