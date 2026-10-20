@@ -32,13 +32,13 @@ public section
 open Module (finrank)
 open scoped InnerProductSpace
 
-namespace TauCeti
+namespace Module.End
 
 variable {𝕜 : Type*} [RCLike 𝕜]
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 
 /-- An orthonormal family of eigenvectors of `T` with specified real eigenvalues. -/
-structure IsEigenfamily {ι : Type*} (T : E →ₗ[𝕜] E) (c : ι → ℝ)
+structure IsEigenfamily {ι : Type*} (T : Module.End 𝕜 E) (c : ι → ℝ)
     (y : ι → E) : Prop where
   /-- The eigenvectors form an orthonormal family. -/
   orthonormal : Orthonormal 𝕜 y
@@ -47,7 +47,7 @@ structure IsEigenfamily {ι : Type*} (T : E →ₗ[𝕜] E) (c : ι → ℝ)
 
 namespace IsEigenfamily
 
-variable {ι : Type*} {T : E →ₗ[𝕜] E} {c : ι → ℝ} {y : ι → E}
+variable {ι : Type*} {T : Module.End 𝕜 E} {c : ι → ℝ} {y : ι → E}
 
 /-- Membership in the eigenspace at the family's recorded eigenvalue. -/
 theorem mem_eigenspace (h : IsEigenfamily T c y) (i : ι) :
@@ -58,6 +58,11 @@ theorem mem_eigenspace (h : IsEigenfamily T c y) (i : ι) :
 theorem hasEigenvector (h : IsEigenfamily T c y) (i : ι) :
     Module.End.HasEigenvector T (c i : 𝕜) (y i) :=
   ⟨h.mem_eigenspace i, h.orthonormal.ne_zero i⟩
+
+/-- Restrict an orthonormal eigenfamily to any injectively indexed subfamily. -/
+theorem comp {κ : Type*} (h : IsEigenfamily T c y) (f : κ ↪ ι) :
+    IsEigenfamily T (c ∘ f) (y ∘ f) :=
+  ⟨h.orthonormal.comp _ f.injective, fun i => h.apply_eq (f i)⟩
 
 /-- The span of an eigenfamily is preserved by its operator. -/
 theorem map_span_le (h : IsEigenfamily T c y) :
@@ -89,15 +94,10 @@ theorem restrictedPointSpectrum_span_subset (h : IsEigenfamily T c y) :
     rintro _ ⟨i, rfl⟩
     exact Module.End.eigenspace_le_pointSpectralSubspace (A := T)
       (show c i ∈ Set.range c from ⟨i, rfl⟩) (h.mem_eigenspace i)
-  -- PointSpectrumIn is an exported containment predicate; reuse its monotonicity
-  -- before converting the result to its pointwise eigenvector formulation.
-  have hcontain :
-      Module.End.PointSpectrumIn T (Submodule.span 𝕜 (Set.range y)) (Set.range c) :=
-    (Module.End.pointSpectrumIn_pointSpectralSubspace T (Set.range c)).mono
-      hspan subset_rfl
-  intro μ hμ
-  obtain ⟨x, hx, hx0, hTx⟩ := Module.End.mem_restrictedPointSpectrum_iff.mp hμ
-  exact (Module.End.pointSpectrumIn_iff.mp hcontain) x hx hx0 μ hTx
+  -- Use the public containment API rather than unfolding the hidden predicate.
+  exact (Module.End.pointSpectrumIn_iff_restrictedPointSpectrum_subset).mp
+    ((Module.End.pointSpectrumIn_pointSpectralSubspace T (Set.range c)).mono
+      hspan subset_rfl)
 
 /-- A recorded eigenvalue belongs to the point spectrum restricted to the family's span. -/
 theorem eigenvalue_mem_restrictedPointSpectrum (h : IsEigenfamily T c y) (i : ι) :
@@ -114,13 +114,11 @@ theorem restrictedPointSpectrum_span_eq (h : IsEigenfamily T c y) :
   exact h.eigenvalue_mem_restrictedPointSpectrum i
 
 end IsEigenfamily
-end TauCeti
+end Module.End
 
 /-! ### Ordered eigenframes and corresponding eigenblocks -/
 
 namespace LinearMap.IsSymmetric
-
-open TauCeti
 
 variable {𝕜 : Type*} [RCLike 𝕜]
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
@@ -129,13 +127,13 @@ variable [FiniteDimensional 𝕜 E] {n d : ℕ} {T S : E →ₗ[𝕜] E}
 /-- An orthonormal eigenframe whose eigenvalues are taken at given sorted-spectrum indices. -/
 def IsOrderedEigenframe (hT : T.IsSymmetric) (hn : finrank 𝕜 E = n)
     (e : Fin d ↪ Fin n) (w : Fin d → E) : Prop :=
-  IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w
+  Module.End.IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w
 
 /-- An ordered eigenframe is an eigenfamily with the corresponding eigenvalue list. -/
 theorem isOrderedEigenframe_iff {hT : T.IsSymmetric} {hn : finrank 𝕜 E = n}
     {e : Fin d ↪ Fin n} {w : Fin d → E} :
     IsOrderedEigenframe hT hn e w ↔
-      IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w :=
+      Module.End.IsEigenfamily T (fun i => hT.eigenvalues hn (e i)) w :=
   Iff.rfl
 
 /-- An ordered eigenframe spans a subspace of dimension equal to its number of indices. -/
@@ -164,6 +162,50 @@ theorem correspondingEigenblocks_iff {hT : T.IsSymmetric} {hS : S.IsSymmetric}
           U = Submodule.span 𝕜 (Set.range w) ∧
             V = Submodule.span 𝕜 (Set.range u) :=
   Iff.rfl
+
+/-- Corresponding blocks depend only on the set of eigenvalue indices, not their order. -/
+theorem CorrespondingEigenblocks.congr_range {hT : T.IsSymmetric} {hS : S.IsSymmetric}
+    {hn : finrank 𝕜 E = n} {e e' : Fin d ↪ Fin n} {U V : Submodule 𝕜 E}
+    (he : Set.range e = Set.range e') :
+    CorrespondingEigenblocks hT hS hn e U V ↔
+      CorrespondingEigenblocks hT hS hn e' U V := by
+  classical
+  have transfer (a b : Fin d ↪ Fin n) (hab : Set.range a = Set.range b)
+      (h : CorrespondingEigenblocks hT hS hn a U V) :
+      CorrespondingEigenblocks hT hS hn b U V := by
+    have hb (i : Fin d) : b i ∈ Set.range a := by
+      rw [hab]
+      exact Set.mem_range_self i
+    let f : Fin d → Fin d := fun i => Classical.choose (hb i)
+    have hf (i : Fin d) : a (f i) = b i := Classical.choose_spec (hb i)
+    have hfi : Function.Injective f := by
+      intro i j hij
+      apply b.injective
+      calc
+        b i = a (f i) := (hf i).symm
+        _ = a (f j) := by rw [hij]
+        _ = b j := hf j
+    have hfs : Function.Surjective f := Finite.surjective_of_injective hfi
+    let fe : Fin d ↪ Fin d := ⟨f, hfi⟩
+    have hrange (v : Fin d → E) : Set.range (v ∘ f) = Set.range v := by
+      rw [Set.range_comp, hfs.range_eq, Set.image_univ]
+    obtain ⟨w, u, hw, hu, hU, hV⟩ := correspondingEigenblocks_iff.mp h
+    have hw' : IsOrderedEigenframe hT hn b (w ∘ f) := by
+      apply isOrderedEigenframe_iff.mpr
+      have hwf : Module.End.IsEigenfamily T
+          (fun i : Fin d => hT.eigenvalues hn (a (f i))) (w ∘ f) :=
+        (isOrderedEigenframe_iff.mp hw).comp fe
+      simpa only [hf] using hwf
+    have hu' : IsOrderedEigenframe hS hn b (u ∘ f) := by
+      apply isOrderedEigenframe_iff.mpr
+      have huf : Module.End.IsEigenfamily S
+          (fun i : Fin d => hS.eigenvalues hn (a (f i))) (u ∘ f) :=
+        (isOrderedEigenframe_iff.mp hu).comp fe
+      simpa only [hf] using huf
+    exact correspondingEigenblocks_iff.mpr
+      ⟨w ∘ f, u ∘ f, hw', hu', by simpa only [hrange w] using hU,
+        by simpa only [hrange u] using hV⟩
+  exact ⟨transfer e e' he, transfer e' e he.symm⟩
 
 /-- Correspondence of eigenblocks is symmetric in the two operators. -/
 theorem CorrespondingEigenblocks.symm {hT : T.IsSymmetric} {hS : S.IsSymmetric}
