@@ -84,9 +84,11 @@ spectrum from that of its orthogonal complement.
 * `Module.End.PointOrderedGap.pointSpectraSeparated`,
   `Module.End.PointIntervalExteriorGap.pointSpectraSeparated`: ordered and interval/exterior gaps
   are separations.
-* `LinearMap.IsSymmetric.pointInternalGap_pointSpectralSubspace`:
-  a spectral block of a finite-dimensional
-  symmetric operator has an internal gap when the selected and complementary spectra are separated.
+* `Module.End.pointSpectrumIn_orthogonal_pointSpectralSubspace`: the orthogonal complement
+  of a point-spectral subspace has no eigenvectors with eigenvalues in the selected set.
+* `Module.End.pointInternalGap_pointSpectralSubspace`: a point-spectral subspace of any
+  endomorphism has an internal gap when its selected and complementary *actual eigenvalues*
+  are separated by the stated margin.
 * `Module.End.PointOrderedGap.of_pointSpectrumIn`,
   `Module.End.PointOrderedGap.of_re_inner_apply_self`: containment on opposite sides of a cut, or
   opposite quadratic-form bounds, give an ordered gap.
@@ -719,17 +721,39 @@ theorem PointInternalGap.of_pointSpectrumIn {s t : Set ℝ}
     (hsep : ∀ a ∈ s, ∀ b ∈ t, δ ≤ |a - b|) : A.PointInternalGap U δ :=
   ⟨hU, PointSpectraSeparated.of_pointSpectrumIn hs ht hsep⟩
 
-/-- A symmetric operator has an internal gap on the spectral subspace selected by `Ω`
-when the selected eigenvalues are separated from the unselected ones. -/
-theorem _root_.LinearMap.IsSymmetric.pointInternalGap_pointSpectralSubspace [FiniteDimensional 𝕜 E]
-    (hA : A.IsSymmetric) (Ω : Set ℝ)
-    (hΩ : ∀ μ ∈ Ω, ∀ ν ∈ Ωᶜ, δ ≤ |μ - ν|) :
+/-- The orthogonal complement of the point-spectral subspace selected by `Ω` carries
+no eigenvalues belonging to `Ω`. No symmetry or finite-dimensionality assumption is needed:
+an eigenvector at a selected eigenvalue lies in the spectral subspace, and a vector in its
+intersection with the orthogonal complement must be zero. -/
+theorem pointSpectrumIn_orthogonal_pointSpectralSubspace (A : Module.End 𝕜 E) (Ω : Set ℝ) :
+    A.PointSpectrumIn (A.pointSpectralSubspace Ω)ᗮ Ωᶜ := by
+  refine pointSpectrumIn_iff.mpr fun x hxOrth hx0 μ hxEig ↦ ?_
+  by_contra hμ
+  have hμΩ : μ ∈ Ω := by simpa only [Set.mem_compl_iff, not_not] using hμ
+  have hxP : x ∈ A.pointSpectralSubspace Ω :=
+    A.eigenspace_le_pointSpectralSubspace hμΩ (mem_eigenspace_iff.mpr hxEig)
+  have hxbot : x ∈ A.pointSpectralSubspace Ω ⊓ (A.pointSpectralSubspace Ω)ᗮ :=
+    ⟨hxP, hxOrth⟩
+  have hxzero : x = 0 := by
+    simpa only [Submodule.inf_orthogonal_eq_bot, Submodule.mem_bot] using hxbot
+  exact hx0 hxzero
+
+/-- A spectral subspace of any endomorphism has an internal point-spectrum gap if the
+*actual eigenvalues* selected by `Ω` are separated from those in `Ωᶜ` by at least `δ`.
+The separation hypothesis only quantifies over eigenvalues of `A`, not all real numbers. -/
+theorem pointInternalGap_pointSpectralSubspace (A : Module.End 𝕜 E) (Ω : Set ℝ)
+    (hΩ : ∀ μ ∈ Ω ∩ A.restrictedPointSpectrum ⊤,
+      ∀ ν ∈ Ωᶜ ∩ A.restrictedPointSpectrum ⊤, δ ≤ |μ - ν|) :
     A.PointInternalGap (A.pointSpectralSubspace Ω) δ := by
-  refine ⟨?_, ?_⟩
+  refine PointInternalGap.of_pointSpectrumIn ?_ ?_ ?_ hΩ
   · intro x hx
     exact A.map_pointSpectralSubspace_le (Submodule.mem_map_of_mem hx)
-  · rw [hA.orthogonal_pointSpectralSubspace Ω]
-    exact A.pointSpectraSeparated_pointSpectralSubspace A hΩ
+  · intro μ hμ
+    exact ⟨A.pointSpectrumIn_pointSpectralSubspace Ω hμ,
+      A.restrictedPointSpectrum_mono le_top hμ⟩
+  · intro ν hν
+    exact ⟨A.pointSpectrumIn_orthogonal_pointSpectralSubspace Ω hν,
+      A.restrictedPointSpectrum_mono le_top hν⟩
 
 end Separation
 
