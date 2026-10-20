@@ -18,7 +18,6 @@ A normalized projection-valued measure `P` carries a finite diagonal positive me
 
 The construction uses Mathlib's signed-measure and complex-measure conversions: countable
 additivity comes from the existing diagonal measures, not a second PVM construction.
-The sharp total-variation estimate belongs to roadmap milestone SA-B42.
 
 ## Provenance
 
@@ -43,7 +42,6 @@ variable {X H : Type*} [MeasurableSpace X]
   [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 
 /-- A finite diagonal measure, embedded as a complex vector measure. -/
-@[expose]
 noncomputable def diagComplex (P : ProjValMeasure X H) (v : H) : ComplexMeasure X :=
   (@Measure.toSignedMeasure X _ (P.diag v) (P.diag_finite v)).toComplexMeasure 0
 
@@ -51,14 +49,12 @@ noncomputable def diagComplex (P : ProjValMeasure X H) (v : H) : ComplexMeasure 
 theorem diagComplex_apply (P : ProjValMeasure X H) (v : H) (B : Set X)
     (hB : MeasurableSet B) :
     diagComplex P v B = (((P.diag v) B).toReal : ℂ) := by
-  change ((@Measure.toSignedMeasure X _ (P.diag v) (P.diag_finite v)).toComplexMeasure
-      (0 : SignedMeasure X)) B = _
+  unfold diagComplex
   rw [SignedMeasure.toComplexMeasure_apply,
     Measure.toSignedMeasure_apply_measurable hB, measureReal_def]
   rfl
 
 /-- The polarized complex measure associated to a pair of vectors. -/
-@[expose]
 noncomputable def polarizedComplexMeasure (P : ProjValMeasure X H) (ψ ξ : H) :
     ComplexMeasure X :=
   (1 / 4 : ℂ) •
