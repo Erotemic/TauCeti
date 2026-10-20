@@ -46,11 +46,39 @@ belongs to the partial-operator spectrum. -/
 /-- A uniform lower bound on the distance between selected parts of the real
 spectra of two partial linear maps. A strictly positive bound witnesses
 spectral separation. -/
-@[expose]
 def SpectralSetsSeparated (A : E →ₗ.[𝕜] E) (B : F →ₗ.[𝕜] F)
     (s t : Set ℝ) (d : ℝ) : Prop :=
   ∀ a ∈ realSpectrum A, a ∈ s →
     ∀ b ∈ realSpectrum B, b ∈ t → d ≤ |a - b|
+
+/-- Characterization of separation by a distance bound on every selected
+pair of real spectral points. -/
+theorem spectralSetsSeparated_iff
+    {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
+    {s t : Set ℝ} {d : ℝ} :
+    SpectralSetsSeparated A B s t d ↔
+      ∀ a ∈ realSpectrum A, a ∈ s →
+        ∀ b ∈ realSpectrum B, b ∈ t → d ≤ |a - b| :=
+  Iff.rfl
+
+/-- Establish spectral-set separation from a uniform distance bound. -/
+theorem SpectralSetsSeparated.of_forall
+    {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
+    {s t : Set ℝ} {d : ℝ}
+    (h : ∀ a ∈ realSpectrum A, a ∈ s →
+      ∀ b ∈ realSpectrum B, b ∈ t → d ≤ |a - b|) :
+    SpectralSetsSeparated A B s t d :=
+  spectralSetsSeparated_iff.mpr h
+
+/-- Extract the separation bound for two selected real spectral points. -/
+theorem SpectralSetsSeparated.bound
+    {A : E →ₗ.[𝕜] E} {B : F →ₗ.[𝕜] F}
+    {s t : Set ℝ} {d : ℝ}
+    (h : SpectralSetsSeparated A B s t d)
+    {a b : ℝ} (ha : a ∈ realSpectrum A) (has : a ∈ s)
+    (hb : b ∈ realSpectrum B) (hbt : b ∈ t) :
+    d ≤ |a - b| :=
+  (spectralSetsSeparated_iff.mp h) a ha has b hb hbt
 
 /-- Exchanging both operators and their selected spectral sets preserves
 spectral separation. -/
@@ -59,8 +87,9 @@ theorem SpectralSetsSeparated.symm
     {s t : Set ℝ} {d : ℝ}
     (h : SpectralSetsSeparated A B s t d) :
     SpectralSetsSeparated B A t s d := by
+  apply SpectralSetsSeparated.of_forall
   intro b hb ht a ha hs
-  simpa [abs_sub_comm] using h a ha hs b hb ht
+  simpa [abs_sub_comm] using h.bound ha hs hb ht
 
 /-- A smaller lower bound still separates the selected spectral sets. -/
 theorem SpectralSetsSeparated.mono_gap
@@ -68,8 +97,9 @@ theorem SpectralSetsSeparated.mono_gap
     {s t : Set ℝ} {d e : ℝ}
     (h : SpectralSetsSeparated A B s t d) (hed : e ≤ d) :
     SpectralSetsSeparated A B s t e := by
+  apply SpectralSetsSeparated.of_forall
   intro a ha hs b hb ht
-  exact hed.trans (h a ha hs b hb ht)
+  exact hed.trans (h.bound ha hs hb ht)
 
 /-- Restricting either selected real spectral set preserves separation. -/
 theorem SpectralSetsSeparated.mono_sets
@@ -78,7 +108,8 @@ theorem SpectralSetsSeparated.mono_sets
     (h : SpectralSetsSeparated A B s t d)
     (hs : s' ⊆ s) (ht : t' ⊆ t) :
     SpectralSetsSeparated A B s' t' d := by
+  apply SpectralSetsSeparated.of_forall
   intro a ha has' b hb hbt'
-  exact h a ha (hs has') b hb (ht hbt')
+  exact h.bound ha (hs has') hb (ht hbt')
 
 end LinearPMap
