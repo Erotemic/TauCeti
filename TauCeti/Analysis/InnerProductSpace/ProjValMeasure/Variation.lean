@@ -77,18 +77,16 @@ theorem polarizedComplexMeasure_variation_univ_le (P : ProjValMeasure X H) (ψ �
         ‖T ψ‖ * ‖T ξ‖ ≤
           (‖ξ‖ / (2 * ‖ψ‖)) * ‖T ψ‖ ^ 2 +
             (‖ψ‖ / (2 * ‖ξ‖)) * ‖T ξ‖ ^ 2 := by
-      have hdenom : 0 < 2 * ‖ψ‖ * ‖ξ‖ := by positivity
-      have hfraction :
-          ‖ξ‖ / (2 * ‖ψ‖) * ‖T ψ‖ ^ 2 +
-              ‖ψ‖ / (2 * ‖ξ‖) * ‖T ξ‖ ^ 2 =
-            ((‖ξ‖ * ‖T ψ‖) ^ 2 +
-                (‖ψ‖ * ‖T ξ‖) ^ 2) /
-              (2 * ‖ψ‖ * ‖ξ‖) := by
+      have hYoung := two_mul_le_add_mul_sq
+        (a := ‖T ψ‖) (b := ‖T ξ‖)
+        (ε := ‖ξ‖ / ‖ψ‖) (div_pos hξ hψ)
+      have hscale :
+          (‖ξ‖ / ‖ψ‖) * ‖T ψ‖ ^ 2 +
+              (‖ξ‖ / ‖ψ‖)⁻¹ * ‖T ξ‖ ^ 2 =
+            2 * ((‖ξ‖ / (2 * ‖ψ‖)) * ‖T ψ‖ ^ 2 +
+              (‖ψ‖ / (2 * ‖ξ‖)) * ‖T ξ‖ ^ 2) := by
         field_simp [ne_of_gt hψ, ne_of_gt hξ]
-      rw [hfraction]
-      apply (le_div_iff₀ hdenom).2
-      nlinarith only [two_mul_le_add_sq
-        (‖ξ‖ * ‖T ψ‖) (‖ψ‖ * ‖T ξ‖)]
+      nlinarith only [hYoung, hscale]
     rw [P.norm_sq_proj_apply B hB ψ, P.norm_sq_proj_apply B hB ξ] at hy
     calc
       ‖P.polarizedComplexMeasure ψ ξ B‖ ≤ ‖T ψ‖ * ‖T ξ‖ := hcs
