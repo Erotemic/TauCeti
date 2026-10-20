@@ -6,6 +6,8 @@ Authors: Jon Crall, Claude Opus 5
 module
 
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Interval.Set.Group
+public import Mathlib.Algebra.Order.ToIntervalMod
 public import Mathlib.Algebra.Order.Floor.Ring
 
 /-!
@@ -16,15 +18,11 @@ For a positive width `ε`, the half-open intervals
 A point belongs to the cell indexed by `⌊s / ε⌋`, and the distance
 from a point to the cell's left endpoint is bounded by the width.
 
-Mathlib's integer-smul interval lemmas give disjointness and covering directly
-after unfolding `gridCell`. The grid can be used to decompose real spectral parameters
-or to bound functions locally on each interval.
-
-For the partition properties, use `Set.pairwise_disjoint_Ico_zsmul` from
-`Mathlib.Algebra.Order.Interval.Set.Group`, `Set.iUnion_Ico_zsmul` from
-`Mathlib.Algebra.Order.ToIntervalMod`, and `existsUnique_zsmul_near_of_pos` from
-`Mathlib.Algebra.Order.Archimedean.Basic`. Measurability follows from
-`measurableSet_Ico` in `Mathlib.MeasureTheory.Constructions.BorelSpace.Order`.
+The partition properties follow from Mathlib's integer-smul interval lemmas:
+`Set.pairwise_disjoint_Ico_zsmul` and `Set.iUnion_Ico_zsmul`. The named grid-cell
+results provide the disjointness and covering facts for constructions that operate
+on this family. Its Borel measurability and the associated countable measure
+decomposition are developed in `TauCeti.MeasureTheory.Constructions.BorelSpace.Real`.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/LinearPMap/SpectralGrid.lean`.
@@ -50,6 +48,20 @@ theorem gridCell_eq_Ico (ε : ℝ) (k : ℤ) :
     s ∈ gridCell ε k ↔ (k : ℝ) * ε ≤ s ∧ s < ((k : ℝ) + 1) * ε := by
   rw [gridCell_eq_Ico]
   exact Iff.rfl
+
+/-- Distinct grid cells are disjoint, including when their width is nonpositive. -/
+theorem pairwise_disjoint_gridCell (ε : ℝ) :
+    Pairwise (Function.onFun Disjoint (gridCell ε)) := by
+  intro k l hkl
+  -- The intervals are literally the integer-smul cells of Mathlib.
+  change Disjoint (Ico (k • ε) ((k + 1) • ε))
+    (Ico (l • ε) ((l + 1) • ε))
+  exact (Set.pairwise_disjoint_Ico_zsmul ε) hkl
+
+/-- Positive-width grid cells cover the entire real line. -/
+theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
+    (⋃ k : ℤ, gridCell ε k) = univ := by
+  simpa only [gridCell] using (iUnion_Ico_zsmul hε)
 
 /-- For positive width, the index of the grid cell containing `s` is `⌊s / ε⌋`. -/
 theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
