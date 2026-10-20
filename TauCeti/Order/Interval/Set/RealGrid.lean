@@ -1,0 +1,113 @@
+/-
+Copyright (c) 2026 Kitware, Inc. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Jon Crall, Claude Opus 5
+-/
+module
+
+public import Mathlib.Algebra.Order.ToIntervalMod
+public import Mathlib.Algebra.Order.Interval.Set.Group
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Ring
+import Mathlib.Tactic.Linarith
+
+/-!
+# Uniform interval grids on the real line
+
+For a positive width `ε`, the half-open intervals
+`[k * ε, (k + 1) * ε)`, indexed by integers, partition the real line.
+A point belongs to the cell indexed by `⌊s / ε⌋`, and the distance
+from a point to the cell's left endpoint is bounded by the width.
+
+The disjointness and covering results specialize Mathlib's integer-smul
+interval lemmas. The grid can be used to decompose real spectral parameters
+or to bound functions locally on each interval.
+
+Adapted from the Kitware DKPS formalization,
+`ForTauCeti/Analysis/InnerProductSpace/LinearPMap/SpectralGrid.lean`.
+-/
+
+public section
+
+open Set
+
+namespace TauCeti
+
+/-- The half-open interval between successive integer multiples of `ε`. -/
+@[expose]
+def gridCell (ε : ℝ) (k : ℤ) : Set ℝ :=
+  Ico (k • ε) ((k + 1) • ε)
+
+/-- The multiplicative form of the endpoints of a grid cell. -/
+theorem gridCell_eq_Ico (ε : ℝ) (k : ℤ) :
+    gridCell ε k = Ico ((k : ℝ) * ε) (((k : ℝ) + 1) * ε) := by
+  simp only [gridCell, zsmul_eq_mul, Int.cast_add, Int.cast_one]
+
+/-- Membership in a grid cell is given by its two endpoint inequalities. -/
+@[simp] theorem mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ} :
+    s ∈ gridCell ε k ↔ (k : ℝ) * ε ≤ s ∧ s < ((k : ℝ) + 1) * ε := by
+  rw [gridCell_eq_Ico]
+  exact Iff.rfl
+
+/-- Distinct grid cells are disjoint, even when the width is nonpositive. -/
+theorem pairwise_disjoint_gridCell (ε : ℝ) :
+    Pairwise (Function.onFun Disjoint (gridCell ε)) := by
+  intro k l hkl
+  -- Work pointwise: `simp [gridCell]` does not unfold the partially applied
+  -- function `gridCell ε` underneath `Function.onFun`.
+  change Disjoint (Ico (k • ε) ((k + 1) • ε))
+    (Ico (l • ε) ((l + 1) • ε))
+  exact (Set.pairwise_disjoint_Ico_zsmul ε) hkl
+
+/-- Grid cells with positive width cover the real line. -/
+theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
+    (⋃ k : ℤ, gridCell ε k) = univ := by
+  simpa only [gridCell] using (iUnion_Ico_zsmul hε)
+
+/-- For positive width, the index of the grid cell containing `s` is `⌊s / ε⌋`. -/
+@[simp] theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
+    s ∈ gridCell ε k ↔ ⌊s / ε⌋ = k := by
+  rw [mem_gridCell, Int.floor_eq_iff]
+  constructor
+  · rintro ⟨hl, hu⟩
+    exact ⟨(le_div_iff₀ hε).2 hl, (div_lt_iff₀ hε).2 hu⟩
+  · rintro ⟨hl, hu⟩
+    exact ⟨(le_div_iff₀ hε).1 hl, (div_lt_iff₀ hε).1 hu⟩
+
+/-- Every point belongs to the grid cell indexed by the floor of its scaled value. -/
+theorem mem_gridCell_floor {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
+    s ∈ gridCell ε ⌊s / ε⌋ := by
+  rw [mem_gridCell_iff_floor hε]
+
+/-- Every real number lies in exactly one cell when the width is positive. -/
+theorem existsUnique_mem_gridCell {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
+    ∃! k : ℤ, s ∈ gridCell ε k := by
+  refine ⟨⌊s / ε⌋, mem_gridCell_floor hε s, ?_⟩
+  intro k hk
+  exact ((mem_gridCell_iff_floor hε k s).mp hk).symm
+
+/-- Membership in a cell controls the absolute value of its points. -/
+theorem abs_le_of_mem_gridCell {ε : ℝ} (k : ℤ) {s : ℝ}
+    (hs : s ∈ gridCell ε k) :
+    |s| ≤ (|(k : ℝ)| + 1) * ε := by
+  obtain ⟨h1, h2⟩ := mem_gridCell.mp hs
+  have hε : 0 < ε := by nlinarith [lt_of_le_of_lt h1 h2]
+  have hklo : -|(k : ℝ)| ≤ (k : ℝ) := neg_abs_le _
+  have hkhi : (k : ℝ) ≤ |(k : ℝ)| := le_abs_self _
+  have hmullo := mul_le_mul_of_nonneg_right hklo hε.le
+  have hmulhi := mul_le_mul_of_nonneg_right hkhi hε.le
+  rw [abs_le]
+  constructor
+  · nlinarith [hmullo]
+  · nlinarith [hmulhi]
+
+/-- Membership in a cell bounds the distance to its left endpoint by its width. -/
+theorem abs_sub_le_of_mem_gridCell {ε : ℝ} (k : ℤ) {s : ℝ}
+    (hs : s ∈ gridCell ε k) :
+    |s - (k : ℝ) * ε| ≤ ε := by
+  obtain ⟨h1, h2⟩ := mem_gridCell.mp hs
+  have hε : 0 < ε := by nlinarith [lt_of_le_of_lt h1 h2]
+  rw [abs_le]
+  constructor <;> nlinarith
+
+end TauCeti
