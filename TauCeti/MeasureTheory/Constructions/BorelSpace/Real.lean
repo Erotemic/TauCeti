@@ -11,13 +11,21 @@ public import TauCeti.Order.Interval.Set.RealGrid
 import Mathlib.Tactic.Measurability
 
 /-!
-# Measurability of the extended distance on `ℝ≥0∞`
+# Borel measurability of extended distances and real grid cells
+
+## Extended distance on `ℝ≥0∞`
 
 `ℝ≥0∞` carries the extended distance `edist a b = max (a - b) (b - a)` of a weak extended metric
 space, which is not jointly continuous for the order topology, so Mathlib's `measurable_edist`
 does not apply to it. The distance is nevertheless Borel measurable, because truncated
 subtraction is. This lets the Wasserstein distance be used for laws on `[0, ∞]`, such as the
 distribution of an extended-valued random variable.
+
+## Uniform real grid cells
+
+The half-open cells `gridCell ε k` of a uniform real grid are Borel measurable because
+all real `Ico` intervals are measurable. This supports measurable decompositions of the
+real line into grid cells.
 -/
 
 public section
