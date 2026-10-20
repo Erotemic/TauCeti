@@ -88,9 +88,7 @@ theorem existsUnique_mem_gridCell {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
 /-- A cell containing a point must have strictly positive width. -/
 theorem pos_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
     (hs : s ∈ gridCell ε k) : 0 < ε := by
-  change k • ε ≤ s ∧ s < (k + 1) • ε at hs
-  obtain ⟨hl, hu⟩ := hs
-  rw [add_zsmul, one_zsmul] at hu
+  obtain ⟨hl, hu⟩ := mem_gridCell.mp hs
   linarith
 
 /-- Membership in a cell bounds the distance to its left endpoint by its width. -/
