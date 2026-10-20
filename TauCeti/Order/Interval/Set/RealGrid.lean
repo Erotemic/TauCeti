@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Algebra.Order.ToIntervalMod
 public import Mathlib.Algebra.Order.Interval.Set.Group
+public import Mathlib.Algebra.Order.Archimedean.Basic
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.Algebra.Order.Floor.Ring
 import Mathlib.Tactic.Linarith
@@ -34,7 +35,6 @@ open Set
 namespace TauCeti
 
 /-- The half-open interval between successive integer multiples of `ε`. -/
-@[expose]
 def gridCell (ε : ℝ) (k : ℤ) : Set ℝ :=
   Ico (k • ε) ((k + 1) • ε)
 
@@ -65,7 +65,7 @@ theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
   simpa only [gridCell] using (iUnion_Ico_zsmul hε)
 
 /-- For positive width, the index of the grid cell containing `s` is `⌊s / ε⌋`. -/
-theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
+@[simp] theorem mem_gridCell_iff_floor {ε : ℝ} (hε : 0 < ε) (k : ℤ) (s : ℝ) :
     s ∈ gridCell ε k ↔ ⌊s / ε⌋ = k := by
   rw [mem_gridCell, Int.floor_eq_iff]
   constructor
@@ -82,32 +82,39 @@ theorem mem_gridCell_floor {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
 /-- Every real number lies in exactly one cell when the width is positive. -/
 theorem existsUnique_mem_gridCell {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
     ∃! k : ℤ, s ∈ gridCell ε k := by
-  refine ⟨⌊s / ε⌋, mem_gridCell_floor hε s, ?_⟩
-  intro k hk
-  exact ((mem_gridCell_iff_floor hε k s).mp hk).symm
+  simpa only [gridCell, Set.mem_Ico] using
+    (existsUnique_zsmul_near_of_pos hε s)
 
-/-- Membership in a cell controls the absolute value of its points. -/
-theorem abs_le_of_mem_gridCell {ε : ℝ} (k : ℤ) {s : ℝ}
-    (hs : s ∈ gridCell ε k) :
-    |s| ≤ (|(k : ℝ)| + 1) * ε := by
-  obtain ⟨h1, h2⟩ := mem_gridCell.mp hs
-  have hε : 0 < ε := by nlinarith [lt_of_le_of_lt h1 h2]
-  have hklo : -|(k : ℝ)| ≤ (k : ℝ) := neg_abs_le _
-  have hkhi : (k : ℝ) ≤ |(k : ℝ)| := le_abs_self _
-  have hmullo := mul_le_mul_of_nonneg_right hklo hε.le
-  have hmulhi := mul_le_mul_of_nonneg_right hkhi hε.le
-  rw [abs_le]
-  constructor
-  · nlinarith [hmullo]
-  · nlinarith [hmulhi]
+/-- A cell containing a point must have strictly positive width. -/
+theorem pos_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
+    (hs : s ∈ gridCell ε k) : 0 < ε := by
+  change k • ε ≤ s ∧ s < (k + 1) • ε at hs
+  obtain ⟨hl, hu⟩ := hs
+  rw [add_zsmul, one_zsmul] at hu
+  linarith
 
 /-- Membership in a cell bounds the distance to its left endpoint by its width. -/
-theorem abs_sub_le_of_mem_gridCell {ε : ℝ} (k : ℤ) {s : ℝ}
+theorem abs_sub_le_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
     (hs : s ∈ gridCell ε k) :
     |s - (k : ℝ) * ε| ≤ ε := by
-  obtain ⟨h1, h2⟩ := mem_gridCell.mp hs
-  have hε : 0 < ε := by nlinarith [lt_of_le_of_lt h1 h2]
+  have hε : 0 < ε := pos_of_mem_gridCell hs
+  obtain ⟨hl, hu⟩ := mem_gridCell.mp hs
   rw [abs_le]
-  constructor <;> nlinarith
+  constructor <;> nlinarith [hε]
+
+/-- Membership in a cell controls the absolute value of its points. -/
+theorem abs_le_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
+    (hs : s ∈ gridCell ε k) :
+    |s| ≤ (|(k : ℝ)| + 1) * ε := by
+  have hε : 0 ≤ ε := (pos_of_mem_gridCell hs).le
+  have hdist : |s - (k : ℝ) * ε| ≤ ε := abs_sub_le_of_mem_gridCell hs
+  calc
+    |s| = |(s - (k : ℝ) * ε) + (k : ℝ) * ε| := by rw [sub_add_cancel]
+    _ ≤ |s - (k : ℝ) * ε| + |(k : ℝ) * ε| := abs_add_le _ _
+    _ ≤ ε + |(k : ℝ)| * ε := by
+      rw [abs_mul, abs_of_nonneg hε]
+      exact add_le_add hdist (le_refl (|(k : ℝ)| * ε))
+    _ = (|(k : ℝ)| + 1) * ε := by
+      rw [add_mul, one_mul, add_comm]
 
 end TauCeti
