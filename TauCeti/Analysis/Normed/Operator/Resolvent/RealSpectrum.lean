@@ -33,14 +33,14 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E
 
 /-- The real points of the spectrum of a partial operator on a complex Banach
 space form a closed set. -/
-theorem isClosed_realSpectrum (A : E →ₗ.[ℂ] E) :
+theorem isClosed_preimage_ofReal_spectrum (A : E →ₗ.[ℂ] E) :
     IsClosed (Complex.ofReal ⁻¹' A.spectrum) :=
   A.isClosed_spectrum.preimage Complex.continuous_ofReal
 
 /-- The real points of the spectrum of a partial operator on a complex Banach
 space form a Borel measurable subset of `ℝ`. -/
-theorem measurableSet_realSpectrum (A : E →ₗ.[ℂ] E) :
+theorem measurableSet_preimage_ofReal_spectrum (A : E →ₗ.[ℂ] E) :
     MeasurableSet (Complex.ofReal ⁻¹' A.spectrum) :=
-  (A.isClosed_realSpectrum).measurableSet
+  (A.isClosed_preimage_ofReal_spectrum).measurableSet
 
 end LinearPMap
