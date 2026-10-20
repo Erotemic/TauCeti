@@ -66,6 +66,7 @@ theorem hermitianDilation_neg (A : E →ₗ[𝕜] F) :
   ext <;> simp [hermitianDilation_apply]
 
 /-- Hermitian dilation is additive. -/
+@[simp]
 theorem hermitianDilation_add (A B : E →ₗ[𝕜] F) :
     hermitianDilation (A + B) = A.hermitianDilation + B.hermitianDilation := by
   ext x
@@ -73,6 +74,7 @@ theorem hermitianDilation_add (A B : E →ₗ[𝕜] F) :
   ext <;> simp [hermitianDilation_apply]
 
 /-- Hermitian dilation commutes with subtraction, as used in perturbation bounds. -/
+@[simp]
 theorem hermitianDilation_sub (A B : E →ₗ[𝕜] F) :
     hermitianDilation (A - B) = A.hermitianDilation - B.hermitianDilation := by
   ext x
