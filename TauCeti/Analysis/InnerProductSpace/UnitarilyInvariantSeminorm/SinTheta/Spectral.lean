@@ -19,10 +19,26 @@ The first theorem permits any spectral selection with the appropriate exterior s
 condition. The second specializes to the canonical selection by the enlarged interval:
 there the exterior spectral condition is automatic.
 
-## Provenance
+## Source
 
-Adapted from the spectral-subspace and residual sin-theta development in the maintained
-AIQ-Kitware DKPS formalization (Kitware, Inc.; Apache-2.0).
+The residual bound and point-spectral-subspace construction have antecedents in the
+maintained AIQ-Kitware DKPS formalization:
+https://github.com/AIQ-Kitware/aiq-dkps-formalization
+
+* `ForTauCeti/Analysis/InnerProductSpace/SinTheta/DirectedBounds.lean`
+  (the residual `sin Θ` theorem).
+* `ForTauCeti/Analysis/InnerProductSpace/Spectral/Subspace.lean`
+  (point-spectral subspaces and their invariance).
+
+Original source copyright: Copyright (c) 2026 Kitware, Inc. All rights reserved.
+The source files are released under Apache-2.0.
+
+## References
+
+* C. Davis, W. Kahan, *The rotation of eigenvectors by a perturbation. III*,
+  SIAM J. Numer. Anal. **7** (1970), 1–46.
+* R. Bhatia, *Matrix Analysis*, Graduate Texts in Mathematics 169,
+  Springer (1997), §VII.3.
 -/
 
 public section
