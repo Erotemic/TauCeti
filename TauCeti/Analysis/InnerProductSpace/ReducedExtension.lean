@@ -123,7 +123,6 @@ noncomputable def reducedExtension (T : E →L[𝕜] E) (W : Submodule 𝕜 E)
     [W.HasOrthogonalProjection] (κ : ℝ) : E →L[𝕜] E :=
   T ∘L W.starProjection + (κ : 𝕜) • (1 - W.starProjection)
 
-@[simp]
 theorem reducedExtension_apply (T : E →L[𝕜] E) (W : Submodule 𝕜 E)
     [W.HasOrthogonalProjection] (κ : ℝ) (x : E) :
     T.reducedExtension W κ x =
