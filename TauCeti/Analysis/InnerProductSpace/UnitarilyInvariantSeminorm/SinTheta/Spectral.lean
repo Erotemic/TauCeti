@@ -58,7 +58,7 @@ The spectral selection `Ω` identifies the target subspace of the symmetric oper
 Its complementary point-spectral subspace carries spectrum outside the enlarged interval,
 while the trial-coordinate operator `M` carries spectrum inside `[a,b]`. The residual controls
 the directed sine in every rectangular unitarily invariant seminorm. -/
-theorem mul_map_pointSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
+theorem mul_map_starProjection_orthogonal_pointSpectralSubspace_comp_le_map_sylvester_apply
     (N : UnitarilyInvariantSeminorm 𝕜 F E)
     {A : E →L[𝕜] E} {M : F →L[𝕜] F}
     (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
@@ -86,7 +86,7 @@ theorem mul_map_pointSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
 
 /-- The canonical interval spectral selection needs no explicit exterior spectral assumption:
 its orthogonal complement is selected by the exterior of the enlarged interval. -/
-theorem mul_map_intervalSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
+theorem mul_map_starProjection_orthogonal_pointSpectralSubspace_Ioo_comp_le_map_sylvester_apply
     (N : UnitarilyInvariantSeminorm 𝕜 F E)
     {A : E →L[𝕜] E} {M : F →L[𝕜] F}
     (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
@@ -95,7 +95,7 @@ theorem mul_map_intervalSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
     (X : F →L[𝕜] E) :
     δ * N ((Module.End.pointSpectralSubspace (A : E →ₗ[𝕜] E)
         (Set.Ioo (a - δ) (b + δ)))ᗮ.starProjection ∘L X) ≤ N (A.sylvester M X) := by
-  exact N.mul_map_pointSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
+  exact N.mul_map_starProjection_orthogonal_pointSpectralSubspace_comp_le_map_sylvester_apply
     hA hM (Set.Ioo (a - δ) (b + δ)) hMspec
     (Module.End.pointSpectrumIn_pointSpectralSubspace
       (A : E →ₗ[𝕜] E) (Set.Ioo (a - δ) (b + δ))ᶜ) X
