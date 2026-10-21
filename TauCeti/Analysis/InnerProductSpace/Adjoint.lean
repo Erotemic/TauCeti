@@ -9,7 +9,10 @@ public import Mathlib.Analysis.InnerProductSpace.Adjoint
 public import Mathlib.Analysis.InnerProductSpace.ProdL2
 
 /-!
-# Adjoints of isometric isomorphisms, of `L²` coordinate projections, and norm bounds
+# Adjoints of isometries, of `L²` coordinate projections, and norm bounds
+
+The adjoint of a linear isometry sends each image vector back to its preimage
+(`LinearIsometry.adjoint_apply_apply`).
 
 Two families of adjoints of linear maps between finite-dimensional inner product spaces:
 
@@ -35,6 +38,16 @@ public section
 variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [FiniteDimensional 𝕜 E]
   [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
+
+namespace LinearIsometry
+
+/-- The adjoint of a linear isometry sends each image vector back to its preimage. -/
+@[simp]
+theorem adjoint_apply_apply (f : E →ₗᵢ[𝕜] F) (x : E) :
+    LinearMap.adjoint f.toLinearMap (f x) = x :=
+  LinearMap.congr_fun (adjoint_comp_self' f) x
+
+end LinearIsometry
 
 namespace LinearIsometryEquiv
 
