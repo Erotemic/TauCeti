@@ -10,7 +10,11 @@ public import Mathlib.LinearAlgebra.Multilinear.Basic
 public import Mathlib.Analysis.Normed.Module.Seminorm.Basic
 
 /-!
-# Multilinear maps and seminorms on finite-dimensional spaces are continuous
+# Continuity and continuous linear maps in finite dimension
+
+The linear-map conversion API includes `LinearMap.toContinuousLinearMap_coe`: forgetting and
+restoring continuity returns the original continuous linear map. Only the source needs to be
+finite-dimensional; the target may be any topological vector space.
 
 A multilinear map `f : MultilinearMap 𝕜 M N` on finitely many finite-dimensional Hausdorff
 topological vector spaces over a complete nontrivially normed field is continuous when addition
@@ -32,6 +36,22 @@ topology given in advance.
 -/
 
 public section
+
+namespace LinearMap
+
+variable {𝕜 E F : Type*} [NontriviallyNormedField 𝕜] [CompleteSpace 𝕜]
+  [AddCommGroup E] [TopologicalSpace E] [IsTopologicalAddGroup E]
+  [Module 𝕜 E] [ContinuousSMul 𝕜 E] [T2Space E] [FiniteDimensional 𝕜 E]
+  [AddCommGroup F] [TopologicalSpace F] [IsTopologicalAddGroup F]
+  [Module 𝕜 F] [ContinuousSMul 𝕜 F]
+
+/-- Passing a continuous linear map to a linear map and back returns the original map. -/
+@[simp]
+theorem toContinuousLinearMap_coe (T : E →L[𝕜] F) :
+    (T : E →ₗ[𝕜] F).toContinuousLinearMap = T :=
+  ContinuousLinearMap.ext fun _ ↦ rfl
+
+end LinearMap
 
 namespace MultilinearMap
 

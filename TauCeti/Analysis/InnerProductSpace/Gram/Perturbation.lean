@@ -24,6 +24,10 @@ The identities expose the two terms linear in the perturbation `A - B`. The targ
 statements follow from the source-space statements by taking adjoints. The proofs use Mathlib's
 isometric adjoint equivalence and the submultiplicativity of the operator norm.
 
+For finite-dimensional spaces, `LinearMap.toContinuousLinearMap_adjoint_comp_self` identifies
+conversion of a linear-map source Gram operator with the source Gram operator formed after
+passing to continuous linear maps.
+
 ## References
 
 * G. W. Stewart and J.-G. Sun, *Matrix Perturbation Theory*, Academic Press (1990), Chapter I
@@ -76,3 +80,24 @@ theorem norm_self_comp_adjoint_sub_self_comp_adjoint_le (A B : E →L[𝕜] F) :
     norm_adjoint_comp_self_sub_adjoint_comp_self_le A.adjoint B.adjoint
 
 end ContinuousLinearMap
+
+namespace LinearMap
+
+variable {𝕜 E F : Type*} [RCLike 𝕜]
+  [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [FiniteDimensional 𝕜 E]
+  [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
+
+/-- Passing the source Gram operator to continuous linear maps agrees with
+forming the source Gram operator of the continuous linear map. -/
+theorem toContinuousLinearMap_adjoint_comp_self (T : E →ₗ[𝕜] F) :
+    letI : CompleteSpace E := FiniteDimensional.complete 𝕜 E
+    letI : CompleteSpace F := FiniteDimensional.complete 𝕜 F
+    (T.adjoint ∘ₗ T).toContinuousLinearMap =
+      T.toContinuousLinearMap.adjoint ∘L T.toContinuousLinearMap := by
+  let : CompleteSpace E := FiniteDimensional.complete 𝕜 E
+  let : CompleteSpace F := FiniteDimensional.complete 𝕜 F
+  rw [toContinuousLinearMap_eq_iff_eq_toLinearMap]
+  simp only [ContinuousLinearMap.toLinearMap_comp,
+    ← adjoint_toContinuousLinearMap, coe_toContinuousLinearMap]
+
+end LinearMap

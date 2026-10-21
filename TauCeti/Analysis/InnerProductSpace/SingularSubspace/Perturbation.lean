@@ -6,7 +6,7 @@ Authors: Jon Crall, GPT-6
 module
 
 public import TauCeti.Analysis.InnerProductSpace.SingularSubspace.Basic
-public import TauCeti.Analysis.InnerProductSpace.Projection.Perturbation
+public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.SinTheta.Corollaries
 public import TauCeti.Analysis.InnerProductSpace.Gram.Perturbation
 
 /-!
@@ -72,14 +72,8 @@ theorem mul_norm_sinThetaMap_rightSingularSubspace_le (A B : E →ₗ[𝕜] F)
     simpa only [P, Q, coe_toContinuousLinearMap] using hgap
   have hdk := Submodule.mul_norm_sinThetaMap_le_norm_sub_of_pointIntervalExteriorGap
     (A.rightSingularSubspace s) (B.rightSingularSubspace t) hP hQ hU hV hgap'
-  have hgram (T : E →ₗ[𝕜] F) :
-      (T.adjoint ∘ₗ T).toContinuousLinearMap =
-        T.toContinuousLinearMap.adjoint ∘L T.toContinuousLinearMap := by
-    rw [toContinuousLinearMap_eq_iff_eq_toLinearMap]
-    simp only [ContinuousLinearMap.toLinearMap_comp,
-      ← adjoint_toContinuousLinearMap, coe_toContinuousLinearMap]
   refine hdk.trans ?_
-  simpa only [P, Q, hgram] using
+  simpa only [P, Q, toContinuousLinearMap_adjoint_comp_self] using
     (ContinuousLinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_le
       B.toContinuousLinearMap A.toContinuousLinearMap)
 
