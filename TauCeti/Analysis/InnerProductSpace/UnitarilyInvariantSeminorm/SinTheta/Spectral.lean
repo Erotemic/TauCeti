@@ -5,7 +5,6 @@ Authors: Jon Crall, GPT-6
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.PointSpectrum
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.SinTheta.Basic
 
 /-!
@@ -19,8 +18,6 @@ can be stated directly in terms of spectral selection, without a separate invari
 The first theorem permits any spectral selection with the appropriate exterior spectral
 condition. The second specializes to the canonical selection by the enlarged interval:
 there the exterior spectral condition is automatic.
-
-This is SSP-C19 of the SpectralSubspacePerturbation roadmap.
 
 ## Provenance
 
@@ -39,7 +36,7 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
   {a b δ : ℝ}
 
-/-- **SSP-C19: canonical spectral-subspace residual Davis--Kahan bound.**
+/-- **Canonical spectral-subspace residual Davis--Kahan bound.**
 
 The spectral selection `Ω` identifies the target subspace of the symmetric operator `A`.
 Its complementary point-spectral subspace carries spectrum outside the enlarged interval,
@@ -61,13 +58,11 @@ theorem mul_map_pointSpectralSubspace_orthogonal_comp_le_map_sylvester_apply
   let U : Submodule 𝕜 E := Module.End.pointSpectralSubspace (A : E →ₗ[𝕜] E) Ω
   have hU : ∀ x ∈ U, A x ∈ U := by
     intro x hx
-    change (A : E →ₗ[𝕜] E) x ∈ Module.End.pointSpectralSubspace (A : E →ₗ[𝕜] E) Ω
     exact (Module.End.map_pointSpectralSubspace_le
       (A := (A : E →ₗ[𝕜] E)) (Ω := Ω)) (Submodule.mem_map_of_mem hx)
   have hAspec' : Module.End.PointSpectrumIn (A : E →ₗ[𝕜] E) Uᗮ
       (Set.Ioo (a - δ) (b + δ))ᶜ := by
-    rw [show Uᗮ = Module.End.pointSpectralSubspace (A : E →ₗ[𝕜] E) Ωᶜ from
-      hA.orthogonal_pointSpectralSubspace Ω]
+    rw [hA.orthogonal_pointSpectralSubspace Ω]
     exact hAspec
   have hgap : Module.End.PointIntervalExteriorGap (M : F →ₗ[𝕜] F) ⊤
       (A : E →ₗ[𝕜] E) Uᗮ a b δ := ⟨hMspec, hAspec'⟩
