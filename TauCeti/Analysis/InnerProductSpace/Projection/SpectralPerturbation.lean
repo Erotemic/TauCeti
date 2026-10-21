@@ -70,7 +70,7 @@ namespace Module.End
 variable {𝕜 E : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [FiniteDimensional 𝕜 E]
 
-/-- **SSP-C20: the equal-rank spectral-projector Davis--Kahan theorem.**
+/-- The equal-rank spectral-projector Davis--Kahan theorem.
 For equally ranked point-spectral subspaces of self-adjoint operators, an
 interval/exterior gap gives `δ * ‖P_A - P_B‖ ≤ ‖B - A‖`. The selected spectra
 need not be contiguous; the separation is expressed on the restricted point
