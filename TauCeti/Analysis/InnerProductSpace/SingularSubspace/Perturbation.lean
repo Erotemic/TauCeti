@@ -73,7 +73,7 @@ theorem mul_norm_sinThetaMap_rightSingularSubspace_le (A B : E →ₗ[𝕜] F)
   have hdk := Submodule.mul_norm_sinThetaMap_le_norm_sub_of_pointIntervalExteriorGap
     (A.rightSingularSubspace s) (B.rightSingularSubspace t) hP hQ hU hV hgap'
   refine hdk.trans ?_
-  simpa only [P, Q, toContinuousLinearMap_adjoint_comp_self] using
+  simpa only [P, Q, toContinuousLinearMap_comp, adjoint_toContinuousLinearMap] using
     (ContinuousLinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_le
       B.toContinuousLinearMap A.toContinuousLinearMap)
 
