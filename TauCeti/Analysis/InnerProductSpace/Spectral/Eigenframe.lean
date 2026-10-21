@@ -93,7 +93,7 @@ theorem restrictedPointSpectrum_span_subset (h : IsEigenfamily T c y) :
     refine Submodule.span_le.mpr ?_
     rintro _ ⟨i, rfl⟩
     exact Module.End.eigenspace_le_pointSpectralSubspace (A := T)
-      (show c i ∈ Set.range c from ⟨i, rfl⟩) (h.mem_eigenspace i)
+      (Set.mem_range_self i) (h.mem_eigenspace i)
   -- Use the public containment API rather than unfolding the hidden predicate.
   exact (Module.End.pointSpectrumIn_iff_restrictedPointSpectrum_subset).mp
     ((Module.End.pointSpectrumIn_pointSpectralSubspace T (Set.range c)).mono
@@ -206,13 +206,8 @@ theorem CorrespondingEigenblocks.reindex_of_range_eq {κ : Type*}
       ((Set.equivOfEq he.symm).trans
         (Equiv.ofInjective (e : ι → Fin n) e.injective).symm)
   have hf (i : κ) : e (f i) = e' i := by
-    calc
-      e (f i) =
-          ((Set.equivOfEq he.symm)
-            ((Equiv.ofInjective (e' : κ → Fin n) e'.injective) i) : Fin n) :=
-        Equiv.apply_ofInjective_symm e.injective _
-      _ = e' i := by
-        simp only [Set.equivOfEq_apply, Equiv.ofInjective_apply]
+    simp only [f, Equiv.trans_apply, Equiv.apply_ofInjective_symm,
+      Set.equivOfEq_apply, Equiv.ofInjective_apply]
   exact h.reindex f hf
 
 /-- Corresponding blocks depend only on their selected index set, not its enumeration. -/
