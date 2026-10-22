@@ -116,9 +116,9 @@ theorem mul_norm_starProjection_comp_starProjection_le_norm_sub {A B : E →L[�
       _ ≤ ‖B - A‖ * ‖U.starProjection x‖ := (B - A).le_opNorm _
       _ ≤ ‖B - A‖ * ‖x‖ := by gcongr; exact U.norm_starProjection_apply_le x
   exact (mul_norm_le_norm_sylvester_apply_of_re_inner_le_of_le_re_inner
-    (W.re_inner_comp_starProjection_add_smul_apply_self_le
+    (W.re_inner_reducedExtension_self_le
       (B := B) (r := c) (κ := c) hW le_rfl hBW)
-    (U.le_re_inner_comp_starProjection_add_smul_apply_self
+    (U.le_re_inner_reducedExtension_self
       (A := A) (r := c + g) (κ := c + g) hU le_rfl hAU) X).trans hbound
 
 /-- The directed Davis–Kahan `sin Θ` theorem in division form: for `g > 0`, under the hypotheses

@@ -48,12 +48,10 @@ theorem isSymmetric_reducedExtension (T : E →L[𝕜] E)
     hT.mul_of_commute W.starProjection_isSymmetric hcomm.symm
   have hscalar : ((κ : 𝕜) • (Wᗮ.starProjection : E →ₗ[𝕜] E)).IsSymmetric :=
     LinearMap.IsSymmetric.smul (RCLike.conj_ofReal κ) Wᗮ.starProjection_isSymmetric
-  -- Rewrite the public operator definition before passing to the underlying linear map.
-  -- The exported `reducedExtension` is opaque, so `change` alone cannot unfold it.
   rw [T.reducedExtension_def W κ]
-  change ((T : E →ₗ[𝕜] E) * (W.starProjection : E →ₗ[𝕜] E) +
-    (κ : 𝕜) • (Wᗮ.starProjection : E →ₗ[𝕜] E)).IsSymmetric
-  exact hblock.add hscalar
+  simpa only [ContinuousLinearMap.toLinearMap_add,
+    ContinuousLinearMap.toLinearMap_smul, ContinuousLinearMap.toLinearMap_comp,
+    ← Module.End.mul_eq_comp] using hblock.add hscalar
 
 /-- Restricted point-spectrum containment in `(-∞, c]` gives an upper bound
 for a reduced extension with scalar `κ ≤ c`. -/
@@ -63,7 +61,7 @@ theorem re_inner_reducedExtension_self_le_of_pointSpectrumIn (T : E →L[𝕜] E
     {c κ : ℝ} (hκ : κ ≤ c)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Iic c)) (x : E) :
     RCLike.re ⟪T.reducedExtension W κ x, x⟫_𝕜 ≤ c * ‖x‖ ^ 2 :=
-  W.re_inner_comp_starProjection_add_smul_apply_self_le
+  W.re_inner_reducedExtension_self_le
     (B := T) (r := c) (κ := κ) hW hκ
     (fun _ hy => hT.re_inner_apply_self_le_of_pointSpectrumIn hW hspec hy) x
 
@@ -75,7 +73,7 @@ theorem le_re_inner_reducedExtension_self_of_pointSpectrumIn (T : E →L[𝕜] E
     {c κ : ℝ} (hκ : c ≤ κ)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Ici c)) (x : E) :
     c * ‖x‖ ^ 2 ≤ RCLike.re ⟪T.reducedExtension W κ x, x⟫_𝕜 :=
-  W.le_re_inner_comp_starProjection_add_smul_apply_self
+  W.le_re_inner_reducedExtension_self
     (A := T) (r := c) (κ := κ) hW hκ
     (fun _ hy => hT.le_re_inner_apply_self_of_pointSpectrumIn hW hspec hy) x
 

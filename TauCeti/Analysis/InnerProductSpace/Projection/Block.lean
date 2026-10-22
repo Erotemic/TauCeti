@@ -21,8 +21,13 @@ Both parts are expressed through the reflection `R_U = 2 P_U - 1` across `U`: co
 average and the half-difference of `A` and `R_U A R_U`. Since `R_U` is an isometry, these
 formulas turn operator-norm estimates for `A` into estimates for its blocks.
 
+The reduced extension `A.reducedExtension U κ` applies `A` on `U` and extends it by scalar
+multiplication by `κ` on `Uᗮ`. Its quadratic form splits orthogonally when `U` is invariant.
+
 ## Main definitions
 
+* `ContinuousLinearMap.reducedExtension A U κ`: the reduced extension from `U` with
+  scalar `κ` on `Uᗮ`.
 * `Submodule.diagBlock U A`: the block-diagonal part of `A` relative to `U ⊕ Uᗮ`.
 * `Submodule.offDiagBlock U A`: the off-diagonal part of `A` relative to `U ⊕ Uᗮ`.
 
@@ -41,8 +46,8 @@ formulas turn operator-norm estimates for `A` into estimates for its blocks.
 * `ContinuousLinearMap.reducedExtension_def`, `ContinuousLinearMap.eq_reducedExtension_iff`:
   its operator equation and characterization by its actions on the two blocks.
 * `Submodule.re_inner_reducedExtension_self`: its orthogonal quadratic-form splitting.
-* `Submodule.le_re_inner_comp_starProjection_add_smul_apply_self`,
-  `Submodule.re_inner_comp_starProjection_add_smul_apply_self_le`: a local lower (upper)
+* `Submodule.le_re_inner_reducedExtension_self`,
+  `Submodule.re_inner_reducedExtension_self_le`: a local lower (upper)
   bound `r` extends to the whole space when `r ≤ κ` (respectively `κ ≤ r`).
 
 ## References
@@ -70,13 +75,13 @@ namespace ContinuousLinearMap
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 
 /-- Extend `A` from the selected block `U` by the scalar `κ` on `Uᗮ`.
-When `U` is invariant under `A`, the extension agrees with `A` on `U`. -/
+It agrees with `A` on `U` and acts as scalar multiplication by `κ` on `Uᗮ`. -/
 def reducedExtension (A : E →L[𝕜] E) (U : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] (κ : ℝ) : E →L[𝕜] E :=
   A ∘L U.starProjection + (κ : 𝕜) • Uᗮ.starProjection
 
-/-- The reduced extension is `A` followed by projection onto `U`, plus scalar multiplication
-by `κ` after projection onto `Uᗮ`. -/
+/-- The reduced extension applies `A` after projection onto `U`, plus `κ` times the
+projection onto `Uᗮ`. -/
 theorem reducedExtension_def (A : E →L[𝕜] E) (U : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] (κ : ℝ) :
     A.reducedExtension U κ = A ∘L U.starProjection + (κ : 𝕜) • Uᗮ.starProjection := by
@@ -356,7 +361,7 @@ theorem re_inner_reducedExtension_self {A : E →L[𝕜] E}
 
 /-- A local lower bound `r` extends to the reduced extension whenever the
 complementary-block scalar satisfies `r ≤ κ`. -/
-theorem le_re_inner_comp_starProjection_add_smul_apply_self {A : E →L[𝕜] E}
+theorem le_re_inner_reducedExtension_self {A : E →L[𝕜] E}
     (hU : ∀ x ∈ U, A x ∈ U) {r κ : ℝ} (hκ : r ≤ κ)
     (hA : ∀ x ∈ U, r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) (x : E) :
     r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A.reducedExtension U κ x, x⟫_𝕜 := by
@@ -367,7 +372,7 @@ theorem le_re_inner_comp_starProjection_add_smul_apply_self {A : E →L[𝕜] E}
 
 /-- A local upper bound `r` extends to the reduced extension whenever the
 complementary-block scalar satisfies `κ ≤ r`. -/
-theorem re_inner_comp_starProjection_add_smul_apply_self_le {B : E →L[𝕜] E}
+theorem re_inner_reducedExtension_self_le {B : E →L[𝕜] E}
     (hU : ∀ x ∈ U, B x ∈ U) {r κ : ℝ} (hκ : κ ≤ r)
     (hB : ∀ x ∈ U, RCLike.re ⟪B x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2) (x : E) :
     RCLike.re ⟪B.reducedExtension U κ x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2 := by
