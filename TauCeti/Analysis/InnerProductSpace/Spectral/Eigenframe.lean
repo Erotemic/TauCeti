@@ -185,12 +185,10 @@ theorem CorrespondingEigenblocks.reindex {κ : Type*}
     (f : κ ≃ ι) (hf : ∀ i, e (f i) = e' i) :
     CorrespondingEigenblocks hT hS hn e' U V := by
   obtain ⟨w, u, hw, hu, hU, hV⟩ := correspondingEigenblocks_iff.mp h
-  have hrange (v : ι → E) : Set.range (v ∘ f) = Set.range v := by
-    rw [Set.range_comp, f.surjective.range_eq, Set.image_univ]
   exact correspondingEigenblocks_iff.mpr
     ⟨w ∘ f, u ∘ f, hw.reindex f.toEmbedding hf,
-      hu.reindex f.toEmbedding hf, by simpa only [hrange w] using hU,
-      by simpa only [hrange u] using hV⟩
+      hu.reindex f.toEmbedding hf, by simpa only [EquivLike.range_comp] using hU,
+      by simpa only [EquivLike.range_comp] using hV⟩
 
 /-- Reindex corresponding blocks along any other embedding with the same range. -/
 theorem CorrespondingEigenblocks.reindex_of_range_eq {κ : Type*}
