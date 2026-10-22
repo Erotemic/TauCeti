@@ -57,6 +57,8 @@ theorem isSymmetric_reducedExtension (T : E →L[𝕜] E)
     simpa only [inner_smul_left, inner_smul_right, RCLike.conj_ofReal] using
       congrArg (fun z : 𝕜 => (κ : 𝕜) * z) hproj
   intro x y
+  -- `IsSymmetric` is stated for the underlying linear map. The `change` reduces the
+  -- continuous-to-linear-map coercion so the pointwise `reducedExtension_apply` lemma applies.
   change ⟪T.reducedExtension W κ x, y⟫_𝕜 =
     ⟪x, T.reducedExtension W κ y⟫_𝕜
   rw [T.reducedExtension_apply W κ x, T.reducedExtension_apply W κ y,
