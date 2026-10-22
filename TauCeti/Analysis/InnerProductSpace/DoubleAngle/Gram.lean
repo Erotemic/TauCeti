@@ -89,7 +89,7 @@ theorem adjoint_comp_self_two_smul_comp_of_adjoint_comp_self_eq_id_sub
 `M = T⋆T` and `-1 ≤ s ≤ 1`, then the Gram operator of `2 (C ∘ T)` acts on `x`
 by `sin (2 * arcsin s)²`. This statement also includes negative `s` and `x = 0`.
 For `x ≠ 0`, the corresponding singular value is `|sin (2 * arcsin s)|`. -/
-theorem adjoint_comp_self_two_smul_comp_apply_of_adjoint_comp_self_eq_id_sub_of_eigenvector
+theorem adjoint_comp_self_two_smul_comp_apply_of_adjoint_comp_self_eq_id_sub_of_apply_eq_smul
     {C : K₀ →ₗ[𝕜] L} {T : K₁ →ₗ[𝕜] K₀}
     (hC : LinearMap.adjoint C ∘ₗ C = LinearMap.id - T ∘ₗ LinearMap.adjoint T)
     {s : ℝ} (h₀ : -1 ≤ s) (h₁ : s ≤ 1) {x : K₁}
@@ -119,43 +119,6 @@ variable {K₀ K₁ L : Type*}
   [NormedAddCommGroup K₁] [InnerProductSpace 𝕜 K₁] [FiniteDimensional 𝕜 K₁]
   [NormedAddCommGroup L] [InnerProductSpace 𝕜 L] [FiniteDimensional 𝕜 L]
 
-/-- **Pythagorean Gram identity for complementary linear blocks.** If the ranges
-of linear maps `F₀` and `F₁` satisfy `F₀F₀⋆ + F₁F₁⋆ = 1` and `E₀` is an
-isometry, then `(F₀⋆E₀)⋆(F₀⋆E₀) = 1 - (E₀⋆F₁)(E₀⋆F₁)⋆`.
-No isometry hypothesis on `F₀` or `F₁` is needed. -/
-theorem LinearIsometry.adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint
-    (E₀ : K₀ →ₗᵢ[𝕜] E)
-    (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
-    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
-    LinearMap.adjoint (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) ∘ₗ
-        (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) =
-      LinearMap.id -
-        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) ∘ₗ
-          LinearMap.adjoint
-            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) := by
-  ext x
-  have hx := LinearMap.congr_fun hF (E₀.toLinearMap x)
-  simp only [LinearMap.comp_apply, LinearMap.add_apply, LinearMap.id_apply] at hx
-  rw [LinearMap.adjoint_comp, LinearMap.adjoint_comp, LinearMap.adjoint_adjoint,
-    LinearMap.adjoint_adjoint]
-  simp only [LinearMap.comp_apply, LinearMap.sub_apply, LinearMap.id_apply]
-  rw [eq_sub_iff_add_eq, ← map_add, hx]
-  exact E₀.adjoint_apply_apply x
-
-/-- Complementary isometry blocks have orthogonal ranges: `F₀⋆F₁ = 0`.
-Here the isometry hypotheses are essential to deduce orthogonality from
-`F₀F₀⋆ + F₁F₁⋆ = 1`. -/
-theorem LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id
-    (F₀ : L →ₗᵢ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
-    (hF : F₀.toLinearMap ∘ₗ LinearMap.adjoint F₀.toLinearMap +
-        F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
-    LinearMap.adjoint F₀.toLinearMap ∘ₗ F₁.toLinearMap = 0 := by
-  ext y
-  have h0 : F₀ (LinearMap.adjoint F₀.toLinearMap (F₁ y)) = 0 := by
-    simpa [add_eq_right] using LinearMap.congr_fun hF (F₁ y)
-  simpa using congrArg (LinearMap.adjoint F₀.toLinearMap) h0
-
 omit [FiniteDimensional 𝕜 K₁] in
 /-- **Cross-block identity under orthogonality.** For arbitrary linear maps
 `E₀`, `F₀`, and `F₁` with `F₀⋆F₁ = 0`, the adjoint cross block of
@@ -181,10 +144,12 @@ theorem LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_c
   simp only [LinearMap.comp_apply, LinearMap.smul_apply, LinearMap.sub_apply,
     LinearMap.id_apply, map_sub, map_smul, hy, sub_zero]
 
+namespace LinearIsometry
+
 /-- **Davis--Kahan reflected cross block for isometries.** Complementary
 isometric blocks satisfy `F₀⋆F₁ = 0`, so the orthogonal linear-map formula
 specializes to the reflection `2 E₀E₀⋆ - 1`. -/
-theorem LinearIsometry.adjoint_reflection_comp_comp_eq_of_comp_adjoint_add_eq_id
+theorem adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_comp_adjoint_add_eq_id
     (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗᵢ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
     (hF : F₀.toLinearMap ∘ₗ LinearMap.adjoint F₀.toLinearMap +
         F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
@@ -203,7 +168,7 @@ and orthogonal cross block, the reflected cross block has Gram operator
 `4 (M - M²)` for `M = T⋆T` and `T = E₀⋆F₁`.
 Orthogonality does not follow from complementarity without the isometry
 hypotheses on `F₀` and `F₁`, so it is explicitly assumed. -/
-theorem LinearIsometry.adjoint_comp_self_adjoint_reflection_comp_comp_of_adjoint_comp_eq_zero
+theorem adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_adjoint_comp_eq_zero
     (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
     (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
         F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id)
@@ -229,7 +194,7 @@ theorem LinearIsometry.adjoint_comp_self_adjoint_reflection_comp_comp_of_adjoint
 For `T = E₀⋆F₁`, the Gram operator of `(X F₀)⋆F₁` with
 `X = 2 E₀E₀⋆ - 1` equals `4 (M - M²)` where `M = T⋆T`.
 No equality-of-dimensions hypothesis is required. -/
-theorem LinearIsometry.adjoint_comp_self_adjoint_reflection_comp_comp_of_comp_adjoint_add_eq_id
+theorem adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_comp_adjoint_add_eq_id
     (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗᵢ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
     (hF : F₀.toLinearMap ∘ₗ LinearMap.adjoint F₀.toLinearMap +
         F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
@@ -245,8 +210,10 @@ theorem LinearIsometry.adjoint_comp_self_adjoint_reflection_comp_comp_of_comp_ad
             (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap)) ∘ₗ
           (LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap) ∘ₗ
             (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap))) := by
-  exact LinearIsometry.adjoint_comp_self_adjoint_reflection_comp_comp_of_adjoint_comp_eq_zero
+  exact adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_adjoint_comp_eq_zero
     E₀ F₀.toLinearMap F₁.toLinearMap hF
     (LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF)
+
+end LinearIsometry
 
 end IsometryBlocks
