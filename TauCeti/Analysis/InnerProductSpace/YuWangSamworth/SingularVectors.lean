@@ -6,22 +6,23 @@ Authors: Jon Crall, Claude Opus 5, GPT-6
 module
 
 public import TauCeti.Analysis.InnerProductSpace.Gram.Perturbation
+public import TauCeti.Analysis.InnerProductSpace.SingularValues
 public import TauCeti.Analysis.InnerProductSpace.YuWangSamworth
 
 /-!
 # Population-gap bounds for right singular vectors
 
-For rectangular maps `A` and `Â`, pointwise bounds with constants `a`, `â`, and `ε` on
-`A`, `Â`, and `Â - A` give a pointwise Gram perturbation bound with constant `(a + â) * ε`.
-Combining this with the symmetric Yu--Wang--Samworth theorem bounds the squared
-cross-block overlap of the right singular eigenframes by
-`4 * s.card * ((a + â) * ε) ^ 2 / Γ ^ 2` when the population gap `Γ` is positive.
+For rectangular maps `A` and `Â`, bounds with constants `a`, `â`, and `ε` on `A`, `Â`, and
+`Â - A` control the cross-block overlap of their right singular bases:
+`Γ² ∑_{j ∈ s} ∑_{k ∉ s} |⟪vₖ, v̂ⱼ⟫|² ≤ 4 |s| ((a + â) ε)²`.
 The theorem is stated in multiplied form, which also covers `Γ = 0`.
 
 The separation is imposed only on the squared singular values of the population
-operator. No gap is required for the perturbed operator, and the trial index
-block need not be contiguous. The proof uses the continuous Gram operator-norm
-estimate and converts its pointwise consequence back to algebraic linear maps.
+operator. No gap is required for the perturbed operator, and the index block need
+not be contiguous. The corresponding left-singular-vector statement is not included.
+
+The pointwise Gram perturbation bounds for both `A† A` and `A A†` are available in
+`TauCeti.Analysis.InnerProductSpace.Gram.Perturbation`.
 
 ## Provenance
 
@@ -53,48 +54,35 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
 
 /-- **Yu–Wang–Samworth bound for right singular vectors.** A population gap in squared
 singular values gives
-`Γ² ∑_{j ∈ s} ∑_{k ∉ s} |⟪v_k, v̂_j⟫|² ≤ 4 |s| ((a + â) ε)²`,
-where `v_k` and `v̂_j` are eigenvectors of `A† A` and `Â† Â`. Only the population
-spectrum needs a gap. -/
-theorem sq_mul_sum_sum_norm_inner_eigenvectorBasis_adjoint_comp_self_sq_le_four_mul_card_mul_sq
+`Γ² ∑_{j ∈ s} ∑_{k ∉ s} |⟪vₖ, v̂ⱼ⟫|² ≤ 4 |s| ((a + â) ε)²`,
+where `vₖ` and `v̂ⱼ` belong to the right singular bases of `A` and `Â`.
+Only the population squared singular values need a gap. -/
+theorem sq_mul_sum_sum_norm_inner_rightSingularBasis_sq_le_four_mul_card_mul_sq
     (A Â : E →ₗ[𝕜] F) {Γ a â ε : ℝ} (hΓ : 0 ≤ Γ) (hâ : 0 ≤ â) (hε : 0 ≤ ε)
     (hA : ∀ x, ‖A x‖ ≤ a * ‖x‖) (hÂ : ∀ x, ‖Â x‖ ≤ â * ‖x‖)
     (hE : ∀ x, ‖(Â - A) x‖ ≤ ε * ‖x‖)
-    {n : ℕ} (hn : finrank 𝕜 E = n) (s : Finset (Fin n))
+    (s : Finset (Fin (finrank 𝕜 E)))
     (hgap : ∀ j ∈ s, ∀ k ∉ s,
-      Γ ≤ |A.isSymmetric_adjoint_comp_self.eigenvalues hn j
-            - A.isSymmetric_adjoint_comp_self.eigenvalues hn k|) :
+      Γ ≤ |A.singularValues j ^ 2 - A.singularValues k ^ 2|) :
     Γ ^ 2 * ∑ j ∈ s, ∑ k ∈ sᶜ,
-        ‖⟪A.isSymmetric_adjoint_comp_self.eigenvectorBasis hn k,
-            Â.isSymmetric_adjoint_comp_self.eigenvectorBasis hn j⟫_𝕜‖ ^ 2
+        ‖⟪A.rightSingularBasis k, Â.rightSingularBasis j⟫_𝕜‖ ^ 2
       ≤ 4 * s.card * ((a + â) * ε) ^ 2 := by
+  have hgap' : ∀ j ∈ s, ∀ k ∉ s,
+      Γ ≤ |A.isSymmetric_adjoint_comp_self.eigenvalues rfl j -
+        A.isSymmetric_adjoint_comp_self.eigenvalues rfl k| := by
+    intro j hj k hk
+    rw [← A.sq_singularValues_fin rfl j, ← A.sq_singularValues_fin rfl k]
+    exact hgap j hj k hk
+  rw [A.rightSingularBasis_def, Â.rightSingularBasis_def]
   refine A.isSymmetric_adjoint_comp_self.sq_mul_sum_sum_norm_inner_sq_le_four_mul_card_mul_sq
-    Â.isSymmetric_adjoint_comp_self hn hΓ hgap ?_
+    Â.isSymmetric_adjoint_comp_self rfl hΓ hgap' ?_
   intro x
   by_cases hx : x = 0
   · simp [hx]
   have ha : 0 ≤ a :=
     nonneg_of_mul_nonneg_left ((norm_nonneg (A x)).trans (hA x)) (norm_pos_iff.mpr hx)
-  have := FiniteDimensional.complete 𝕜 E
-  have := FiniteDimensional.complete 𝕜 F
-  have hAop : ‖A.toContinuousLinearMap‖ ≤ a :=
-    A.toContinuousLinearMap.opNorm_le_bound ha hA
-  have hÂop : ‖Â.toContinuousLinearMap‖ ≤ â :=
-    Â.toContinuousLinearMap.opNorm_le_bound hâ hÂ
-  have hEop : ‖Â.toContinuousLinearMap - A.toContinuousLinearMap‖ ≤ ε :=
-    (Â.toContinuousLinearMap - A.toContinuousLinearMap).opNorm_le_bound hε hE
-  have hGram :
-      ‖Â.toContinuousLinearMap.adjoint ∘L Â.toContinuousLinearMap -
-        A.toContinuousLinearMap.adjoint ∘L A.toContinuousLinearMap‖ ≤ (a + â) * ε := by
-    refine (ContinuousLinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_le
-      Â.toContinuousLinearMap A.toContinuousLinearMap).trans ?_
-    calc
-      _ ≤ (â + a) * ε :=
-        mul_le_mul (add_le_add hÂop hAop) hEop (norm_nonneg _) (add_nonneg hâ ha)
-      _ = (a + â) * ε := by rw [add_comm â a]
-  simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply,
-    ← adjoint_toContinuousLinearMap, coe_toContinuousLinearMap',
-    LinearMap.sub_apply, LinearMap.comp_apply] using
-    (ContinuousLinearMap.le_of_opNorm_le _ hGram x)
+  simpa only [add_comm â a] using
+    (LinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_apply_le
+      Â A hâ ha hε hÂ hA hE x)
 
 end LinearMap

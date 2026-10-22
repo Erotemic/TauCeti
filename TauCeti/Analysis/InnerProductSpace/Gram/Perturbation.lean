@@ -5,7 +5,7 @@ Authors: The Tau Ceti contributors
 -/
 module
 
-public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import TauCeti.Analysis.InnerProductSpace.Adjoint
 
 /-!
 # Perturbation of Gram operators
@@ -18,7 +18,8 @@ operators `A† A` and `B† B` satisfy
 The same bound holds for the target Gram operators `A A†` and `B B†`. These estimates transfer
 control of a rectangular operator perturbation to its positive Gram operators, whose spectra
 determine the squared singular values. They apply in arbitrary dimension, including trivial
-source or target spaces.
+source or target spaces. In finite dimension, pointwise bounds on algebraic linear maps give
+corresponding pointwise source- and target-Gram perturbation estimates.
 
 The identities expose the two terms linear in the perturbation `A - B`. The target-space
 statements follow from the source-space statements by taking adjoints. The proofs use Mathlib's
@@ -76,3 +77,67 @@ theorem norm_self_comp_adjoint_sub_self_comp_adjoint_le (A B : E →L[𝕜] F) :
     norm_adjoint_comp_self_sub_adjoint_comp_self_le A.adjoint B.adjoint
 
 end ContinuousLinearMap
+
+namespace LinearMap
+
+variable {𝕜 E F : Type*} [RCLike 𝕜]
+  [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] [FiniteDimensional 𝕜 E]
+  [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
+
+/-- **Pointwise source-Gram perturbation bound.** Bounds on two rectangular linear maps and
+on their difference imply
+`‖(A† A - B† B) x‖ ≤ (a + b) ε ‖x‖` for each `x` in the source. -/
+theorem norm_adjoint_comp_self_sub_adjoint_comp_self_apply_le (A B : E →ₗ[𝕜] F)
+    {a b ε : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hε : 0 ≤ ε)
+    (hA : ∀ x, ‖A x‖ ≤ a * ‖x‖) (hB : ∀ x, ‖B x‖ ≤ b * ‖x‖)
+    (hAB : ∀ x, ‖(A - B) x‖ ≤ ε * ‖x‖) (x : E) :
+    ‖((adjoint A ∘ₗ A) - (adjoint B ∘ₗ B)) x‖ ≤ (a + b) * ε * ‖x‖ := by
+  have := FiniteDimensional.complete 𝕜 E
+  have := FiniteDimensional.complete 𝕜 F
+  have hAop : ‖A.toContinuousLinearMap‖ ≤ a :=
+    A.toContinuousLinearMap.opNorm_le_bound ha hA
+  have hBop : ‖B.toContinuousLinearMap‖ ≤ b :=
+    B.toContinuousLinearMap.opNorm_le_bound hb hB
+  have hABop : ‖A.toContinuousLinearMap - B.toContinuousLinearMap‖ ≤ ε :=
+    (A.toContinuousLinearMap - B.toContinuousLinearMap).opNorm_le_bound hε hAB
+  have hGram :
+      ‖A.toContinuousLinearMap.adjoint ∘L A.toContinuousLinearMap -
+        B.toContinuousLinearMap.adjoint ∘L B.toContinuousLinearMap‖ ≤ (a + b) * ε :=
+    (ContinuousLinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_le
+      A.toContinuousLinearMap B.toContinuousLinearMap).trans
+      (mul_le_mul (add_le_add hAop hBop) hABop
+        (norm_nonneg _) (add_nonneg ha hb))
+  simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply,
+    ← adjoint_toContinuousLinearMap, coe_toContinuousLinearMap',
+    LinearMap.sub_apply, LinearMap.comp_apply] using
+    (ContinuousLinearMap.le_of_opNorm_le _ hGram x)
+
+/-- **Pointwise target-Gram perturbation bound.** Bounds on two rectangular linear maps and
+on their difference imply
+`‖(A A† - B B†) y‖ ≤ (a + b) ε ‖y‖` for each `y` in the target. -/
+theorem norm_self_comp_adjoint_sub_self_comp_adjoint_apply_le (A B : E →ₗ[𝕜] F)
+    {a b ε : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hε : 0 ≤ ε)
+    (hA : ∀ x, ‖A x‖ ≤ a * ‖x‖) (hB : ∀ x, ‖B x‖ ≤ b * ‖x‖)
+    (hAB : ∀ x, ‖(A - B) x‖ ≤ ε * ‖x‖) (y : F) :
+    ‖((A ∘ₗ adjoint A) - (B ∘ₗ adjoint B)) y‖ ≤ (a + b) * ε * ‖y‖ := by
+  have := FiniteDimensional.complete 𝕜 E
+  have := FiniteDimensional.complete 𝕜 F
+  have hAop : ‖A.toContinuousLinearMap‖ ≤ a :=
+    A.toContinuousLinearMap.opNorm_le_bound ha hA
+  have hBop : ‖B.toContinuousLinearMap‖ ≤ b :=
+    B.toContinuousLinearMap.opNorm_le_bound hb hB
+  have hABop : ‖A.toContinuousLinearMap - B.toContinuousLinearMap‖ ≤ ε :=
+    (A.toContinuousLinearMap - B.toContinuousLinearMap).opNorm_le_bound hε hAB
+  have hGram :
+      ‖A.toContinuousLinearMap ∘L A.toContinuousLinearMap.adjoint -
+        B.toContinuousLinearMap ∘L B.toContinuousLinearMap.adjoint‖ ≤ (a + b) * ε :=
+    (ContinuousLinearMap.norm_self_comp_adjoint_sub_self_comp_adjoint_le
+      A.toContinuousLinearMap B.toContinuousLinearMap).trans
+      (mul_le_mul (add_le_add hAop hBop) hABop
+        (norm_nonneg _) (add_nonneg ha hb))
+  simpa only [_root_.sub_apply, ContinuousLinearMap.comp_apply,
+    ← adjoint_toContinuousLinearMap, coe_toContinuousLinearMap',
+    LinearMap.sub_apply, LinearMap.comp_apply] using
+    (ContinuousLinearMap.le_of_opNorm_le _ hGram y)
+
+end LinearMap
