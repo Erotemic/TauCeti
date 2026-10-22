@@ -12,8 +12,8 @@ public import TauCeti.Analysis.InnerProductSpace.YuWangSamworth
 /-!
 # Population-gap bounds for right singular vectors
 
-For rectangular maps `A` and `Â`, bounds with constants `a`, `â`, and `ε` on `A`, `Â`, and
-`Â - A` control the cross-block overlap of their right singular bases:
+For rectangular maps `A` and `Â`, bounds with constants `a`, `â`, and `ε`
+on `A`, `Â`, and `Â - A` control the cross-block overlap of their right singular bases:
 `Γ² ∑_{j ∈ s} ∑_{k ∉ s} |⟪vₖ, v̂ⱼ⟫|² ≤ 4 |s| ((a + â) ε)²`.
 The theorem is stated in multiplied form, which also covers `Γ = 0`.
 
