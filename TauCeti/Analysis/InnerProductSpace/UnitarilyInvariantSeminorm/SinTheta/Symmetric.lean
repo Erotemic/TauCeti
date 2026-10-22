@@ -49,7 +49,7 @@ variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
 /-- Ky Fan sums do not change when a rectangular map is extended by zero off
 its source subspace and included into the ambient target. -/
 private theorem kyFanSum_submodule_compression
-    (U W : Submodule K E) [U.HasOrthogonalProjection] [W.HasOrthogonalProjection]
+    (U W : Submodule K E) [U.HasOrthogonalProjection]
     (T : U →ₗ[K] W) (k : Nat) :
     (W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap).kyFanSum k =
       T.kyFanSum k := by
