@@ -19,9 +19,9 @@ The theorem is stated in multiplied form, which also covers `Γ = 0`.
 
 The separation is imposed only on the squared singular values of the population
 operator. No gap is required for the perturbed operator, and the index block need
-not be contiguous. The corresponding left-singular-vector statement is not included.
+not be contiguous.
 
-The pointwise Gram perturbation bounds for both `A† A` and `A A†` are available in
+The pointwise bound for `A† A` is available in
 `TauCeti.Analysis.InnerProductSpace.Gram.Perturbation`.
 
 ## Provenance
@@ -58,7 +58,7 @@ singular values gives
 where `vₖ` and `v̂ⱼ` belong to the right singular bases of `A` and `Â`.
 Only the population squared singular values need a gap. -/
 theorem sq_mul_sum_sum_norm_inner_rightSingularBasis_sq_le_four_mul_card_mul_sq
-    (A Â : E →ₗ[𝕜] F) {Γ a â ε : ℝ} (hΓ : 0 ≤ Γ) (hâ : 0 ≤ â) (hε : 0 ≤ ε)
+    (A Â : E →ₗ[𝕜] F) {Γ a â ε : ℝ} (hΓ : 0 ≤ Γ)
     (hA : ∀ x, ‖A x‖ ≤ a * ‖x‖) (hÂ : ∀ x, ‖Â x‖ ≤ â * ‖x‖)
     (hE : ∀ x, ‖(Â - A) x‖ ≤ ε * ‖x‖)
     (s : Finset (Fin (finrank 𝕜 E)))
@@ -77,12 +77,8 @@ theorem sq_mul_sum_sum_norm_inner_rightSingularBasis_sq_le_four_mul_card_mul_sq
   refine A.isSymmetric_adjoint_comp_self.sq_mul_sum_sum_norm_inner_sq_le_four_mul_card_mul_sq
     Â.isSymmetric_adjoint_comp_self rfl hΓ hgap' ?_
   intro x
-  by_cases hx : x = 0
-  · simp [hx]
-  have ha : 0 ≤ a :=
-    nonneg_of_mul_nonneg_left ((norm_nonneg (A x)).trans (hA x)) (norm_pos_iff.mpr hx)
   simpa only [add_comm â a] using
     (LinearMap.norm_adjoint_comp_self_sub_adjoint_comp_self_apply_le
-      Â A hâ ha hε hÂ hA hE x)
+      Â A hÂ hA hE x)
 
 end LinearMap
