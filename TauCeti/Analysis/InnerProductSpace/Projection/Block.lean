@@ -38,6 +38,8 @@ formulas turn operator-norm estimates for `A` into estimates for its blocks.
 * `Submodule.offDiagBlock_eq_zero_iff`, `Submodule.diagBlock_eq_self_iff`: `A` is block
   diagonal exactly when `P_U` commutes with `A`.
 * `ContinuousLinearMap.reducedExtension`: the operator `A P_U + κ P_{Uᗮ}`.
+* `ContinuousLinearMap.reducedExtension_def`, `ContinuousLinearMap.eq_reducedExtension_iff`:
+  its operator equation and characterization by its actions on the two blocks.
 * `Submodule.re_inner_reducedExtension_self`: its orthogonal quadratic-form splitting.
 * `Submodule.le_re_inner_comp_starProjection_add_smul_apply_self`,
   `Submodule.re_inner_comp_starProjection_add_smul_apply_self_le`: a local lower (upper)
@@ -73,6 +75,13 @@ def reducedExtension (A : E →L[𝕜] E) (U : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] (κ : ℝ) : E →L[𝕜] E :=
   A ∘L U.starProjection + (κ : 𝕜) • Uᗮ.starProjection
 
+/-- The reduced extension is `A` followed by projection onto `U`, plus scalar multiplication
+by `κ` after projection onto `Uᗮ`. -/
+theorem reducedExtension_def (A : E →L[𝕜] E) (U : Submodule 𝕜 E)
+    [U.HasOrthogonalProjection] (κ : ℝ) :
+    A.reducedExtension U κ = A ∘L U.starProjection + (κ : 𝕜) • Uᗮ.starProjection := by
+  rfl
+
 /-- The reduced extension acts blockwise on an arbitrary vector. -/
 theorem reducedExtension_apply (A : E →L[𝕜] E) (U : Submodule 𝕜 E)
     [U.HasOrthogonalProjection] (κ : ℝ) (x : E) :
@@ -98,6 +107,26 @@ theorem reducedExtension_apply_of_mem_orthogonal (A : E →L[𝕜] E)
   rw [reducedExtension_apply, (U.starProjection_apply_eq_zero_iff).mpr hx,
     Uᗮ.starProjection_eq_self_iff.mpr hx]
   simp
+
+/-- A continuous linear map is the reduced extension of `A` precisely when it agrees with
+`A` on `U` and acts as multiplication by `κ` on `Uᗮ`. -/
+theorem eq_reducedExtension_iff (B A : E →L[𝕜] E) (U : Submodule 𝕜 E)
+    [U.HasOrthogonalProjection] (κ : ℝ) :
+    B = A.reducedExtension U κ ↔
+      (∀ x ∈ U, B x = A x) ∧ (∀ x ∈ Uᗮ, B x = (κ : 𝕜) • x) := by
+  constructor
+  · rintro rfl
+    exact ⟨fun _ hx => A.reducedExtension_apply_of_mem U κ hx,
+      fun _ hx => A.reducedExtension_apply_of_mem_orthogonal U κ hx⟩
+  · rintro ⟨hU, hUorth⟩
+    ext x
+    calc
+      B x = B (U.starProjection x + Uᗮ.starProjection x) := by
+        rw [U.starProjection_add_starProjection_orthogonal]
+      _ = A (U.starProjection x) + (κ : 𝕜) • Uᗮ.starProjection x := by
+        rw [map_add, hU _ (U.starProjection_apply_mem x),
+          hUorth _ (Uᗮ.starProjection_apply_mem x)]
+      _ = A.reducedExtension U κ x := (A.reducedExtension_apply U κ x).symm
 
 end ContinuousLinearMap
 

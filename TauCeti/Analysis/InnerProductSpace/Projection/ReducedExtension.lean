@@ -41,37 +41,24 @@ theorem isSymmetric_reducedExtension (T : E →L[𝕜] E)
     {W : Submodule 𝕜 E} [W.HasOrthogonalProjection]
     (hT : (T : E →ₗ[𝕜] E).IsSymmetric) (hW : ∀ x ∈ W, T x ∈ W) (κ : ℝ) :
     (T.reducedExtension W κ : E →ₗ[𝕜] E).IsSymmetric := by
-  have hcomm (y : E) : W.starProjection (T y) = T (W.starProjection y) :=
-    hT.starProjection_apply_comm (fun z hz => hW z hz) y
-  have hblock (x y : E) :
-      ⟪T (W.starProjection x), y⟫_𝕜 = ⟪x, T (W.starProjection y)⟫_𝕜 := by
-    calc
-      _ = ⟪W.starProjection x, T y⟫_𝕜 := hT _ _
-      _ = ⟪x, W.starProjection (T y)⟫_𝕜 := W.starProjection_isSymmetric x (T y)
-      _ = ⟪x, T (W.starProjection y)⟫_𝕜 := by rw [hcomm y]
-  have hscalar (x y : E) :
-      ⟪(κ : 𝕜) • Wᗮ.starProjection x, y⟫_𝕜 =
-        ⟪x, (κ : 𝕜) • Wᗮ.starProjection y⟫_𝕜 := by
-    have hproj : ⟪Wᗮ.starProjection x, y⟫_𝕜 =
-        ⟪x, Wᗮ.starProjection y⟫_𝕜 := Wᗮ.starProjection_isSymmetric x y
-    simpa only [inner_smul_left, inner_smul_right, RCLike.conj_ofReal] using
-      congrArg (fun z : 𝕜 => (κ : 𝕜) * z) hproj
-  intro x y
-  -- `IsSymmetric` is stated for the underlying linear map. The `change` reduces the
-  -- continuous-to-linear-map coercion so the pointwise `reducedExtension_apply` lemma applies.
-  change ⟪T.reducedExtension W κ x, y⟫_𝕜 =
-    ⟪x, T.reducedExtension W κ y⟫_𝕜
-  rw [T.reducedExtension_apply W κ x, T.reducedExtension_apply W κ y,
-    inner_add_left, inner_add_right, hblock x y, hscalar x y]
-
-section FiniteDimensional
-
-variable [FiniteDimensional 𝕜 E]
+  have hcomm : Commute (W.starProjection : E →ₗ[𝕜] E) (T : E →ₗ[𝕜] E) :=
+    (W.isReducing_iff_commute_starProjection (T : E →ₗ[𝕜] E)).mp
+      ((hT.isReducing_iff_mem_invtSubmodule W).mpr hW)
+  have hblock : ((T : E →ₗ[𝕜] E) * (W.starProjection : E →ₗ[𝕜] E)).IsSymmetric :=
+    hT.mul_of_commute W.starProjection_isSymmetric hcomm.symm
+  have hscalar : ((κ : 𝕜) • (Wᗮ.starProjection : E →ₗ[𝕜] E)).IsSymmetric :=
+    LinearMap.IsSymmetric.smul (RCLike.conj_ofReal κ) Wᗮ.starProjection_isSymmetric
+  -- Rewrite the public operator definition before passing to the underlying linear map.
+  -- The exported `reducedExtension` is opaque, so `change` alone cannot unfold it.
+  rw [T.reducedExtension_def W κ]
+  change ((T : E →ₗ[𝕜] E) * (W.starProjection : E →ₗ[𝕜] E) +
+    (κ : 𝕜) • (Wᗮ.starProjection : E →ₗ[𝕜] E)).IsSymmetric
+  exact hblock.add hscalar
 
 /-- Restricted point-spectrum containment in `(-∞, c]` gives an upper bound
 for a reduced extension with scalar `κ ≤ c`. -/
 theorem re_inner_reducedExtension_self_le_of_pointSpectrumIn (T : E →L[𝕜] E)
-    {W : Submodule 𝕜 E} [W.HasOrthogonalProjection]
+    {W : Submodule 𝕜 E} [W.HasOrthogonalProjection] [FiniteDimensional 𝕜 W]
     (hT : (T : E →ₗ[𝕜] E).IsSymmetric) (hW : ∀ x ∈ W, T x ∈ W)
     {c κ : ℝ} (hκ : κ ≤ c)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Iic c)) (x : E) :
@@ -83,7 +70,7 @@ theorem re_inner_reducedExtension_self_le_of_pointSpectrumIn (T : E →L[𝕜] E
 /-- Restricted point-spectrum containment in `[c, ∞)` gives a lower bound
 for a reduced extension with scalar `κ ≥ c`. -/
 theorem le_re_inner_reducedExtension_self_of_pointSpectrumIn (T : E →L[𝕜] E)
-    {W : Submodule 𝕜 E} [W.HasOrthogonalProjection]
+    {W : Submodule 𝕜 E} [W.HasOrthogonalProjection] [FiniteDimensional 𝕜 W]
     (hT : (T : E →ₗ[𝕜] E).IsSymmetric) (hW : ∀ x ∈ W, T x ∈ W)
     {c κ : ℝ} (hκ : c ≤ κ)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Ici c)) (x : E) :
@@ -91,7 +78,5 @@ theorem le_re_inner_reducedExtension_self_of_pointSpectrumIn (T : E →L[𝕜] E
   W.le_re_inner_comp_starProjection_add_smul_apply_self
     (A := T) (r := c) (κ := κ) hW hκ
     (fun _ hy => hT.le_re_inner_apply_self_of_pointSpectrumIn hW hspec hy) x
-
-end FiniteDimensional
 
 end ContinuousLinearMap
