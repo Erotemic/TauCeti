@@ -61,8 +61,8 @@ theorem re_inner_reducedExtension_self_le_of_pointSpectrumIn (T : E →L[𝕜] E
     {c κ : ℝ} (hκ : κ ≤ c)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Iic c)) (x : E) :
     RCLike.re ⟪T.reducedExtension W κ x, x⟫_𝕜 ≤ c * ‖x‖ ^ 2 :=
-  W.re_inner_reducedExtension_self_le
-    (B := T) (r := c) (κ := κ) hW hκ
+  T.re_inner_reducedExtension_self_le W hW
+    (r := c) (κ := κ) hκ
     (fun _ hy => hT.re_inner_apply_self_le_of_pointSpectrumIn hW hspec hy) x
 
 /-- Restricted point-spectrum containment in `[c, ∞)` gives a lower bound
@@ -73,8 +73,8 @@ theorem le_re_inner_reducedExtension_self_of_pointSpectrumIn (T : E →L[𝕜] E
     {c κ : ℝ} (hκ : c ≤ κ)
     (hspec : Module.End.PointSpectrumIn (T : E →ₗ[𝕜] E) W (Set.Ici c)) (x : E) :
     c * ‖x‖ ^ 2 ≤ RCLike.re ⟪T.reducedExtension W κ x, x⟫_𝕜 :=
-  W.le_re_inner_reducedExtension_self
-    (A := T) (r := c) (κ := κ) hW hκ
+  T.le_re_inner_reducedExtension_self W hW
+    (r := c) (κ := κ) hκ
     (fun _ hy => hT.le_re_inner_apply_self_of_pointSpectrumIn hW hspec hy) x
 
 end ContinuousLinearMap

@@ -42,12 +42,11 @@ multiplication by `κ` on `Uᗮ`. Its quadratic form splits orthogonally when `U
 * `Submodule.commute_reflection_iff`: `R_U` commutes with `A` exactly when `P_U` does.
 * `Submodule.offDiagBlock_eq_zero_iff`, `Submodule.diagBlock_eq_self_iff`: `A` is block
   diagonal exactly when `P_U` commutes with `A`.
-* `ContinuousLinearMap.reducedExtension`: the operator `A P_U + κ P_{Uᗮ}`.
 * `ContinuousLinearMap.reducedExtension_def`, `ContinuousLinearMap.eq_reducedExtension_iff`:
   its operator equation and characterization by its actions on the two blocks.
-* `Submodule.re_inner_reducedExtension_self`: its orthogonal quadratic-form splitting.
-* `Submodule.le_re_inner_reducedExtension_self`,
-  `Submodule.re_inner_reducedExtension_self_le`: a local lower (upper)
+* `ContinuousLinearMap.re_inner_reducedExtension_self`: its orthogonal form splitting.
+* `ContinuousLinearMap.le_re_inner_reducedExtension_self`,
+  `ContinuousLinearMap.re_inner_reducedExtension_self_le`: a local lower (upper)
   bound `r` extends to the whole space when `r ≤ κ` (respectively `κ ≤ r`).
 
 ## References
@@ -132,6 +131,58 @@ theorem eq_reducedExtension_iff (B A : E →L[𝕜] E) (U : Submodule 𝕜 E)
         rw [map_add, hU _ (U.starProjection_apply_mem x),
           hUorth _ (Uᗮ.starProjection_apply_mem x)]
       _ = A.reducedExtension U κ x := (A.reducedExtension_apply U κ x).symm
+
+section Extension
+
+open scoped InnerProductSpace
+
+/-- For an invariant block `U`, the form of `A P_U + κ P_{Uᗮ}` splits
+orthogonally into the form of `A` on `U` and the scalar form on `Uᗮ`. -/
+theorem re_inner_reducedExtension_self (A : E →L[𝕜] E)
+    (U : Submodule 𝕜 E) [U.HasOrthogonalProjection]
+    (hU : ∀ x ∈ U, A x ∈ U) (κ : ℝ) (x : E) :
+    RCLike.re ⟪A.reducedExtension U κ x, x⟫_𝕜 =
+      RCLike.re ⟪A (U.starProjection x), U.starProjection x⟫_𝕜 +
+        κ * ‖Uᗮ.starProjection x‖ ^ 2 := by
+  set u := U.starProjection x
+  set v := Uᗮ.starProjection x
+  have hu : u ∈ U := U.starProjection_apply_mem x
+  have hv : v ∈ Uᗮ := Uᗮ.starProjection_apply_mem x
+  have hx : x = u + v := (U.starProjection_add_starProjection_orthogonal x).symm
+  have hAuv : ⟪A u, v⟫_𝕜 = 0 := Submodule.inner_right_of_mem_orthogonal (hU u hu) hv
+  have hvu : ⟪v, u⟫_𝕜 = 0 := Submodule.inner_left_of_mem_orthogonal hu hv
+  have happ : A.reducedExtension U κ x = A u + (κ : 𝕜) • v := by
+    simp only [ContinuousLinearMap.reducedExtension_apply, u, v]
+  rw [happ]
+  conv_lhs => rw [hx]
+  simp [inner_add_left, inner_add_right, inner_smul_left, hAuv, hvu,
+    inner_self_eq_norm_sq_to_K]
+
+/-- A local lower bound `r` extends to the reduced extension whenever the
+complementary-block scalar satisfies `r ≤ κ`. -/
+theorem le_re_inner_reducedExtension_self (A : E →L[𝕜] E)
+    (U : Submodule 𝕜 E) [U.HasOrthogonalProjection]
+    (hU : ∀ x ∈ U, A x ∈ U) {r κ : ℝ} (hκ : r ≤ κ)
+    (hA : ∀ x ∈ U, r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) (x : E) :
+    r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A.reducedExtension U κ x, x⟫_𝕜 := by
+  rw [A.re_inner_reducedExtension_self U hU κ x,
+    Submodule.norm_sq_eq_add_norm_sq_starProjection x U, mul_add]
+  exact add_le_add (hA _ (U.starProjection_apply_mem x))
+    (mul_le_mul_of_nonneg_right hκ (sq_nonneg _))
+
+/-- A local upper bound `r` extends to the reduced extension whenever the
+complementary-block scalar satisfies `κ ≤ r`. -/
+theorem re_inner_reducedExtension_self_le (B : E →L[𝕜] E)
+    (U : Submodule 𝕜 E) [U.HasOrthogonalProjection]
+    (hU : ∀ x ∈ U, B x ∈ U) {r κ : ℝ} (hκ : κ ≤ r)
+    (hB : ∀ x ∈ U, RCLike.re ⟪B x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2) (x : E) :
+    RCLike.re ⟪B.reducedExtension U κ x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2 := by
+  rw [B.re_inner_reducedExtension_self U hU κ x,
+    Submodule.norm_sq_eq_add_norm_sq_starProjection x U, mul_add]
+  exact add_le_add (hB _ (U.starProjection_apply_mem x))
+    (mul_le_mul_of_nonneg_right hκ (sq_nonneg _))
+
+end Extension
 
 end ContinuousLinearMap
 
@@ -332,55 +383,5 @@ theorem diagBlock_orthogonal (A : E →L[𝕜] E) : Uᗮ.diagBlock A = U.diagBlo
 theorem offDiagBlock_orthogonal (A : E →L[𝕜] E) : Uᗮ.offDiagBlock A = U.offDiagBlock A := by
   simp only [offDiagBlock, starProjection_orthogonal', ← ContinuousLinearMap.mul_def]
   noncomm_ring
-
-section Extension
-
-open ContinuousLinearMap
-open scoped InnerProductSpace
-
-/-- For an invariant block `U`, the form of `A P_U + κ P_{Uᗮ}` splits
-orthogonally into the form of `A` on `U` and the scalar form on `Uᗮ`. -/
-theorem re_inner_reducedExtension_self {A : E →L[𝕜] E}
-    (hU : ∀ x ∈ U, A x ∈ U) (κ : ℝ) (x : E) :
-    RCLike.re ⟪A.reducedExtension U κ x, x⟫_𝕜 =
-      RCLike.re ⟪A (U.starProjection x), U.starProjection x⟫_𝕜 +
-        κ * ‖Uᗮ.starProjection x‖ ^ 2 := by
-  set u := U.starProjection x
-  set v := Uᗮ.starProjection x
-  have hu : u ∈ U := U.starProjection_apply_mem x
-  have hv : v ∈ Uᗮ := Uᗮ.starProjection_apply_mem x
-  have hx : x = u + v := (U.starProjection_add_starProjection_orthogonal x).symm
-  have hAuv : ⟪A u, v⟫_𝕜 = 0 := inner_right_of_mem_orthogonal (hU u hu) hv
-  have hvu : ⟪v, u⟫_𝕜 = 0 := inner_left_of_mem_orthogonal hu hv
-  have happ : A.reducedExtension U κ x = A u + (κ : 𝕜) • v := by
-    simp only [ContinuousLinearMap.reducedExtension_apply, u, v]
-  rw [happ]
-  conv_lhs => rw [hx]
-  simp [inner_add_left, inner_add_right, inner_smul_left, hAuv, hvu,
-    inner_self_eq_norm_sq_to_K]
-
-/-- A local lower bound `r` extends to the reduced extension whenever the
-complementary-block scalar satisfies `r ≤ κ`. -/
-theorem le_re_inner_reducedExtension_self {A : E →L[𝕜] E}
-    (hU : ∀ x ∈ U, A x ∈ U) {r κ : ℝ} (hκ : r ≤ κ)
-    (hA : ∀ x ∈ U, r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A x, x⟫_𝕜) (x : E) :
-    r * ‖x‖ ^ 2 ≤ RCLike.re ⟪A.reducedExtension U κ x, x⟫_𝕜 := by
-  rw [U.re_inner_reducedExtension_self hU κ x,
-    norm_sq_eq_add_norm_sq_starProjection x U, mul_add]
-  exact add_le_add (hA _ (U.starProjection_apply_mem x))
-    (mul_le_mul_of_nonneg_right hκ (sq_nonneg _))
-
-/-- A local upper bound `r` extends to the reduced extension whenever the
-complementary-block scalar satisfies `κ ≤ r`. -/
-theorem re_inner_reducedExtension_self_le {B : E →L[𝕜] E}
-    (hU : ∀ x ∈ U, B x ∈ U) {r κ : ℝ} (hκ : κ ≤ r)
-    (hB : ∀ x ∈ U, RCLike.re ⟪B x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2) (x : E) :
-    RCLike.re ⟪B.reducedExtension U κ x, x⟫_𝕜 ≤ r * ‖x‖ ^ 2 := by
-  rw [U.re_inner_reducedExtension_self hU κ x,
-    norm_sq_eq_add_norm_sq_starProjection x U, mul_add]
-  exact add_le_add (hB _ (U.starProjection_apply_mem x))
-    (mul_le_mul_of_nonneg_right hκ (sq_nonneg _))
-
-end Extension
 
 end Submodule
