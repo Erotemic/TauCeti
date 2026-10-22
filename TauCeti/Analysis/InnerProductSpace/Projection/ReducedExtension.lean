@@ -14,8 +14,9 @@ public import TauCeti.Analysis.InnerProductSpace.PointSpectrum
 
 `ContinuousLinearMap.reducedExtension` is defined in `Projection.Block`, together with its
 block actions, quadratic-form splitting and global bounds from local quadratic-form bounds.
-This module proves symmetry of the extension for invariant self-adjoint blocks and obtains
-the global form bounds from finite-dimensional restricted point-spectrum containment.
+This module proves symmetry of the extension for invariant symmetric blocks, without a
+completeness assumption, and obtains the global form bounds from finite-dimensional
+restricted point-spectrum containment.
 
 ## Provenance
 
@@ -34,33 +35,32 @@ namespace ContinuousLinearMap
 variable {𝕜 E : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
 
-/-- The reduced extension of a symmetric operator along an invariant subspace is symmetric. -/
-theorem isSymmetric_reducedExtension [CompleteSpace E] (T : E →L[𝕜] E)
+/-- The reduced extension of a symmetric operator along an invariant subspace is symmetric,
+without any completeness hypothesis on the ambient inner product space. -/
+theorem isSymmetric_reducedExtension (T : E →L[𝕜] E)
     {W : Submodule 𝕜 E} [W.HasOrthogonalProjection]
     (hT : (T : E →ₗ[𝕜] E).IsSymmetric) (hW : ∀ x ∈ W, T x ∈ W) (κ : ℝ) :
     (T.reducedExtension W κ : E →ₗ[𝕜] E).IsSymmetric := by
-  have hTsa : IsSelfAdjoint T :=
-    (ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric).mpr hT
-  have hPsa : IsSelfAdjoint W.starProjection := isSelfAdjoint_starProjection W
-  have hPperp : IsSelfAdjoint Wᗮ.starProjection := isSelfAdjoint_starProjection Wᗮ
-  have hcomm : T ∘L W.starProjection = W.starProjection ∘L T := by
-    ext x
-    simp only [ContinuousLinearMap.comp_apply]
-    exact (hT.starProjection_apply_comm (fun y hy => hW y hy) x).symm
-  have hcomp : IsSelfAdjoint (T ∘L W.starProjection) :=
-    (IsSelfAdjoint.commute_iff hTsa hPsa).mp hcomm
-  have hcsa : IsSelfAdjoint (κ : 𝕜) :=
-    isSelfAdjoint_iff.mpr (RCLike.conj_ofReal _)
-  have hscalar : IsSelfAdjoint ((κ : 𝕜) • Wᗮ.starProjection) := by
-    rw [isSelfAdjoint_iff, star_smul, hcsa.star_eq, hPperp.star_eq]
-  have hsa : IsSelfAdjoint (T.reducedExtension W κ) := by
-    have hEq : T.reducedExtension W κ =
-        T ∘L W.starProjection + (κ : 𝕜) • Wᗮ.starProjection := by
-      ext x
-      rw [T.reducedExtension_apply W κ x, add_apply, comp_apply, smul_apply]
-    rw [hEq]
-    exact hcomp.add hscalar
-  exact (ContinuousLinearMap.isSelfAdjoint_iff_isSymmetric).mp hsa
+  have hcomm (y : E) : W.starProjection (T y) = T (W.starProjection y) :=
+    hT.starProjection_apply_comm (fun z hz => hW z hz) y
+  have hblock (x y : E) :
+      ⟪T (W.starProjection x), y⟫_𝕜 = ⟪x, T (W.starProjection y)⟫_𝕜 := by
+    calc
+      _ = ⟪W.starProjection x, T y⟫_𝕜 := hT _ _
+      _ = ⟪x, W.starProjection (T y)⟫_𝕜 := W.starProjection_isSymmetric x (T y)
+      _ = ⟪x, T (W.starProjection y)⟫_𝕜 := by rw [hcomm y]
+  have hscalar (x y : E) :
+      ⟪(κ : 𝕜) • Wᗮ.starProjection x, y⟫_𝕜 =
+        ⟪x, (κ : 𝕜) • Wᗮ.starProjection y⟫_𝕜 := by
+    have hproj : ⟪Wᗮ.starProjection x, y⟫_𝕜 =
+        ⟪x, Wᗮ.starProjection y⟫_𝕜 := Wᗮ.starProjection_isSymmetric x y
+    simpa only [inner_smul_left, inner_smul_right, RCLike.conj_ofReal] using
+      congrArg (fun z : 𝕜 => (κ : 𝕜) * z) hproj
+  intro x y
+  change ⟪T.reducedExtension W κ x, y⟫_𝕜 =
+    ⟪x, T.reducedExtension W κ y⟫_𝕜
+  rw [T.reducedExtension_apply W κ x, T.reducedExtension_apply W κ y,
+    inner_add_left, inner_add_right, hblock x y, hscalar x y]
 
 section FiniteDimensional
 
