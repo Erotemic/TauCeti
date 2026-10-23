@@ -59,8 +59,9 @@ principal cosines and the squared Frobenius sine are defined only for orthonorma
 * `TauCeti.sinThetaSq`: the squared Frobenius sine of two orthonormal families, with
   `TauCeti.sinThetaSq_eq_card_sub_sum_norm_inner_sq` and `TauCeti.sinThetaSq_self`.
 * `TauCeti.sinThetaSq_eq_sum_norm_starProjection_orthogonal_sq`: `sin²_F Θ = ∑ⱼ ‖P_{Uᗮ} vⱼ‖²`.
-* `OrthonormalBasis.sq_sinThetaFrobenius_spanIndices`: the squared subspace Frobenius sine
-  is a sum of cross-block inner-product norms for two orthonormal bases.
+* `Submodule.sq_sinThetaFrobenius_eq_sinThetaSq_of_orthonormal`: for arbitrary
+  finite orthonormal families the squared subspace Frobenius sine equals `TauCeti.sinThetaSq`.
+* `OrthonormalBasis.sq_sinThetaFrobenius_spanIndices`: the selected-block cross-overlap formula.
 * `TauCeti.sinThetaSq_comp_subtypeVal_eq_sum_compl_norm_inner_sq` and
   `TauCeti.sinThetaSq_comp_subtypeVal_comp_subtypeVal_eq_sum_compl_norm_inner_sq`: the cross-block
   form of the squared Frobenius sine for coordinate blocks of orthonormal bases.
@@ -68,8 +69,8 @@ principal cosines and the squared Frobenius sine are defined only for orthonorma
 ## Provenance
 
 The cross-block Frobenius sine identity is adapted from the AIQ-Kitware DKPS
-formalization (Kitware, Inc.; Apache-2.0) and the corresponding canonical
-eigenblock bridge. The remaining overlap identities are TauCeti developments.
+formalization (Kitware, Inc.; Apache-2.0) and the canonical eigenblock bridge.
+The remaining overlap identities are TauCeti developments.
 
 ## References
 
@@ -89,12 +90,12 @@ open scoped InnerProductSpace
 namespace OrthonormalBasis
 
 variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-  [FiniteDimensional 𝕜 E] [Fintype ι] [DecidableEq ι]
+  [FiniteDimensional 𝕜 E] [Fintype ι]
 
 /-- The squared norm of the projection onto the complement of a coordinate block
 is the sum of squared inner products with the complementary basis vectors. -/
-theorem norm_starProjection_orthogonal_spanIndices_sq (b : OrthonormalBasis ι 𝕜 E)
-    (s : Finset ι) (x : E) :
+theorem norm_starProjection_orthogonal_spanIndices_sq [DecidableEq ι]
+    (b : OrthonormalBasis ι 𝕜 E) (s : Finset ι) (x : E) :
     ‖(b.spanIndices (↑s : Set ι))ᗮ.starProjection x‖ ^ 2 =
       ∑ k ∈ sᶜ, ‖⟪b k, x⟫_𝕜‖ ^ 2 := by
   have hc : Submodule.span 𝕜
@@ -105,15 +106,14 @@ theorem norm_starProjection_orthogonal_spanIndices_sq (b : OrthonormalBasis ι �
   rw [(b.orthonormal.comp _ Subtype.val_injective).norm_starProjection_sq_eq_sum hc]
   exact Finset.sum_coe_sort sᶜ fun k ↦ ‖⟪b k, x⟫_𝕜‖ ^ 2
 
-/-- The squared Frobenius sine between matching coordinate blocks of two
-orthonormal bases is the squared norm of their cross-block overlap. -/
-theorem sq_sinThetaFrobenius_spanIndices (a b : OrthonormalBasis ι 𝕜 E)
-    (s : Finset ι) :
-    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius
-        (a.spanIndices (↑s : Set ι)) ^ 2 =
-      ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
+/-- For an arbitrary target subspace `U`, the squared Frobenius sine from a
+coordinate block of an orthonormal basis `b` to `U` is the total squared
+orthogonal projection of the selected vectors onto `Uᗮ`. -/
+theorem sq_sinThetaFrobenius_spanIndices_eq_sum_projection (b : OrthonormalBasis ι 𝕜 E)
+    (s : Finset ι) (U : Submodule 𝕜 E) [U.HasOrthogonalProjection] :
+    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius U ^ 2 =
+      ∑ j ∈ s, ‖Uᗮ.starProjection (b j)‖ ^ 2 := by
   classical
-  let U := a.spanIndices (↑s : Set ι)
   let V := b.spanIndices (↑s : Set ι)
   have hb (j : ι) :
       (V.sinThetaMap U) (b j) =
@@ -126,6 +126,7 @@ theorem sq_sinThetaFrobenius_spanIndices (a b : OrthonormalBasis ι 𝕜 E)
         exact b.mem_spanIndices_of_mem (by simpa using hj)
       simp [hj, Submodule.sinThetaMap_apply,
         V.starProjection_apply_eq_zero_iff.mpr horth]
+  change V.sinThetaFrobenius U ^ 2 = _
   calc
     V.sinThetaFrobenius U ^ 2 =
         ∑ j, ‖(V.sinThetaMap U) (b j)‖ ^ 2 := by
@@ -141,10 +142,58 @@ theorem sq_sinThetaFrobenius_spanIndices (a b : OrthonormalBasis ι 𝕜 E)
           exact Finset.sum_congr rfl fun j hj ↦ by
             rw [hb j]
             simp [hj]
-    _ = ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 :=
-          Finset.sum_congr rfl fun j _ ↦ a.norm_starProjection_orthogonal_spanIndices_sq s (b j)
 
 end OrthonormalBasis
+
+namespace Submodule
+
+variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+  [FiniteDimensional 𝕜 E]
+
+/-- For any finite orthonormal family spanning `V`, the squared Frobenius sine
+from `V` to `U` is the sum of the squared orthogonal projections of its vectors
+onto `Uᗮ`. In particular, the value does not depend on the chosen family. -/
+theorem sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal
+    (V U : Submodule 𝕜 E) [V.HasOrthogonalProjection] [U.HasOrthogonalProjection]
+    {κ : Type*} [Fintype κ] {v : κ → E} (hv : Orthonormal 𝕜 v)
+    (hV : Submodule.span 𝕜 (Set.range v) = V) :
+    V.sinThetaFrobenius U ^ 2 = ∑ j, ‖Uᗮ.starProjection (v j)‖ ^ 2 := by
+  classical
+  have hvinj : Function.Injective v := hv.linearIndependent.injective
+  have hvRange : Orthonormal 𝕜 ((↑) : Set.range v → E) :=
+    (orthonormal_subtype_range hvinj).mpr hv
+  obtain ⟨t, b, hsubset, hb⟩ := hvRange.exists_orthonormalBasis_extension
+  let e : κ ↪ t :=
+    ⟨fun j => ⟨v j, hsubset (Set.mem_range_self j)⟩,
+      fun i j hij => hvinj (congrArg Subtype.val hij)⟩
+  let s : Finset t := Finset.univ.image e
+  have hbe (j : κ) : b (e j) = v j := by
+    calc
+      b (e j) = (e j : E) := congrFun hb (e j)
+      _ = v j := rfl
+  have hset : b '' (↑s : Set t) = Set.range v := by
+    ext x
+    constructor
+    · rintro ⟨i, hi, rfl⟩
+      obtain ⟨j, _, rfl⟩ := Finset.mem_image.mp (Finset.mem_coe.mp hi)
+      exact ⟨j, (hbe j).symm⟩
+    · rintro ⟨j, rfl⟩
+      refine ⟨e j, ?_, hbe j⟩
+      exact Finset.mem_coe.mpr (Finset.mem_image.mpr
+        ⟨j, Finset.mem_univ _, rfl⟩)
+  have hsV : b.spanIndices (↑s : Set t) = V := by
+    rw [b.spanIndices_eq_span, hset, hV]
+  have hproj := b.sq_sinThetaFrobenius_spanIndices_eq_sum_projection s U
+  rw [hsV] at hproj
+  calc
+    V.sinThetaFrobenius U ^ 2 =
+        ∑ i ∈ s, ‖Uᗮ.starProjection (b i)‖ ^ 2 := hproj
+    _ = ∑ j : κ, ‖Uᗮ.starProjection (v j)‖ ^ 2 := by
+      change (∑ i ∈ Finset.univ.image e, ‖Uᗮ.starProjection (b i)‖ ^ 2) = _
+      rw [Finset.sum_image (fun i _ j _ hij => e.injective hij)]
+      exact Finset.sum_congr rfl fun j _ => by rw [hbe j]
+
+end Submodule
 
 namespace TauCeti
 
@@ -349,6 +398,59 @@ theorem sinThetaSq_comp_subtypeVal_comp_subtypeVal_eq_sum_compl_norm_inner_sq [D
   exact Finset.sum_coe_sort s fun j ↦ ∑ k ∈ sᶜ, ‖⟪b k, c j⟫_𝕜‖ ^ 2
 
 end TauCeti
+
+namespace Submodule
+
+variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+  [FiniteDimensional 𝕜 E] [Fintype ι]
+
+/-- The squared Frobenius sine of the spans of equally indexed orthonormal
+families is their family-level squared Frobenius sine `TauCeti.sinThetaSq`.
+The order reflects the directed projection `P_{Uᗮ} P_V`. -/
+theorem sq_sinThetaFrobenius_eq_sinThetaSq_of_orthonormal
+    (U V : Submodule 𝕜 E) [U.HasOrthogonalProjection] [V.HasOrthogonalProjection]
+    {u v : ι → E} (hu : Orthonormal 𝕜 u) (hv : Orthonormal 𝕜 v)
+    (hU : Submodule.span 𝕜 (Set.range u) = U)
+    (hV : Submodule.span 𝕜 (Set.range v) = V) :
+    V.sinThetaFrobenius U ^ 2 = TauCeti.sinThetaSq hu hv := by
+  calc
+    V.sinThetaFrobenius U ^ 2 =
+        ∑ j, ‖Uᗮ.starProjection (v j)‖ ^ 2 :=
+      V.sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal U hv hV
+    _ = TauCeti.sinThetaSq hu hv :=
+      (TauCeti.sinThetaSq_eq_sum_norm_starProjection_orthogonal_sq hu hv hU).symm
+
+end Submodule
+
+namespace OrthonormalBasis
+
+variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+  [FiniteDimensional 𝕜 E] [Fintype ι] [DecidableEq ι]
+
+/-- For selected coordinate blocks of two orthonormal bases, the squared subspace
+Frobenius sine is their cross-block overlap sum. -/
+theorem sq_sinThetaFrobenius_spanIndices (a b : OrthonormalBasis ι 𝕜 E)
+    (s : Finset ι) :
+    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius
+        (a.spanIndices (↑s : Set ι)) ^ 2 =
+      ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
+  classical
+  calc
+    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius
+        (a.spanIndices (↑s : Set ι)) ^ 2 =
+          TauCeti.sinThetaSq
+            (a.orthonormal.comp _ Subtype.val_injective)
+            (b.orthonormal.comp _ Subtype.val_injective) := by
+      exact Submodule.sq_sinThetaFrobenius_eq_sinThetaSq_of_orthonormal
+        (a.spanIndices (↑s : Set ι)) (b.spanIndices (↑s : Set ι))
+        (a.orthonormal.comp _ Subtype.val_injective)
+        (b.orthonormal.comp _ Subtype.val_injective)
+        (a.span_range_comp_subtypeVal_eq_spanIndices s)
+        (b.span_range_comp_subtypeVal_eq_spanIndices s)
+    _ = ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 :=
+      TauCeti.sinThetaSq_comp_subtypeVal_comp_subtypeVal_eq_sum_compl_norm_inner_sq a b s
+
+end OrthonormalBasis
 
 /-! ### Principal cosines of the spans -/
 

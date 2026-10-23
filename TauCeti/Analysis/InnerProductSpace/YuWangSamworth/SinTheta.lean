@@ -45,21 +45,6 @@ namespace LinearMap.IsSymmetric
 variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
   [FiniteDimensional 𝕜 E] {A B : E →ₗ[𝕜] E} {n : ℕ}
 
-/-! ### The eigenbasis overlap identity -/
-
-/-- For the canonical eigenblocks selected by `s`, the squared Frobenius sine equals
-the sum of squared overlaps between the perturbed block and the complementary
-population block. -/
-theorem sq_sinThetaFrobenius_eigenvectorSpan (hA : A.IsSymmetric) (hB : B.IsSymmetric)
-    (hn : finrank 𝕜 E = n) (s : Finset (Fin n)) :
-    (hB.eigenvectorSpan hn (↑s : Set (Fin n))).sinThetaFrobenius
-      (hA.eigenvectorSpan hn (↑s : Set (Fin n))) ^ 2 =
-      ∑ j ∈ s, ∑ k ∈ sᶜ,
-        ‖⟪hA.eigenvectorBasis hn k, hB.eigenvectorBasis hn j⟫_𝕜‖ ^ 2 := by
-  rw [hA.eigenvectorSpan_eq_spanIndices, hB.eigenvectorSpan_eq_spanIndices]
-  exact (hA.eigenvectorBasis hn).sq_sinThetaFrobenius_spanIndices
-    (hB.eigenvectorBasis hn) s
-
 /-! ### The population-gap estimate -/
 
 /-- **Population-gap Frobenius sin-theta theorem.**
@@ -75,18 +60,26 @@ theorem sinThetaFrobenius_eigenvectorSpan_le (hA : A.IsSymmetric) (hB : B.IsSymm
     (hn : finrank 𝕜 E = n) (s : Finset (Fin n)) {delta : ℝ} (hd : 0 < delta)
     (hgap : ∀ j ∈ s, ∀ k ∉ s,
       delta ≤ |hA.eigenvalues hn j - hA.eigenvalues hn k|) :
-    (hB.eigenvectorSpan hn (↑s : Set (Fin n))).sinThetaFrobenius
-        (hA.eigenvectorSpan hn (↑s : Set (Fin n))) ≤
+    (hA.eigenvectorSpan hn (↑s : Set (Fin n))).sinThetaFrobenius
+        (hB.eigenvectorSpan hn (↑s : Set (Fin n))) ≤
       2 * min (Real.sqrt s.card * ‖(B - A).toContinuousLinearMap‖)
         (TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E (B - A)) / delta := by
-  let U := hA.eigenvectorSpan hn (↑s : Set (Fin n))
-  let V := hB.eigenvectorSpan hn (↑s : Set (Fin n))
+  rw [hA.eigenvectorSpan_eq_spanIndices, hB.eigenvectorSpan_eq_spanIndices]
+  let a := hA.eigenvectorBasis hn
+  let b := hB.eigenvectorBasis hn
+  let U := a.spanIndices (↑s : Set (Fin n))
+  let V := b.spanIndices (↑s : Set (Fin n))
   let F := TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E (B - A)
   let op := ‖(B - A).toContinuousLinearMap‖
+  have hdim : finrank 𝕜 U = finrank 𝕜 V := by
+    dsimp only [U, V]
+    rw [a.finrank_spanIndices s, b.finrank_spanIndices s]
+  change U.sinThetaFrobenius V ≤ 2 * min (Real.sqrt s.card * op) F / delta
+  rw [U.sinThetaFrobenius_comm V hdim]
   have hsq : V.sinThetaFrobenius U ^ 2 =
       ∑ j ∈ s, ∑ k ∈ sᶜ,
-        ‖⟪hA.eigenvectorBasis hn k, hB.eigenvectorBasis hn j⟫_𝕜‖ ^ 2 :=
-    hA.sq_sinThetaFrobenius_eigenvectorSpan hB hn s
+        ‖⟪a k, b j⟫_𝕜‖ ^ 2 :=
+    a.sq_sinThetaFrobenius_spanIndices b s
   have hfrobsq : delta ^ 2 * (V.sinThetaFrobenius U) ^ 2 ≤ 4 * F ^ 2 := by
     rw [hsq]
     exact hA.sq_mul_sum_sum_norm_inner_sq_le_four_mul_frobenius_sq hB hn hd.le hgap
@@ -102,29 +95,26 @@ theorem sinThetaFrobenius_eigenvectorSpan_le (hA : A.IsSymmetric) (hB : B.IsSymm
     convert h using 1
     rw [mul_pow, Real.sq_sqrt (Nat.cast_nonneg s.card)]
     ring
-  have hfrob : V.sinThetaFrobenius U ≤ 2 * F / delta := by
+  have key (C : ℝ) (hC : 0 ≤ C)
+      (hSq : delta ^ 2 * (V.sinThetaFrobenius U) ^ 2 ≤ 4 * C ^ 2) :
+      V.sinThetaFrobenius U ≤ 2 * C / delta := by
     rw [le_div_iff₀ hd]
-    have hF : 0 ≤ F :=
-      apply_nonneg (TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E) _
-    refine le_of_sq_le_sq ?_ (mul_nonneg (by norm_num) hF)
-    calc
-      (V.sinThetaFrobenius U * delta) ^ 2 =
-          delta ^ 2 * (V.sinThetaFrobenius U) ^ 2 := by ring
-      _ ≤ 4 * F ^ 2 := hfrobsq
-      _ = (2 * F) ^ 2 := by ring
-  have hop : V.sinThetaFrobenius U ≤ 2 * (Real.sqrt s.card * op) / delta := by
-    rw [le_div_iff₀ hd]
-    have hC : 0 ≤ Real.sqrt s.card * op := by positivity
     refine le_of_sq_le_sq ?_ (mul_nonneg (by norm_num) hC)
     calc
       (V.sinThetaFrobenius U * delta) ^ 2 =
           delta ^ 2 * (V.sinThetaFrobenius U) ^ 2 := by ring
-      _ ≤ 4 * (Real.sqrt s.card * op) ^ 2 := hopsq
-      _ = (2 * (Real.sqrt s.card * op)) ^ 2 := by ring
-  rcases le_total (Real.sqrt s.card * op) F with h | h
-  · rw [min_eq_left h]
-    exact hop
-  · rw [min_eq_right h]
-    exact hfrob
+      _ ≤ 4 * C ^ 2 := hSq
+      _ = (2 * C) ^ 2 := by ring
+  have hF : 0 ≤ F :=
+    apply_nonneg (TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E) _
+  have hop := key (Real.sqrt s.card * op) (by positivity) hopsq
+  have hfrob := key F hF hfrobsq
+  calc
+    V.sinThetaFrobenius U ≤
+        min (2 * (Real.sqrt s.card * op) / delta) (2 * F / delta) :=
+      le_min hop hfrob
+    _ = 2 * min (Real.sqrt s.card * op) F / delta := by
+      rw [min_div_div_right hd.le,
+        ← mul_min_of_nonneg _ _ (by norm_num : (0 : ℝ) ≤ 2)]
 
 end LinearMap.IsSymmetric
