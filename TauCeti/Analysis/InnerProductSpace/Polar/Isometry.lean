@@ -34,9 +34,8 @@ perturbation theory.
 * `LinearMap.coe_polarIsometry`: the isometric factor is `LinearMap.polarFactor`, so the
   factorization `A = W |A|` and the equality of ranges come from the polar-factor API.
 * `LinearMap.IsPositive.eq_operatorAbs_of_comp_eq`, `LinearMap.eq_polarIsometry_of_comp_eq`:
-  uniqueness of the factorization.
-* `LinearMap.eq_modulus_and_polarFactor_of_unitary_comp_positive`: both factors are canonical
-  when an injective endomorphism factors as a unitary followed by a positive operator.
+  uniqueness of the factorization, including the invertible endomorphism case `A = U P`
+  with `U` unitary and `P` positive.
 * `LinearMap.norm_operatorAbsEquiv_symm_apply_le`: a lower frame bound for `A` bounds `|A|⁻¹`.
 * `TauCeti.UnitarilyInvariantSeminorm.map_comp_operatorAbsEquiv_symm_le`: the resulting cost
   of composing with `|A|⁻¹` in a unitarily invariant seminorm.
@@ -45,6 +44,11 @@ perturbation theory.
 
 * R. A. Horn and C. R. Johnson, *Matrix Analysis*, second edition, Cambridge University Press,
   2013, Theorem 7.3.1.
+* The invertible unitary uniqueness statement also appears as
+  `TauCeti.polarFactor_eq_of_isUnit_eq_comp_positive` in
+  `ForTauCeti/Analysis/InnerProductSpace/Polar/Decomposition.lean` of the
+  [AIQ-Kitware DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+  (Apache-2.0; Copyright (c) 2026 Kitware, Inc.; Jon Crall and Claude Opus 4.8).
 -/
 
 public section
@@ -102,7 +106,8 @@ theorem polarIsometry_apply (y : E) :
 variable {A}
 
 /-- **Uniqueness of the positive factor.** If `A = W C` with `W` an isometric embedding and `C`
-positive, then `C` is the modulus of `A`. -/
+positive, then `C = A.operatorAbs`. In particular, this identifies the positive factor in an
+invertible unitary-positive factorization `A = U P`. -/
 theorem IsPositive.eq_operatorAbs_of_comp_eq {C : E →ₗ[𝕜] E} (hC : C.IsPositive) (W : E →ₗᵢ[𝕜] F)
     (hWC : W.toLinearMap ∘ₗ C = A) : C = A.operatorAbs := by
   have hT := isPositive_adjoint_comp_self A
@@ -112,33 +117,15 @@ theorem IsPositive.eq_operatorAbs_of_comp_eq {C : E →ₗ[𝕜] E} (hC : C.IsPo
     hC.isSymmetric.adjoint_eq]
 
 /-- **Uniqueness of the isometric factor.** If `A = W C` with `W` an isometric embedding and `C`
-positive, then `W` is the isometric polar factor of `A`. -/
+positive, then `W` is the isometric polar factor of `A`. For an injective endomorphism factored
+as `A = U P` with `U` a linear isometric equivalence and `P` positive, applying this to
+`U.toLinearIsometry` gives `U.toLinearMap = A.polarFactor` via `polarIsometry_toLinearMap`. -/
 theorem eq_polarIsometry_of_comp_eq {C : E →ₗ[𝕜] E} (hC : C.IsPositive) (W : E →ₗᵢ[𝕜] F)
     (hWC : W.toLinearMap ∘ₗ C = A) : W = A.polarIsometry hA := by
   obtain rfl := hC.eq_operatorAbs_of_comp_eq W hWC
   ext y
   obtain ⟨x, rfl⟩ := (A.operatorAbsEquiv hA).surjective y
   simpa using congr($hWC x)
-
-/-- **PD-B18: uniqueness of the invertible unitary polar decomposition.**
-For an injective finite-dimensional endomorphism, a unitary-positive factorization determines
-both factors: the positive one is `A.operatorAbs` and the unitary one is `A.polarFactor`.
-This is the source-backed invertible specialization of the isometric-factor uniqueness API. -/
-theorem eq_modulus_and_polarFactor_of_unitary_comp_positive
-    (A : E →ₗ[𝕜] E) (hA : Function.Injective A)
-    (U : E ≃ₗᵢ[𝕜] E) {P : E →ₗ[𝕜] E} (hP : P.IsPositive)
-    (hUP : U.toLinearMap ∘ₗ P = A) :
-    P = A.operatorAbs ∧ U.toLinearMap = A.polarFactor := by
-  have hPabs : P = A.operatorAbs :=
-    hP.eq_operatorAbs_of_comp_eq U.toLinearIsometry hUP
-  refine ⟨hPabs, ?_⟩
-  apply A.eq_polarFactor
-  · rw [← hPabs]
-    exact hUP
-  · intro x hx
-    have hx0 : x = 0 := hA (by simpa [LinearMap.mem_ker] using hx)
-    subst x
-    simp
 
 /-- **Inverse-coordinate bound.** If `A` satisfies the lower frame bound `‖x‖ ≤ c ‖A x‖`, then the
 inverse of its modulus satisfies `‖|A|⁻¹ y‖ ≤ c ‖y‖`.  For `ε > 0`, the frame bound
