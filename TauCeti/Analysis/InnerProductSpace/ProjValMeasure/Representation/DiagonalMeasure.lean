@@ -19,7 +19,7 @@ Let `π : C(K, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H)` be a unital star representat
 Hilbert space, with `K` compact Hausdorff. For each `ξ : H`, the positive functional
 `f ↦ ⟪ξ, π(f) ξ⟫` determines a finite regular Borel measure on `K`.
 
-The construction is the diagonal-measure input to SA-B59, the representation PVM.
+This supplies the diagonal-measure input to the representation PVM construction.
 It does not construct `ProjValMeasure.ofRepresentation`: that additionally requires
 polarized matrix elements and multiplicative, strongly additive indicator operators.
 
@@ -107,9 +107,9 @@ theorem integral_representationDiagMeasure (ξ : H) (f : C(K, ℂ)) :
   exact (φ.apply_eq_integral_of_forall_realToRCLike
     (fun g => (ofReal_integral_representationDiagMeasure π ξ g).symm) f).symm
 
-/-- A regular finite measure with the same continuous matrix elements is the diagonal measure. -/
+/-- A regular measure is the diagonal measure exactly when its continuous matrix elements agree. -/
 theorem eq_representationDiagMeasure_iff (ξ : H) (μ : Measure K)
-    [IsFiniteMeasure μ] [μ.Regular] :
+    [μ.Regular] :
     μ = representationDiagMeasure π ξ ↔
       ∀ f : C(K, ℂ), ∫ x, f x ∂μ = ⟪ξ, π f ξ⟫_ℂ := by
   refine ⟨fun h => h ▸ integral_representationDiagMeasure π ξ, fun h => ?_⟩
