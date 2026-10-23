@@ -7,10 +7,9 @@ module
 
 public import Mathlib.Analysis.Fourier.FourierTransform
 public import TauCeti.MeasureTheory.Integral.ExpDecay
-import Mathlib.Analysis.Fourier.Inversion
 
 /-!
-# The Fourier transform of the two-sided exponential
+# Fourier transform and decay of the two-sided exponential
 
 For `0 < a` the function `x ↦ exp (-(a * |x|))` on `ℝ` is integrable, and pairing it against the
 oscillation `exp (b * x * I)` produces the Lorentzian `2 * a / (a ^ 2 + b ^ 2)`. In Mathlib's
@@ -22,11 +21,17 @@ The proof splits the line at the origin, where `|x|` becomes `∓x`, and evaluat
 resulting complex exponential integrals with `integral_exp_mul_complex_Iic` and
 `integral_exp_mul_complex_Ioi`.
 
+The two-sided exponential also decays faster than every real power at both ends of
+the line. Its real- and complex-valued forms supply decay estimates for Fourier analysis.
+
 ## Main results
 
 * `TauCeti.integral_exp_mul_I_mul_exp_neg_mul_abs`: the Lorentzian pairing;
 * `TauCeti.fourier_exp_neg_mul_abs`: the Fourier transform itself;
-* `TauCeti.cexp_neg_mul_abs_isLittleO_rpow_cocompact`: faster-than-polynomial decay.
+* `TauCeti.cexp_neg_mul_abs_isLittleO_rpow_cocompact`: decay with a complex rate of
+  positive real part;
+* `TauCeti.ofReal_exp_neg_mul_abs_isLittleO_rpow_cocompact`: the complex-valued form of
+  the real exponential used by the Fourier transform.
 -/
 
 public section
@@ -116,32 +121,29 @@ theorem fourier_exp_neg_mul_abs (ha : 0 < a) (ξ : ℝ) :
       rw [integral_exp_mul_I_mul_exp_neg_mul_abs ha]
       norm_num
 
-/-- **Two-sided exponential decay beats every real power.** For a positive decay rate, the
-complex exponential of `-a * |x|` is little-o of `|x| ^ s` as `|x|` tends to infinity.
-The proof transports Mathlib's one-sided decay estimate to both ends of the real line.
+/-- **Two-sided complex exponential decay beats every real power.** If a complex rate
+has positive real part, then `exp (-(a * |x|))` is little-o of `|x| ^ s` as
+`|x|` tends to infinity, for every real `s`.
 
-Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in the AIQ DKPS
-formalization (Apache-2.0, Copyright (c) 2026 Kitware, Inc.;
-Jon Crall and GPT 5.6 High). -/
+The real-valued estimate is `exp_neg_mul_abs_isLittleO_rpow_cocompact`. -/
 theorem cexp_neg_mul_abs_isLittleO_rpow_cocompact
-    {a : ℝ} (ha : 0 < a) (s : ℝ) :
-    (fun x : ℝ => Complex.exp ((-(a * |x|) : ℝ) : ℂ))
+    {a : ℂ} (ha : 0 < a.re) (s : ℝ) :
+    (fun x : ℝ => Complex.exp (-(a * |x|)))
       =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
   apply IsLittleO.of_norm_left
-  simp only [Complex.norm_exp, Complex.ofReal_re]
-  rw [cocompact_eq_atBot_atTop, isLittleO_sup]
-  constructor
-  · have h := (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
-      tendsto_neg_atBot_atTop
-    refine h.congr' ?_ ?_
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-  · refine (isLittleO_exp_neg_mul_rpow_atTop ha s).congr' ?_ ?_
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
+  simpa only [Complex.norm_exp, Complex.neg_re, Complex.re_mul_ofReal] using
+    (exp_neg_mul_abs_isLittleO_rpow_cocompact ha s)
+
+/-- **Fourier-compatible complex-valued exponential decay.** For a positive real rate,
+the complex embedding of `Real.exp (-(a * |x|))` is little-o of any real power of `|x|`.
+This is the symbol used by `fourier_exp_neg_mul_abs`. -/
+theorem ofReal_exp_neg_mul_abs_isLittleO_rpow_cocompact
+    {a : ℝ} (ha : 0 < a) (s : ℝ) :
+    (fun x : ℝ => (Real.exp (-(a * |x|)) : ℂ))
+      =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
+  apply IsLittleO.of_norm_left
+  simpa only [Complex.norm_real, Real.norm_eq_abs,
+    abs_of_pos (Real.exp_pos _)] using
+    (exp_neg_mul_abs_isLittleO_rpow_cocompact ha s)
 
 end TauCeti
