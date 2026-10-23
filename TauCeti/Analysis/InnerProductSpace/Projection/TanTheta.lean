@@ -16,8 +16,8 @@ it sends `z : Z` to `P_{Uᗮ} z` in the ambient space.
 
 In the right singular basis of this sine embedding, `Submodule.directedTanThetaMap Z U`
 scales the `i`-th basis vector by `tan (arcsin (S.singularValues i))`, then includes the
-result into the ambient space. The resulting linear map depends on the choice of right
-singular basis; its singular values do not.
+result into the ambient space. The formula uses a right singular basis, which need
+not be unique; the singular-value identity below does not depend on that choice.
 
 When the directed gap from `Z` to `U` is less than `1`, the representative has precisely
 the principal tangents from `Z` to `U` as its singular values, including the zero tail.
@@ -27,6 +27,8 @@ representative used in Davis--Kahan tangent-angle estimates.
 ## Main results
 
 * `Submodule.directedSineMap_apply`: the projection action of the sine embedding.
+* `Submodule.singularValues_directedSineMap`: the directed principal sines are
+  exactly the singular values of the sine embedding, without an equal-rank assumption.
 * `Submodule.directedTanThetaMap_apply_rightSingularBasis`: the diagonal action on the
   right singular basis of the directed sine embedding.
 * `Submodule.singularValues_directedTanThetaMap`: the singular values of the tangent
@@ -69,10 +71,18 @@ theorem directedSineMap_apply (x : Z) :
     Z.directedSineMap U x = Uᗮ.starProjection (x : E) := by
   simp only [directedSineMap, ContinuousLinearMap.comp_apply, Submodule.subtypeL_apply]
 
+/-- The singular values of the directed sine embedding are the principal sines
+from `Z` to `U`, including the zero tail. No equality of subspace ranks is required. -/
+theorem singularValues_directedSineMap :
+    (Z.directedSineMap U : Z →ₗ[𝕜] E).singularValues = Z.principalSines U := by
+  simpa only [directedSineMap, toLinearMap_subtypeL, range_subtype] using
+    (U.principalSines_range_eq_singularValues
+      (X := Z.subtypeL) Z.subtypeₗᵢ.isometry).symm
+
 /-- A directed tangent representative in a right singular basis of the sine embedding.
 On the `i`-th right singular vector of `S = Z.directedSineMap U`, it multiplies by
 `tan (arcsin (S.singularValues i))` and then includes the vector in `E`.
-The map depends on the noncanonical right singular basis; its singular values are canonical. -/
+The formula uses a right singular basis; its singular values are intrinsic. -/
 def directedTanThetaMap : Z →ₗ[𝕜] E :=
   let S : Z →ₗ[𝕜] E := Z.directedSineMap U
   let e := S.rightSingularBasis
@@ -105,10 +115,8 @@ theorem singularValues_directedTanThetaMap (hgap : Z.directedProjectionGap U < 1
     fun i ↦ (Real.tan (Real.arcsin (S.singularValues i)) : 𝕜)
   let D : Z →ₗ[𝕜] Z :=
     Matrix.toLin e.toBasis e.toBasis (Matrix.diagonal d)
-  have hS : S.singularValues = Z.principalSines U := by
-    simpa only [S, directedSineMap, toLinearMap_subtypeL, range_subtype] using
-      (U.principalSines_range_eq_singularValues
-        (X := Z.subtypeL) Z.subtypeₗᵢ.isometry).symm
+  have hS : S.singularValues = Z.principalSines U :=
+    Z.singularValues_directedSineMap U
   have hval (i : Fin (finrank 𝕜 Z)) :
       Real.tan (Real.arcsin (S.singularValues i)) = Z.principalTangents U i := by
     rw [hS, principalTangents_apply, principalAngles_apply]
