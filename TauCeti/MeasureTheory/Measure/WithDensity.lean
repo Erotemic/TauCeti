@@ -12,7 +12,7 @@ public import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
 public import Mathlib.MeasureTheory.Measure.Lebesgue.Integral
 public import Mathlib.MeasureTheory.Measure.Support
 public import Mathlib.MeasureTheory.Measure.WithDensity
-public import TauCeti.MeasureTheory.Measure.Real.Basic
+public import TauCeti.MeasureTheory.Measure.Real
 
 /-!
 # Pushing a weighted measure forward
