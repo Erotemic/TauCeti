@@ -7,8 +7,8 @@ module
 
 public import Mathlib.Analysis.Fourier.PoissonSummation
 public import TauCeti.Analysis.Fourier.ExpNegAbs
-public import TauCeti.Analysis.SpecialFunctions.ExpAbsDecay
-public import TauCeti.Analysis.SpecialFunctions.ExpLatticeSum
+public import TauCeti.Analysis.SpecialFunctions.Exp.AbsDecay
+public import TauCeti.Analysis.SpecialFunctions.Exp.LatticeSum
 
 /-!
 # Poisson summation for the Cauchy kernel

@@ -117,7 +117,7 @@ theorem tsum_int_cexp_neg_mul_abs_eq_ofReal (a : ℝ) :
       intro n
       rw [Complex.ofReal_exp]
       congr 1
-      ring
+      ring_nf
     _ = ((∑' n : ℤ, Real.exp (-a * |(n : ℝ)|) : ℝ) : ℂ) :=
       (Complex.ofReal_tsum _).symm
 
