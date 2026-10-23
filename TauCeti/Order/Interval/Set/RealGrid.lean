@@ -22,8 +22,7 @@ The partition properties follow from Mathlib's integer-smul interval lemmas:
 `Set.pairwise_disjoint_Ico_zsmul` and `Set.iUnion_Ico_zsmul`. The named grid-cell
 results provide the disjointness and covering facts for constructions that operate
 on this family. Borel measurability is developed in
-`TauCeti.MeasureTheory.Constructions.BorelSpace.Real`, and countable measure
-decomposition in `TauCeti.MeasureTheory.Measure.Real.Grid`.
+`TauCeti.MeasureTheory.Constructions.BorelSpace.Real`.
 
 Adapted from the Kitware DKPS formalization,
 `ForTauCeti/Analysis/InnerProductSpace/LinearPMap/SpectralGrid.lean`.
@@ -33,7 +32,7 @@ public section
 
 open Set
 
-namespace TauCeti
+namespace Real
 
 /-- The half-open interval between successive integer multiples of `ε`. -/
 def gridCell (ε : ℝ) (k : ℤ) : Set ℝ :=
@@ -109,4 +108,4 @@ theorem abs_le_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
     _ = (|(k : ℝ)| + 1) * ε := by
       rw [add_mul, one_mul, add_comm]
 
-end TauCeti
+end Real

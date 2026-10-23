@@ -22,9 +22,8 @@ distribution of an extended-valued random variable.
 
 ## Uniform real grids
 
-Each half-open real grid cell is Borel measurable, so it can be used as a
-measurable set in spectral measure constructions. The corresponding measure
-splitting result is in `TauCeti.MeasureTheory.Measure.Real.Grid`.
+Each half-open real grid cell is Borel measurable, so it can be used in
+measurable decompositions of the real line, including spectral measures.
 -/
 
 public section
@@ -38,7 +37,7 @@ theorem ENNReal.measurable_edist : Measurable fun z : ℝ≥0∞ × ℝ≥0∞ �
   simp only [ENNReal.edist_eq_max]
   fun_prop
 
-namespace TauCeti
+namespace Real
 
 /-- Each half-open interval cell of a real grid is Borel measurable. -/
 @[simp, measurability]
@@ -47,4 +46,4 @@ theorem measurableSet_gridCell (ε : ℝ) (k : ℤ) :
   rw [gridCell_eq_Ico]
   exact measurableSet_Ico
 
-end TauCeti
+end Real
