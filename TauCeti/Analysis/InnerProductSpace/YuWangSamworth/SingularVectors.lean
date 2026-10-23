@@ -7,7 +7,7 @@ module
 
 public import TauCeti.Analysis.InnerProductSpace.Gram.Perturbation
 public import TauCeti.Analysis.InnerProductSpace.SingularValues
-public import TauCeti.Analysis.InnerProductSpace.YuWangSamworth
+public import TauCeti.Analysis.InnerProductSpace.YuWangSamworth.Basic
 
 /-!
 # Population-gap bounds for right singular vectors
