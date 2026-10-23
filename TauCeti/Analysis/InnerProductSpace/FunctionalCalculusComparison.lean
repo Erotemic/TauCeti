@@ -124,7 +124,7 @@ theorem toContinuousLinearMap_operatorAbs_eq_cfcAbs (A : E →ₗ[𝕜] E) :
   rw [toContinuousLinearMap_operatorAbs, CFC.abs, ContinuousLinearMap.star_eq_adjoint,
     ← adjoint_toContinuousLinearMap, ContinuousLinearMap.mul_def]
 
-/-- **PD-A47: agreement of finite and bounded moduli.** For a linear map between
+/-- **Agreement of the finite and bounded moduli.** For a linear map between
 finite-dimensional real or complex inner product spaces, the finite spectral modulus is the
 bounded-operator modulus after converting the maps to continuous linear maps. -/
 theorem toContinuousLinearMap_operatorAbs_eq_modulus [CompleteSpace F]
