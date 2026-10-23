@@ -18,7 +18,8 @@ bijective (`ContinuousLinearEquiv.adjoint_bijective`).
 For a finite-dimensional linear isometry, the adjoint returns its image vectors to their
 preimages (`LinearIsometry.adjoint_apply_apply`).
 
-Complementary isometry blocks have orthogonal ranges
+If `F₁` is an isometry and `F₀F₀⋆ + F₁F₁⋆ = 1`, then the ranges of
+`F₀` and `F₁` are orthogonal
 (`LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id`).
 
 Two families of adjoints of linear maps between finite-dimensional inner product spaces:
@@ -99,21 +100,21 @@ variable {K₁ L : Type*}
   [NormedAddCommGroup K₁] [InnerProductSpace 𝕜 K₁] [FiniteDimensional 𝕜 K₁]
   [NormedAddCommGroup L] [InnerProductSpace 𝕜 L] [FiniteDimensional 𝕜 L]
 
-/-- Complementary isometry blocks have orthogonal ranges: `F₀⋆F₁ = 0`.
-Here the isometry hypotheses are essential to deduce orthogonality from
-`F₀F₀⋆ + F₁F₁⋆ = 1`. -/
+/-- If `F₁` is an isometry and `F₀F₀⋆ + F₁F₁⋆ = 1`, then `F₀⋆F₁ = 0`.
+No isometry or injectivity hypothesis is needed for `F₀`. -/
 theorem adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id
-    (F₀ : L →ₗᵢ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
-    (hF : F₀.toLinearMap ∘ₗ LinearMap.adjoint F₀.toLinearMap +
+    (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
+    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
         F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
-    LinearMap.adjoint F₀.toLinearMap ∘ₗ F₁.toLinearMap = 0 := by
+    LinearMap.adjoint F₀ ∘ₗ F₁.toLinearMap = 0 := by
   ext y
-  have h0 : F₀ (LinearMap.adjoint F₀.toLinearMap (F₁ y)) = 0 := by
+  have h0 : F₀ (LinearMap.adjoint F₀ (F₁ y)) = 0 := by
     simpa [add_eq_right] using LinearMap.congr_fun hF (F₁ y)
-  -- Injectivity of the isometry removes the outer `F₀` directly.
-  apply F₀.injective
-  simpa only [LinearIsometry.coe_toLinearMap, LinearMap.comp_apply,
-    LinearMap.zero_apply, map_zero] using h0
+  have hker : F₁ y ∈ (F₀ ∘ₗ LinearMap.adjoint F₀).ker := by
+    simpa only [LinearMap.mem_ker, LinearMap.comp_apply] using h0
+  rw [F₀.ker_self_comp_adjoint] at hker
+  simpa only [LinearMap.mem_ker, LinearMap.comp_apply, LinearMap.zero_apply,
+    LinearIsometry.coe_toLinearMap] using hker
 
 end ComplementaryBlocks
 
