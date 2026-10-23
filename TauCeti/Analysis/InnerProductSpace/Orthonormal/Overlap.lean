@@ -1,13 +1,14 @@
 /-
-Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
+Copyright (c) 2026 The Tau Ceti contributors and Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors
+Authors: The Tau Ceti contributors, Jon Crall, GPT-6
 -/
 module
 
 public import TauCeti.Analysis.InnerProductSpace.BasisSpan
 public import TauCeti.Analysis.InnerProductSpace.Orthonormal.Family
 public import TauCeti.Analysis.InnerProductSpace.Projection.PrincipalAngle
+public import TauCeti.Analysis.InnerProductSpace.Projection.FrobeniusSine
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Frobenius
 
 /-!
@@ -58,9 +59,17 @@ principal cosines and the squared Frobenius sine are defined only for orthonorma
 * `TauCeti.sinThetaSq`: the squared Frobenius sine of two orthonormal families, with
   `TauCeti.sinThetaSq_eq_card_sub_sum_norm_inner_sq` and `TauCeti.sinThetaSq_self`.
 * `TauCeti.sinThetaSq_eq_sum_norm_starProjection_orthogonal_sq`: `sin²_F Θ = ∑ⱼ ‖P_{Uᗮ} vⱼ‖²`.
+* `OrthonormalBasis.sq_sinThetaFrobenius_spanIndices`: the squared subspace Frobenius sine
+  is a sum of cross-block inner-product norms for two orthonormal bases.
 * `TauCeti.sinThetaSq_comp_subtypeVal_eq_sum_compl_norm_inner_sq` and
   `TauCeti.sinThetaSq_comp_subtypeVal_comp_subtypeVal_eq_sum_compl_norm_inner_sq`: the cross-block
   form of the squared Frobenius sine for coordinate blocks of orthonormal bases.
+
+## Provenance
+
+The cross-block Frobenius sine identity is adapted from the AIQ-Kitware DKPS
+formalization (Kitware, Inc.; Apache-2.0) and the corresponding canonical
+eigenblock bridge. The remaining overlap identities are TauCeti developments.
 
 ## References
 
@@ -76,6 +85,66 @@ public section
 
 open Module (finrank)
 open scoped InnerProductSpace
+
+namespace OrthonormalBasis
+
+variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
+  [FiniteDimensional 𝕜 E] [Fintype ι] [DecidableEq ι]
+
+/-- The squared norm of the projection onto the complement of a coordinate block
+is the sum of squared inner products with the complementary basis vectors. -/
+theorem norm_starProjection_orthogonal_spanIndices_sq (b : OrthonormalBasis ι 𝕜 E)
+    (s : Finset ι) (x : E) :
+    ‖(b.spanIndices (↑s : Set ι))ᗮ.starProjection x‖ ^ 2 =
+      ∑ k ∈ sᶜ, ‖⟪b k, x⟫_𝕜‖ ^ 2 := by
+  have hc : Submodule.span 𝕜
+      (Set.range (b ∘ ((↑) : (sᶜ : Finset ι) → ι))) =
+        (b.spanIndices (↑s : Set ι))ᗮ := by
+    rw [b.orthogonal_spanIndices, ← Finset.coe_compl,
+      b.span_range_comp_subtypeVal_eq_spanIndices]
+  rw [(b.orthonormal.comp _ Subtype.val_injective).norm_starProjection_sq_eq_sum hc]
+  exact Finset.sum_coe_sort sᶜ fun k ↦ ‖⟪b k, x⟫_𝕜‖ ^ 2
+
+/-- The squared Frobenius sine between matching coordinate blocks of two
+orthonormal bases is the squared norm of their cross-block overlap. -/
+theorem sq_sinThetaFrobenius_spanIndices (a b : OrthonormalBasis ι 𝕜 E)
+    (s : Finset ι) :
+    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius
+        (a.spanIndices (↑s : Set ι)) ^ 2 =
+      ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
+  classical
+  let U := a.spanIndices (↑s : Set ι)
+  let V := b.spanIndices (↑s : Set ι)
+  have hb (j : ι) :
+      (V.sinThetaMap U) (b j) =
+        if j ∈ s then Uᗮ.starProjection (b j) else 0 := by
+    by_cases hj : j ∈ s
+    · simp [hj, Submodule.sinThetaMap_apply,
+        V.starProjection_eq_self_iff.mpr (b.mem_spanIndices_of_mem hj)]
+    · have horth : b j ∈ Vᗮ := by
+        rw [b.orthogonal_spanIndices]
+        exact b.mem_spanIndices_of_mem (by simpa using hj)
+      simp [hj, Submodule.sinThetaMap_apply,
+        V.starProjection_apply_eq_zero_iff.mpr horth]
+  calc
+    V.sinThetaFrobenius U ^ 2 =
+        ∑ j, ‖(V.sinThetaMap U) (b j)‖ ^ 2 := by
+          rw [Submodule.sinThetaFrobenius_def]
+          exact TauCeti.UnitarilyInvariantSeminorm.sq_frobenius_apply b _
+    _ = ∑ j ∈ s, ‖(V.sinThetaMap U) (b j)‖ ^ 2 := by
+          exact (Finset.sum_subset (Finset.subset_univ s)
+            (by
+              intro j _ hj
+              rw [hb j]
+              simp [hj])).symm
+    _ = ∑ j ∈ s, ‖Uᗮ.starProjection (b j)‖ ^ 2 := by
+          exact Finset.sum_congr rfl fun j hj ↦ by
+            rw [hb j]
+            simp [hj]
+    _ = ∑ j ∈ s, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 :=
+          Finset.sum_congr rfl fun j _ ↦ a.norm_starProjection_orthogonal_spanIndices_sq s (b j)
+
+end OrthonormalBasis
 
 namespace TauCeti
 
@@ -264,13 +333,8 @@ theorem sinThetaSq_comp_subtypeVal_eq_sum_compl_norm_inner_sq [DecidableEq ι]
   have := Module.Finite.of_basis b.toBasis
   rw [sinThetaSq_eq_sum_norm_starProjection_orthogonal_sq _ hv
     (b.span_range_comp_subtypeVal_eq_spanIndices s)]
-  refine Finset.sum_congr rfl fun j _ ↦ ?_
-  -- The orthogonal complement of the block span is the span of the complementary block.
-  have hc : Submodule.span 𝕜 (Set.range (b ∘ ((↑) : (sᶜ : Finset ι) → ι))) =
-      (b.spanIndices s)ᗮ := by
-    rw [b.orthogonal_spanIndices, ← Finset.coe_compl, b.span_range_comp_subtypeVal_eq_spanIndices]
-  rw [(b.orthonormal.comp _ Subtype.val_injective).norm_starProjection_sq_eq_sum hc]
-  exact Finset.sum_coe_sort sᶜ fun k ↦ ‖⟪b k, v j⟫_𝕜‖ ^ 2
+  exact Finset.sum_congr rfl fun j _ ↦
+    b.norm_starProjection_orthogonal_spanIndices_sq s (v j)
 
 /-- **Eigenblock sine formula.** For two orthonormal bases `b` and `c` and a common coordinate block
 `s`, the squared Frobenius sine between the blocks `(bᵢ)_{i ∈ s}` and `(cⱼ)_{j ∈ s}` is the
