@@ -137,7 +137,10 @@ theorem adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id
   ext y
   have h0 : F₀ (LinearMap.adjoint F₀.toLinearMap (F₁ y)) = 0 := by
     simpa [add_eq_right] using LinearMap.congr_fun hF (F₁ y)
-  simpa using congrArg (LinearMap.adjoint F₀.toLinearMap) h0
+  -- Injectivity of the isometry removes the outer `F₀` directly.
+  apply F₀.injective
+  simpa only [LinearIsometry.coe_toLinearMap, LinearMap.comp_apply,
+    LinearMap.zero_apply, map_zero] using h0
 
 end ComplementaryBlocks
 
