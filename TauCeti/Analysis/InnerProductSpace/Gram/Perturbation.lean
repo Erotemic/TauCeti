@@ -25,6 +25,12 @@ The identities expose the two terms linear in the perturbation `A - B`. The targ
 statements follow from the source-space statements by taking adjoints. The proofs use Mathlib's
 isometric adjoint equivalence and the submultiplicativity of the operator norm.
 
+## Provenance
+
+The pointwise source-Gram perturbation estimate for finite-dimensional linear maps is adapted
+from `ForTauCeti/Analysis/InnerProductSpace/Singular/Subspace.lean` in the AIQ-Kitware DKPS
+formalization (Kitware, Inc.; Apache-2.0), by Jon Crall and Claude Opus 4.8.
+
 ## References
 
 * G. W. Stewart and J.-G. Sun, *Matrix Perturbation Theory*, Academic Press (1990), Chapter I
