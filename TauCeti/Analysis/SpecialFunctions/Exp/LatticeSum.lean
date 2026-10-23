@@ -5,7 +5,12 @@ Authors: Jon Crall, GPT 5.6 High
 -/
 module
 
-public import Mathlib.Analysis.Fourier.PoissonSummation
+public import Mathlib.Analysis.SpecialFunctions.Exp
+import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
 
 /-!
 # Exponential lattice series
@@ -30,7 +35,7 @@ noncomputable section
 
 /-- A positive-rate exponential is a geometric sequence on natural arguments. -/
 private theorem exp_neg_mul_nat_eq_pow (a : ℝ) (n : ℕ) :
-    Real.exp (-a * (n : ℝ)) = Real.exp (-a) ^ n := by
+    Real.exp (-(a * (n : ℝ))) = Real.exp (-a) ^ n := by
   rw [← Real.exp_nat_mul]
   congr 1
   ring
@@ -43,12 +48,12 @@ private theorem norm_exp_neg_lt_one {a : ℝ} (ha : 0 < a) :
 
 /-- The positive tail of a geometric exponential series. -/
 theorem tsum_nat_exp_neg_mul_add_one {a : ℝ} (ha : 0 < a) :
-    (∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ))) =
+    (∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ)))) =
       Real.exp (-a) / (1 - Real.exp (-a)) := by
   let q := Real.exp (-a)
   have hqnorm : ‖q‖ < 1 := norm_exp_neg_lt_one ha
   calc
-    (∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ))) =
+    (∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ)))) =
         ∑' n : ℕ, q ^ (n + 1) := by
       apply tsum_congr
       intro n
@@ -62,7 +67,7 @@ theorem tsum_nat_exp_neg_mul_add_one {a : ℝ} (ha : 0 < a) :
 
 /-- The two-sided exponential with positive rate is summable on the integer lattice. -/
 theorem summable_exp_neg_mul_abs_int {a : ℝ} (ha : 0 < a) :
-    Summable (fun n : ℤ => Real.exp (-a * |(n : ℝ)|)) := by
+    Summable (fun n : ℤ => Real.exp (-(a * |(n : ℝ)|))) := by
   have hgeo : Summable (fun n : ℕ => Real.exp (-a) ^ n) :=
     (hasSum_geometric_of_norm_lt_one (norm_exp_neg_lt_one ha)).summable
   apply Summable.of_nat_of_neg
@@ -73,28 +78,29 @@ theorem summable_exp_neg_mul_abs_int {a : ℝ} (ha : 0 < a) :
 
 /-- The two-sided geometric lattice sum of a decaying exponential. -/
 theorem tsum_int_exp_neg_mul_abs {a : ℝ} (ha : 0 < a) :
-    (∑' n : ℤ, Real.exp (-a * |(n : ℝ)|)) =
+    (∑' n : ℤ, Real.exp (-(a * |(n : ℝ)|))) =
       (1 + Real.exp (-a)) / (1 - Real.exp (-a)) := by
-  let f : ℤ → ℝ := fun n => Real.exp (-a * |(n : ℝ)|)
+  let f : ℤ → ℝ := fun n => Real.exp (-(a * |(n : ℝ)|))
   have hsum : Summable f := summable_exp_neg_mul_abs_int ha
   have heven : Function.Even f := by
     intro n
     simp only [f, Int.cast_neg, abs_neg]
   have hpnat :
       (∑' n : ℕ+, f (n : ℤ)) =
-        ∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ)) := by
+        ∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ))) := by
     calc
       (∑' n : ℕ+, f (n : ℤ)) = ∑' n : ℕ, f (Nat.succPNat n : ℤ) :=
         (Equiv.pnatEquivNat.symm.tsum_eq (fun n : ℕ+ => f (n : ℤ))).symm
-      _ = ∑' n : ℕ, Real.exp (-a * (n + 1 : ℕ)) := by
+      _ = ∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ))) := by
         apply tsum_congr
         intro n
-        dsimp only [f, Nat.succPNat]
-        rw [abs_of_nonneg]
-        · congr 1
-        · positivity
+        have hcast : (((Nat.succPNat n : ℤ) : ℝ)) = (n : ℝ) + 1 := by
+          simp [Nat.succPNat_coe]
+        simp only [f]
+        rw [hcast, abs_of_nonneg (by positivity)]
+        all_goals simp
   calc
-    (∑' n : ℤ, Real.exp (-a * |(n : ℝ)|)) =
+    (∑' n : ℤ, Real.exp (-(a * |(n : ℝ)|))) =
         f 0 + 2 • ∑' n : ℕ+, f (n : ℤ) :=
       tsum_int_eq_zero_add_two_mul_tsum_pnat heven hsum
     _ = 1 + 2 * (Real.exp (-a) / (1 - Real.exp (-a))) := by
@@ -106,20 +112,6 @@ theorem tsum_int_exp_neg_mul_abs {a : ℝ} (ha : 0 < a) :
       field_simp [hne]
       ring
 
-/-- The complex exponential lattice sum equals the real one, embedded in `ℂ`. -/
-theorem tsum_int_cexp_neg_mul_abs_eq_ofReal (a : ℝ) :
-    (∑' n : ℤ, Complex.exp ((-(a * |(n : ℝ)|) : ℝ) : ℂ)) =
-      ((∑' n : ℤ, Real.exp (-a * |(n : ℝ)|) : ℝ) : ℂ) := by
-  calc
-    (∑' n : ℤ, Complex.exp ((-(a * |(n : ℝ)|) : ℝ) : ℂ)) =
-        ∑' n : ℤ, (Real.exp (-a * |(n : ℝ)|) : ℂ) := by
-      apply tsum_congr
-      intro n
-      rw [Complex.ofReal_exp]
-      congr 1
-      ring_nf
-    _ = ((∑' n : ℤ, Real.exp (-a * |(n : ℝ)|) : ℝ) : ℂ) :=
-      (Complex.ofReal_tsum _).symm
 
 end
 
