@@ -35,6 +35,8 @@ perturbation theory.
   factorization `A = W |A|` and the equality of ranges come from the polar-factor API.
 * `LinearMap.IsPositive.eq_operatorAbs_of_comp_eq`, `LinearMap.eq_polarIsometry_of_comp_eq`:
   uniqueness of the factorization.
+* `LinearMap.eq_modulus_and_polarFactor_of_unitary_comp_positive`: both factors are canonical
+  when an injective endomorphism factors as a unitary followed by a positive operator.
 * `LinearMap.norm_operatorAbsEquiv_symm_apply_le`: a lower frame bound for `A` bounds `|A|⁻¹`.
 * `TauCeti.UnitarilyInvariantSeminorm.map_comp_operatorAbsEquiv_symm_le`: the resulting cost
   of composing with `|A|⁻¹` in a unitarily invariant seminorm.
@@ -117,6 +119,26 @@ theorem eq_polarIsometry_of_comp_eq {C : E →ₗ[𝕜] E} (hC : C.IsPositive) (
   ext y
   obtain ⟨x, rfl⟩ := (A.operatorAbsEquiv hA).surjective y
   simpa using congr($hWC x)
+
+/-- **PD-B18: uniqueness of the invertible unitary polar decomposition.**
+For an injective finite-dimensional endomorphism, a unitary-positive factorization determines
+both factors: the positive one is `A.operatorAbs` and the unitary one is `A.polarFactor`.
+This is the source-backed invertible specialization of the isometric-factor uniqueness API. -/
+theorem eq_modulus_and_polarFactor_of_unitary_comp_positive
+    (A : E →ₗ[𝕜] E) (hA : Function.Injective A)
+    (U : E ≃ₗᵢ[𝕜] E) {P : E →ₗ[𝕜] E} (hP : P.IsPositive)
+    (hUP : U.toLinearMap ∘ₗ P = A) :
+    P = A.operatorAbs ∧ U.toLinearMap = A.polarFactor := by
+  have hPabs : P = A.operatorAbs :=
+    hP.eq_operatorAbs_of_comp_eq U.toLinearIsometry hUP
+  refine ⟨hPabs, ?_⟩
+  apply A.eq_polarFactor
+  · rw [← hPabs]
+    exact hUP
+  · intro x hx
+    have hx0 : x = 0 := hA (by simpa [LinearMap.mem_ker] using hx)
+    subst x
+    simp
 
 /-- **Inverse-coordinate bound.** If `A` satisfies the lower frame bound `‖x‖ ≤ c ‖A x‖`, then the
 inverse of its modulus satisfies `‖|A|⁻¹ y‖ ≤ c ‖y‖`.  For `ε > 0`, the frame bound
