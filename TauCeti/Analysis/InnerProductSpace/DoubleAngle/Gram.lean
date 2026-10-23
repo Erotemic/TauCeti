@@ -9,7 +9,6 @@ public import TauCeti.Analysis.InnerProductSpace.Adjoint
 public import TauCeti.Analysis.SpecialFunctions.Trigonometric.Arcsin
 import Mathlib.Tactic.Module
 import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Push
 
 /-!
 # Rectangular double-angle Gram identities
@@ -23,6 +22,10 @@ For rectangular linear maps `T : K₁ → K₀` and `C : K₀ → L`, suppose
 The identities use no equality-of-dimensions assumption. They also apply to
 complementary isometric coordinate blocks and to a reflected cross block,
 as in the Davis--Kahan double-angle argument.
+
+The complementary-block Pythagorean identity
+`LinearIsometry.adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint`
+supplies the Gram hypothesis for the reflected cross-block formula below.
 
 ## Provenance
 
@@ -145,6 +148,30 @@ theorem LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_c
     LinearMap.id_apply, map_sub, map_smul, hy, sub_zero]
 
 namespace LinearIsometry
+
+/-- **Pythagorean Gram identity for complementary linear blocks.** If the ranges
+of linear maps `F₀` and `F₁` satisfy `F₀F₀⋆ + F₁F₁⋆ = 1` and `E₀` is an
+isometry, then `(F₀⋆E₀)⋆(F₀⋆E₀) = 1 - (E₀⋆F₁)(E₀⋆F₁)⋆`.
+No isometry hypothesis on `F₀` or `F₁` is needed. -/
+theorem adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint
+    (E₀ : K₀ →ₗᵢ[𝕜] E)
+    (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
+    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
+        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
+    LinearMap.adjoint (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) ∘ₗ
+        (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) =
+      LinearMap.id -
+        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) ∘ₗ
+          LinearMap.adjoint
+            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) := by
+  ext x
+  have hx := LinearMap.congr_fun hF (E₀.toLinearMap x)
+  simp only [LinearMap.comp_apply, LinearMap.add_apply, LinearMap.id_apply] at hx
+  rw [LinearMap.adjoint_comp, LinearMap.adjoint_comp, LinearMap.adjoint_adjoint,
+    LinearMap.adjoint_adjoint]
+  simp only [LinearMap.comp_apply, LinearMap.sub_apply, LinearMap.id_apply]
+  rw [eq_sub_iff_add_eq, ← map_add, hx]
+  exact E₀.adjoint_apply_apply x
 
 /-- **Davis--Kahan reflected cross block for isometries.** Complementary
 isometric blocks satisfy `F₀⋆F₁ = 0`, so the orthogonal linear-map formula

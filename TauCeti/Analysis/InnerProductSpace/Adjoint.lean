@@ -18,9 +18,7 @@ bijective (`ContinuousLinearEquiv.adjoint_bijective`).
 For a finite-dimensional linear isometry, the adjoint returns its image vectors to their
 preimages (`LinearIsometry.adjoint_apply_apply`).
 
-Complementary linear blocks satisfy a Pythagorean Gram identity after composition with an isometry
-(`LinearIsometry.adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint`). Complementary isometry
-blocks have orthogonal ranges
+Complementary isometry blocks have orthogonal ranges
 (`LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id`).
 
 Two families of adjoints of linear maps between finite-dimensional inner product spaces:
@@ -43,7 +41,7 @@ linear map, the orthogonal complement of its kernel has the dimension of the cod
 
 ## Provenance
 
-The complementary-block identities are adapted from
+The complementary-isometry orthogonality lemma is adapted from
 `ForTauCeti/Analysis/InnerProductSpace/DoubleAngle/Gram.lean` in the
 [AIQ-Kitware DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization),
 released under the Apache 2.0 license.
@@ -97,34 +95,9 @@ theorem adjoint_apply_apply (f : E →ₗᵢ[𝕜] F) (x : E) :
 
 section ComplementaryBlocks
 
-variable {K₀ K₁ L : Type*}
-  [NormedAddCommGroup K₀] [InnerProductSpace 𝕜 K₀] [FiniteDimensional 𝕜 K₀]
+variable {K₁ L : Type*}
   [NormedAddCommGroup K₁] [InnerProductSpace 𝕜 K₁] [FiniteDimensional 𝕜 K₁]
   [NormedAddCommGroup L] [InnerProductSpace 𝕜 L] [FiniteDimensional 𝕜 L]
-
-/-- **Pythagorean Gram identity for complementary linear blocks.** If the ranges
-of linear maps `F₀` and `F₁` satisfy `F₀F₀⋆ + F₁F₁⋆ = 1` and `E₀` is an
-isometry, then `(F₀⋆E₀)⋆(F₀⋆E₀) = 1 - (E₀⋆F₁)(E₀⋆F₁)⋆`.
-No isometry hypothesis on `F₀` or `F₁` is needed. -/
-theorem adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint
-    (E₀ : K₀ →ₗᵢ[𝕜] E)
-    (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
-    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
-    LinearMap.adjoint (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) ∘ₗ
-        (LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) =
-      LinearMap.id -
-        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) ∘ₗ
-          LinearMap.adjoint
-            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) := by
-  ext x
-  have hx := LinearMap.congr_fun hF (E₀.toLinearMap x)
-  simp only [LinearMap.comp_apply, LinearMap.add_apply, LinearMap.id_apply] at hx
-  rw [LinearMap.adjoint_comp, LinearMap.adjoint_comp, LinearMap.adjoint_adjoint,
-    LinearMap.adjoint_adjoint]
-  simp only [LinearMap.comp_apply, LinearMap.sub_apply, LinearMap.id_apply]
-  rw [eq_sub_iff_add_eq, ← map_add, hx]
-  exact E₀.adjoint_apply_apply x
 
 /-- Complementary isometry blocks have orthogonal ranges: `F₀⋆F₁ = 0`.
 Here the isometry hypotheses are essential to deduce orthogonality from
