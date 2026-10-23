@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.Fourier.FourierTransform
 public import TauCeti.MeasureTheory.Integral.ExpDecay
+import Mathlib.Analysis.Fourier.Inversion
 
 /-!
 # The Fourier transform of the two-sided exponential
@@ -24,12 +25,13 @@ resulting complex exponential integrals with `integral_exp_mul_complex_Iic` and
 ## Main results
 
 * `TauCeti.integral_exp_mul_I_mul_exp_neg_mul_abs`: the Lorentzian pairing;
-* `TauCeti.fourier_exp_neg_mul_abs`: the Fourier transform itself.
+* `TauCeti.fourier_exp_neg_mul_abs`: the Fourier transform itself;
+* `TauCeti.cexp_neg_mul_abs_isLittleO_rpow_cocompact`: faster-than-polynomial decay.
 -/
 
 public section
 
-open MeasureTheory Set
+open MeasureTheory Set Filter Asymptotics
 open scoped FourierTransform Real
 
 namespace TauCeti
@@ -113,5 +115,33 @@ theorem fourier_exp_neg_mul_abs (ha : 0 < a) (ξ : ℝ) :
     _ = _ := by
       rw [integral_exp_mul_I_mul_exp_neg_mul_abs ha]
       norm_num
+
+/-- **Two-sided exponential decay beats every real power.** For a positive decay rate, the
+complex exponential of `-a * |x|` is little-o of `|x| ^ s` as `|x|` tends to infinity.
+The proof transports Mathlib's one-sided decay estimate to both ends of the real line.
+
+Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in the AIQ DKPS
+formalization (Apache-2.0, Copyright (c) 2026 Kitware, Inc.;
+Jon Crall and GPT 5.6 High). -/
+theorem cexp_neg_mul_abs_isLittleO_rpow_cocompact
+    {a : ℝ} (ha : 0 < a) (s : ℝ) :
+    (fun x : ℝ => Complex.exp ((-(a * |x|) : ℝ) : ℂ))
+      =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
+  apply IsLittleO.of_norm_left
+  simp only [Complex.norm_exp, Complex.ofReal_re]
+  rw [cocompact_eq_atBot_atTop, isLittleO_sup]
+  constructor
+  · have h := (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
+      tendsto_neg_atBot_atTop
+    refine h.congr' ?_ ?_
+    · filter_upwards [eventually_lt_atBot 0] with x hx
+      simp [abs_of_neg hx]
+    · filter_upwards [eventually_lt_atBot 0] with x hx
+      simp [abs_of_neg hx]
+  · refine (isLittleO_exp_neg_mul_rpow_atTop ha s).congr' ?_ ?_
+    · filter_upwards [eventually_gt_atTop 0] with x hx
+      simp [abs_of_pos hx]
+    · filter_upwards [eventually_gt_atTop 0] with x hx
+      simp [abs_of_pos hx]
 
 end TauCeti
