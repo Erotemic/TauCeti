@@ -5,9 +5,12 @@ Authors: Jon Crall, GPT 5.6 High
 -/
 module
 
-public import Mathlib.Analysis.Fourier.PoissonSummation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.Defs
+
+import Mathlib.Analysis.Fourier.PoissonSummation
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-public import TauCeti.Analysis.SpecialFunctions.Exp.LatticeSum
+import TauCeti.Analysis.SpecialFunctions.Exp.LatticeSum
 import TauCeti.Probability.Distributions.Cauchy.Basic
 
 /-!
