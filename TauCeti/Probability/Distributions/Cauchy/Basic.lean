@@ -6,7 +6,6 @@ Authors: The Tau Ceti contributors, Jon Crall, GPT 5.6 High
 module
 
 import Mathlib.Analysis.Fourier.Inversion
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import TauCeti.MeasureTheory.Measure.WithDensity
 import TauCeti.MeasureTheory.Integral.Bochner.Basic
 import TauCeti.Probability.Density
@@ -98,10 +97,9 @@ open scoped ENNReal NNReal ProbabilityTheory
 
 namespace TauCeti.Probability
 
-/-- The centred Cauchy density has quadratic decay at infinity, including zero scale.
-The estimate is independent of the Poisson summation argument. -/
+/-- The centred Cauchy density is `O(|x|⁻²)` at infinity, including zero scale. -/
 theorem cauchyPDFReal_zero_loc_isBigO_rpow_neg_two (γ : ℝ≥0) :
-    (fun x : ℝ => (cauchyPDFReal 0 γ x : ℂ))
+    (fun x : ℝ => cauchyPDFReal 0 γ x)
       =O[cocompact ℝ] (fun x : ℝ => |x| ^ (-2 : ℝ)) := by
   refine IsBigO.of_bound ((γ : ℝ) / Real.pi) ?_
   filter_upwards [isCompact_Icc.compl_mem_cocompact] with x hx
@@ -116,7 +114,7 @@ theorem cauchyPDFReal_zero_loc_isBigO_rpow_neg_two (γ : ℝ≥0) :
   have hpdf_nonneg : 0 ≤ cauchyPDFReal 0 γ x := by
     rw [cauchyPDFReal_def]
     positivity
-  simp only [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hpdf_nonneg,
+  simp only [Real.norm_eq_abs, abs_of_nonneg hpdf_nonneg,
     Real.rpow_neg (abs_nonneg x), Real.rpow_two, sq_abs]
   rw [abs_of_nonneg (inv_nonneg.mpr (sq_nonneg x)), cauchyPDFReal_def]
   simp only [sub_zero]

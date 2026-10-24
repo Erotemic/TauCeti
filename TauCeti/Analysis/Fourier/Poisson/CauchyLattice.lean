@@ -6,10 +6,9 @@ Authors: Jon Crall, GPT 5.6 High
 module
 
 public import Mathlib.Analysis.Fourier.PoissonSummation
-public import TauCeti.Analysis.Fourier.ExpNegAbs
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import TauCeti.Probability.Distributions.Cauchy.Basic
 public import TauCeti.Analysis.SpecialFunctions.Exp.LatticeSum
+import TauCeti.Probability.Distributions.Cauchy.Basic
 
 /-!
 # Poisson summation for the Cauchy kernel
@@ -27,9 +26,6 @@ geometric lattice series, this evaluates the full Cauchy lattice sum.
 
 Adapted from `ForTauCeti/Analysis/Fourier/Poisson/CauchyLattice.lean`
 in AIQ-Kitware/aiq-dkps-formalization (Apache-2.0; Jon Crall and GPT 5.6 High).
-The Fourier-transform evaluation is reused from `TauCeti.Probability`
-`fourier_exp_neg_mul_abs_eq_cauchyPDFReal_zero_loc`. The exponential decay
-argument remains local so as not to duplicate a general asymptotics API.
 -/
 
 public section
@@ -40,29 +36,6 @@ open MeasureTheory Set Filter Asymptotics
 open scoped BigOperators FourierTransform
 
 noncomputable section
-
-/-- A two-sided complex exponential decays faster than every real power at infinity. -/
-private theorem cexp_neg_mul_abs_isLittleO_rpow_cocompact
-    {a : ℝ} (ha : 0 < a) (s : ℝ) :
-    (fun x : ℝ => Complex.exp ((-(a * |x|) : ℝ) : ℂ))
-      =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
-  apply IsLittleO.of_norm_left
-  simp only [Complex.norm_exp, Complex.ofReal_re]
-  rw [cocompact_eq_atBot_atTop, isLittleO_sup]
-  constructor
-  · have h := (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
-      tendsto_neg_atBot_atTop
-    refine h.congr' ?_ ?_
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-  · refine (isLittleO_exp_neg_mul_rpow_atTop ha s).congr' ?_ ?_
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
-
 
 /-- **Poisson summation for the Cauchy lattice.** For `y > 0`, the lattice sum of
 `exp (-2π y |n|)` is the sum of its sampled Cauchy Fourier transform. -/
@@ -75,16 +48,36 @@ private theorem tsum_cexp_neg_mul_abs_int_eq_tsum_div {y : ℝ} (hy : 0 < y) :
   have hfContinuous : Continuous f := by
     dsimp only [f]
     fun_prop
-  have hfDecay : f =O[cocompact ℝ] (fun x : ℝ => |x| ^ (-2 : ℝ)) :=
-    (cexp_neg_mul_abs_isLittleO_rpow_cocompact hscale (-2)).isBigO
-  let γ : NNReal := ⟨y, hy.le⟩
-  -- Make the real coercion explicit rather than relying on unfolding the NNReal coercion.
+  -- Check the Poisson decay hypothesis at the two ends of the real line.
+  have hfLittleO : f =o[cocompact ℝ] (fun x : ℝ => |x| ^ (-2 : ℝ)) := by
+    apply IsLittleO.of_norm_left
+    simp only [f, Complex.norm_exp, Complex.ofReal_re]
+    rw [cocompact_eq_atBot_atTop, isLittleO_sup]
+    constructor
+    · have h := (isLittleO_exp_neg_mul_rpow_atTop hscale (-2)).comp_tendsto
+        tendsto_neg_atBot_atTop
+      refine h.congr' ?_ ?_
+      · filter_upwards [eventually_lt_atBot 0] with x hx
+        simp [abs_of_neg hx]
+      · filter_upwards [eventually_lt_atBot 0] with x hx
+        simp [abs_of_neg hx]
+    · refine (isLittleO_exp_neg_mul_rpow_atTop hscale (-2)).congr' ?_ ?_
+      · filter_upwards [eventually_gt_atTop 0] with x hx
+        simp [abs_of_pos hx]
+      · filter_upwards [eventually_gt_atTop 0] with x hx
+        simp [abs_of_pos hx]
+  have hfDecay : f =O[cocompact ℝ] (fun x : ℝ => |x| ^ (-2 : ℝ)) := hfLittleO.isBigO
+  set γ : NNReal := ⟨y, hy.le⟩ with hγdef
   have hγ_coe : (γ : ℝ) = y := by
-    change ((⟨y, hy.le⟩ : NNReal) : ℝ) = y
-    exact NNReal.coe_mk y hy.le
+    calc
+      (γ : ℝ) = ((⟨y, hy.le⟩ : NNReal) : ℝ) :=
+        congrArg (fun u : NNReal => (u : ℝ)) hγdef
+      _ = y := NNReal.coe_mk y hy.le
   have hγ : γ ≠ 0 := by
-    have hpos : (0 : ℝ) < (γ : ℝ) := by rw [hγ_coe]; exact hy
-    exact (NNReal.coe_pos.mp hpos).ne'
+    intro hz
+    have hzero : (γ : ℝ) = 0 := congrArg (fun u : NNReal => (u : ℝ)) hz
+    rw [hγ_coe] at hzero
+    exact hy.ne' hzero
   have hfun : f = fun t : ℝ =>
       (Real.exp (-(2 * Real.pi * (γ : ℝ) * |t|)) : ℂ) := by
     funext t
@@ -100,43 +93,31 @@ private theorem tsum_cexp_neg_mul_abs_int_eq_tsum_div {y : ℝ} (hy : 0 < y) :
     congr 1
     rw [ProbabilityTheory.cauchyPDFReal_def]
     simp only [sub_zero, hγ_coe]
-    have hden : y ^ 2 + x ^ 2 ≠ 0 := by positivity
-    have hden' : x ^ 2 + y ^ 2 ≠ 0 := by positivity
-    change Real.pi⁻¹ * y * (x ^ 2 + y ^ 2)⁻¹ =
-      y / (Real.pi * (y ^ 2 + x ^ 2))
-    field_simp [Real.pi_ne_zero, hden, hden']; ring
+    have hden : x ^ 2 + y ^ 2 ≠ 0 := by positivity
+    rw [add_comm (y ^ 2) (x ^ 2)]
+    field_simp [Real.pi_ne_zero, hden]
   have hFourierDecay : (𝓕 f) =O[cocompact ℝ]
       (fun x : ℝ => |x| ^ (-2 : ℝ)) := by
     rw [hFourierCauchy]
-    exact TauCeti.Probability.cauchyPDFReal_zero_loc_isBigO_rpow_neg_two γ
+    refine IsBigO.of_norm_left ?_
+    simpa only [Complex.norm_real] using
+      (TauCeti.Probability.cauchyPDFReal_zero_loc_isBigO_rpow_neg_two γ).norm_left
   have hPoisson := Real.tsum_eq_tsum_fourier_of_rpow_decay
     hfContinuous (by norm_num : (1 : ℝ) < 2) hfDecay hFourierDecay 0
   simpa only [f, zero_add, hFourier, Int.cast_zero, QuotientAddGroup.mk_zero,
     fourier_eval_zero, mul_one] using hPoisson
 
-/-- **Real Cauchy Poisson identity.** Both sides are real-valued, and the complex-valued
-Fourier identity is used only in the proof. -/
+/-- **Real Cauchy Poisson identity.** For `y > 0`, the sum over integers of
+`exp (-2π y |n|)` equals the sum of `y / (π (y² + n²))`. -/
 theorem tsum_exp_neg_mul_abs_int_eq_tsum_div {y : ℝ} (hy : 0 < y) :
     (∑' n : ℤ, Real.exp (-(2 * Real.pi * y * |(n : ℝ)|))) =
       ∑' n : ℤ, y / (Real.pi * (y ^ 2 + (n : ℝ) ^ 2)) := by
   apply Complex.ofReal_injective
-  calc
-    ((∑' n : ℤ, Real.exp (-(2 * Real.pi * y * |(n : ℝ)|)) : ℝ) : ℂ) =
-        ∑' n : ℤ, Complex.exp ((-(2 * Real.pi * y * |(n : ℝ)|) : ℝ) : ℂ) := by
-      calc
-        _ = ∑' n : ℤ, (Real.exp (-(2 * Real.pi * y * |(n : ℝ)|)) : ℂ) :=
-          Complex.ofReal_tsum _
-        _ = _ := by
-          apply tsum_congr
-          intro n
-          rw [Complex.ofReal_exp]
-    _ = ∑' n : ℤ, ((y / (Real.pi * (y ^ 2 + (n : ℝ) ^ 2)) : ℝ) : ℂ) :=
-      tsum_cexp_neg_mul_abs_int_eq_tsum_div hy
-    _ = ((∑' n : ℤ, y / (Real.pi * (y ^ 2 + (n : ℝ) ^ 2)) : ℝ) : ℂ) :=
-      (Complex.ofReal_tsum _).symm
+  simpa only [Complex.ofReal_tsum, Complex.ofReal_exp] using
+    (tsum_cexp_neg_mul_abs_int_eq_tsum_div hy)
 
-/-- **Cauchy lattice sum.** Evaluating the Poisson identity gives the full sum
-of `1 / (y² + n²)` over the integers. -/
+/-- **Cauchy lattice sum.** For `y > 0`, the sum over integers of
+`1 / (y² + n²)` equals `(π / y) * (1 + exp (-2πy)) / (1 - exp (-2πy))`. -/
 theorem tsum_int_inv_sq_add_sq {y : ℝ} (hy : 0 < y) :
     (∑' n : ℤ, (y ^ 2 + (n : ℝ) ^ 2)⁻¹) =
       (Real.pi / y) *

@@ -10,7 +10,6 @@ import Mathlib.Topology.Algebra.InfiniteSum.NatInt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
 
 /-!
 # Exponential lattice series
