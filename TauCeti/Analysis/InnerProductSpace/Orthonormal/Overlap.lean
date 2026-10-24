@@ -91,14 +91,16 @@ open scoped InnerProductSpace
 namespace OrthonormalBasis
 
 variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-  [FiniteDimensional 𝕜 E] [Fintype ι]
+  [Fintype ι]
 
 /-- The squared norm of the projection onto the complement of a coordinate block
 is the sum of squared inner products with the complementary basis vectors. -/
 theorem norm_starProjection_orthogonal_spanIndices_sq [DecidableEq ι]
     (b : OrthonormalBasis ι 𝕜 E) (s : Finset ι) (x : E) :
+    letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
     ‖(b.spanIndices (↑s : Set ι))ᗮ.starProjection x‖ ^ 2 =
       ∑ k ∈ sᶜ, ‖⟪b k, x⟫_𝕜‖ ^ 2 := by
+  have : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
   have hc : Submodule.span 𝕜
       (Set.range (b ∘ ((↑) : (sᶜ : Finset ι) → ι))) =
         (b.spanIndices (↑s : Set ι))ᗮ := by
@@ -112,9 +114,11 @@ coordinate block of an orthonormal basis `b` to `U` is the total squared
 orthogonal projection of the selected vectors onto `Uᗮ`. -/
 private theorem sq_sinThetaFrobenius_spanIndices_eq_sum_projection (b : OrthonormalBasis ι 𝕜 E)
     (s : Finset ι) (U : Submodule 𝕜 E) [U.HasOrthogonalProjection] :
+    letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
     (b.spanIndices (↑s : Set ι)).sinThetaFrobenius U ^ 2 =
       ∑ j ∈ s, ‖Uᗮ.starProjection (b j)‖ ^ 2 := by
   classical
+  have : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
   set V := b.spanIndices (↑s : Set ι) with hV
   have hb (j : ι) :
       (V.sinThetaMap U) (b j) =
@@ -424,17 +428,19 @@ end Submodule
 namespace OrthonormalBasis
 
 variable {𝕜 E ι κ : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-  [FiniteDimensional 𝕜 E] [Fintype ι] [Fintype κ] [DecidableEq ι]
+  [Fintype ι] [Fintype κ] [DecidableEq ι]
 
 /-- For independently indexed coordinate blocks of two orthonormal bases, the squared
 Frobenius sine is the cross-block overlap sum over the selected vectors of `b`
 and the complementary vectors of `a`. The two blocks need not have equal cardinality. -/
 theorem sq_sinThetaFrobenius_spanIndices (a : OrthonormalBasis ι 𝕜 E)
     (b : OrthonormalBasis κ 𝕜 E) (s : Finset ι) (t : Finset κ) :
+    letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis a.toBasis
     (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
         (a.spanIndices (↑s : Set ι)) ^ 2 =
       ∑ j ∈ t, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
   classical
+  have : FiniteDimensional 𝕜 E := Module.Finite.of_basis a.toBasis
   calc
     (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
         (a.spanIndices (↑s : Set ι)) ^ 2 =
