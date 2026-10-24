@@ -23,6 +23,17 @@ bound. The block-sum majorization theorem combines them without losing the
 constant. A pair of subspace reflections then bounds the checkerboard part of
 the perturbation by the perturbation itself.
 
+## Main results
+
+* `UnitarilyInvariantSeminorm.mul_map_sub_starProjection_le_map_sub`:
+  the constant-one bound for the full difference of the selected orthogonal projections.
+* `UnitarilyInvariantSeminorm.mul_map_sinAngleOperator_le_map_sub`:
+  the equivalent bound for their symmetric sine-angle operator.
+
+Both results assume invariance of the selected subspaces and interval/exterior
+spectral separation in each direction. No common diagonalization or equality
+of the selected subspace dimensions is assumed.
+
 ## Source
 
 Adapted from the AIQ-Kitware DKPS formalization, Apache-2.0:
@@ -46,6 +57,18 @@ namespace TauCeti
 variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
   [InnerProductSpace K E] [FiniteDimensional K E]
 
+/-- The adjoint of a subspace inclusion is its orthogonal projection. -/
+private theorem adjoint_subtype_eq_orthogonalProjectionOnto
+    (U : Submodule K E) [U.HasOrthogonalProjection] :
+    LinearMap.adjoint U.subtype = U.orthogonalProjectionOnto.toLinearMap := by
+  rw [eq_comm]
+  apply (LinearMap.eq_adjoint_iff
+    U.orthogonalProjectionOnto.toLinearMap U.subtype).2
+  intro x y
+  change ⟪U.starProjection x, (y : E)⟫_K = ⟪x, (y : E)⟫_K
+  rw [U.inner_starProjection_left_eq_right,
+    U.starProjection_eq_self_iff.mpr y.2]
+
 /-- Ky Fan sums do not change when a rectangular map is extended by zero off
 its source subspace and included into the ambient target. -/
 private theorem kyFanSum_submodule_compression
@@ -54,14 +77,8 @@ private theorem kyFanSum_submodule_compression
     (W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap).kyFanSum k =
       T.kyFanSum k := by
   have hU : LinearMap.adjoint U.subtypeₗᵢ.toLinearMap =
-      U.orthogonalProjectionOnto.toLinearMap := by
-    rw [eq_comm]
-    apply (LinearMap.eq_adjoint_iff
-      U.orthogonalProjectionOnto.toLinearMap U.subtype).2
-    intro x y
-    change ⟪U.starProjection x, (y : E)⟫_K = ⟪x, (y : E)⟫_K
-    rw [U.inner_starProjection_left_eq_right,
-      U.starProjection_eq_self_iff.mpr y.2]
+      U.orthogonalProjectionOnto.toLinearMap :=
+    adjoint_subtype_eq_orthogonalProjectionOnto U
   have hcomp :
       W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap =
         (W.subtypeₗᵢ.toLinearMap ∘ₗ T) ∘ₗ
@@ -150,23 +167,11 @@ private theorem adjoint_cross_perturbation
           (H ∘ₗ V.subtype)) =
       (V.orthogonalProjectionOnto.toLinearMap ∘ₗ H) ∘ₗ W.subtype := by
   have hW : LinearMap.adjoint W.subtype =
-      W.orthogonalProjectionOnto.toLinearMap := by
-    rw [eq_comm]
-    apply (LinearMap.eq_adjoint_iff
-      W.orthogonalProjectionOnto.toLinearMap W.subtype).2
-    intro x y
-    change ⟪W.starProjection x, (y : E)⟫_K = ⟪x, (y : E)⟫_K
-    rw [W.inner_starProjection_left_eq_right,
-      W.starProjection_eq_self_iff.mpr y.2]
+      W.orthogonalProjectionOnto.toLinearMap :=
+    adjoint_subtype_eq_orthogonalProjectionOnto W
   have hV : LinearMap.adjoint V.subtype =
-      V.orthogonalProjectionOnto.toLinearMap := by
-    rw [eq_comm]
-    apply (LinearMap.eq_adjoint_iff
-      V.orthogonalProjectionOnto.toLinearMap V.subtype).2
-    intro x y
-    change ⟪V.starProjection x, (y : E)⟫_K = ⟪x, (y : E)⟫_K
-    rw [V.inner_starProjection_left_eq_right,
-      V.starProjection_eq_self_iff.mpr y.2]
+      V.orthogonalProjectionOnto.toLinearMap :=
+    adjoint_subtype_eq_orthogonalProjectionOnto V
   have hW' : LinearMap.adjoint W.orthogonalProjectionOnto.toLinearMap =
       W.subtype := by
     rw [← hW, LinearMap.adjoint_adjoint]
