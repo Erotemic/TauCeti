@@ -23,11 +23,10 @@ This supplies the diagonal-measure input to the representation PVM construction.
 It does not construct `ProjValMeasure.ofRepresentation`: that additionally requires
 polarized matrix elements and multiplicative, strongly additive indicator operators.
 
-Unlike the existing `ContinuousLinearMap.diagMeasure`, this construction has an arbitrary
-compact Hausdorff base `K` and an arbitrary unital representation, not a normal operator
-and its functional calculus. The argument specializes Mathlib's Riesz-Markov-Kakutani
-measure, with the positive-functional calculation adapted from TauCeti's normal-operator
-`BorelCalculus/DiagonalMeasure.lean`. No parallel Borel calculus is introduced.
+The construction is shared with the normal-operator diagonal measure:
+`ContinuousLinearMap.diagMeasure` specializes `StarAlgHom.representationDiagMeasure` to
+the continuous functional calculus `cfcHom`. The proof uses Mathlib's
+Riesz-Markov-Kakutani measure; no parallel Borel calculus is introduced.
 -/
 
 public section
@@ -37,13 +36,26 @@ noncomputable section
 open MeasureTheory ContinuousMap
 open scoped InnerProductSpace ComplexOrder CompactlySupported
 
-namespace TauCeti
-namespace ProjValMeasure
+namespace StarAlgHom
 
 variable {K : Type*} [TopologicalSpace K] [CompactSpace K] [T2Space K]
   [MeasurableSpace K] [BorelSpace K]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 variable (π : C(K, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H))
+
+-- Forgetting compact support preserves addition of continuous functions.
+omit [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K] in
+private theorem representationDiag_toContinuousMap_add (g h : C_c(K, ℝ)) :
+    (g + h).toContinuousMap = g.toContinuousMap + h.toContinuousMap := by
+  ext x
+  simp
+
+-- Forgetting compact support preserves real scalar multiplication.
+omit [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K] in
+private theorem representationDiag_toContinuousMap_smul (c : ℝ) (g : C_c(K, ℝ)) :
+    (c • g).toContinuousMap = c • g.toContinuousMap := by
+  ext x
+  simp
 
 /-- The positive real functional associated with a vector in a unital representation. -/
 private def representationDiagFunctional (ξ : H) : C_c(K, ℝ) →ₚ[ℝ] ℝ :=
@@ -51,13 +63,13 @@ private def representationDiagFunctional (ξ : H) : C_c(K, ℝ) →ₚ[ℝ] ℝ 
     { toFun g := RCLike.re ⟪ξ, π (g.toContinuousMap.realToRCLike ℂ) ξ⟫_ℂ
       map_add' g h := by
         simp only [← realToRCLikeStarAlgHom_apply]
-        rw [show (g + h).toContinuousMap = g.toContinuousMap + h.toContinuousMap by
-          ext; simp, map_add, map_add, _root_.add_apply, inner_add_right, map_add]
+        rw [representationDiag_toContinuousMap_add, map_add, map_add,
+          _root_.add_apply, inner_add_right, map_add]
       map_smul' c g := by
         simp only [← realToRCLikeStarAlgHom_apply]
-        rw [show (c • g).toContinuousMap = c • g.toContinuousMap by ext; simp, map_smul,
-          ← algebraMap_smul ℂ c (M := C(K, ℂ)), map_smul, _root_.smul_apply,
-          inner_smul_right]
+        rw [representationDiag_toContinuousMap_smul, map_smul,
+          ← algebraMap_smul ℂ c (M := C(K, ℂ)), map_smul,
+          _root_.smul_apply, inner_smul_right]
         simp }
     fun g hg => by
       have hT : 0 ≤ π (g.toContinuousMap.realToRCLike ℂ) := by
@@ -97,7 +109,8 @@ private theorem ofReal_integral_representationDiagMeasure (ξ : H) (g : C(K, ℝ
   rw [representationDiagMeasure, h]
   exact RCLike.conj_eq_iff_re.mp ((inner_conj_symm _ _).trans (hsa.isSymmetric ξ ξ))
 
-/-- The representation is integration against the canonical diagonal measure on `K`. -/
+/-- Integrating a continuous function against the diagonal measure gives the scalar
+matrix coefficient `⟪ξ, π f ξ⟫` for the fixed vector `ξ`. -/
 theorem integral_representationDiagMeasure (ξ : H) (f : C(K, ℂ)) :
     ∫ x, f x ∂(representationDiagMeasure π ξ) = ⟪ξ, π f ξ⟫_ℂ := by
   let φ : C(K, ℂ) →ₗ[ℂ] ℂ :=
@@ -140,5 +153,4 @@ theorem integral_norm_sq_representationDiagMeasure (ξ : H) (f : C(K, ℂ)) :
     ← map_star, ← map_mul, ← integral_representationDiagMeasure]
   simp [Complex.conj_mul', ← Complex.ofReal_pow, integral_complex_ofReal]
 
-end ProjValMeasure
-end TauCeti
+end StarAlgHom
