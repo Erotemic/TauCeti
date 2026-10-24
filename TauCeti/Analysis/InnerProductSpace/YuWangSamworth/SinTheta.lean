@@ -67,19 +67,18 @@ theorem sinThetaFrobenius_eigenvectorSpan_le (hA : A.IsSymmetric) (hB : B.IsSymm
   rw [hA.eigenvectorSpan_eq_spanIndices, hB.eigenvectorSpan_eq_spanIndices]
   let a := hA.eigenvectorBasis hn
   let b := hB.eigenvectorBasis hn
-  let U := a.spanIndices (↑s : Set (Fin n))
-  let V := b.spanIndices (↑s : Set (Fin n))
-  let F := TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E (B - A)
-  let op := ‖(B - A).toContinuousLinearMap‖
+  set U := a.spanIndices (↑s : Set (Fin n)) with hU
+  set V := b.spanIndices (↑s : Set (Fin n)) with hV
+  set F := TauCeti.UnitarilyInvariantSeminorm.frobenius 𝕜 E E (B - A) with hF_def
+  set op := ‖(B - A).toContinuousLinearMap‖ with hop_def
   have hdim : finrank 𝕜 U = finrank 𝕜 V := by
     dsimp only [U, V]
     rw [a.finrank_spanIndices s, b.finrank_spanIndices s]
-  change U.sinThetaFrobenius V ≤ 2 * min (Real.sqrt s.card * op) F / delta
   rw [U.sinThetaFrobenius_comm V hdim]
   have hsq : V.sinThetaFrobenius U ^ 2 =
       ∑ j ∈ s, ∑ k ∈ sᶜ,
         ‖⟪a k, b j⟫_𝕜‖ ^ 2 :=
-    a.sq_sinThetaFrobenius_spanIndices b s
+    a.sq_sinThetaFrobenius_spanIndices b s s
   have hfrobsq : delta ^ 2 * (V.sinThetaFrobenius U) ^ 2 ≤ 4 * F ^ 2 := by
     rw [hsq]
     exact hA.sq_mul_sum_sum_norm_inner_sq_le_four_mul_frobenius_sq hB hn hd.le hgap
