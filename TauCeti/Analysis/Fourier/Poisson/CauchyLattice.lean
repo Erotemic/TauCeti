@@ -104,7 +104,7 @@ private theorem tsum_cexp_neg_mul_abs_int_eq_tsum_div {y : ℝ} (hy : 0 < y) :
     have hden' : x ^ 2 + y ^ 2 ≠ 0 := by positivity
     change Real.pi⁻¹ * y * (x ^ 2 + y ^ 2)⁻¹ =
       y / (Real.pi * (y ^ 2 + x ^ 2))
-    field_simp [Real.pi_ne_zero, hden, hden'] ; ring
+    field_simp [Real.pi_ne_zero, hden, hden']; ring
   have hFourierDecay : (𝓕 f) =O[cocompact ℝ]
       (fun x : ℝ => |x| ^ (-2 : ℝ)) := by
     rw [hFourierCauchy]
