@@ -34,12 +34,6 @@ representative used in Davis--Kahan tangent-angle estimates.
 * `Submodule.singularValues_directedTanThetaMap`: the singular values of the tangent
   representative are the principal tangents on the pole-free locus.
 
-## Provenance
-
-This construction is formulated using TauCeti's principal-sine, principal-tangent, and
-singular-system APIs, rather than as a verbatim port of a DKPS source declaration.
-It uses the existing nonnegativity and antitonicity lemmas for principal tangents.
-
 ## Reference
 
 C. Davis, W. Kahan, *The rotation of eigenvectors by a perturbation. III*,
