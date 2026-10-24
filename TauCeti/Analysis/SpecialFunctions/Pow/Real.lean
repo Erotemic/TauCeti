@@ -6,7 +6,8 @@ Authors: The Tau Ceti contributors
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+import Mathlib.Topology.Order.Compact
 
 /-!
 # Real powers
@@ -33,6 +34,9 @@ A real number whose natural powers grow at most polynomially, `r ^ n ≤ C * (1 
 `n`, is at most `1`. This is how a spectral radius bound is read off from polynomially growing
 norms, as for the monomials of a weighted Sobolev algebra.
 
+A two-sided real exponential with positive decay rate is little-o of every real power of
+`|x|` outside compact subsets of the real line.
+
 A positive real raised to a finitely supported sum of exponents is the product of the powers:
 `a ^ (∑ᶠ i, f i) = ∏ᶠ i, a ^ f i`, the `finsum` form of `Real.rpow_sum_of_pos`.
 
@@ -45,6 +49,8 @@ A positive real raised to a finitely supported sum of exponents is the product o
 * `Real.pow_le_rpow_pow_of_le_mul`: `b ^ n ≤ (b ^ δ) ^ r` when `1 ≤ b` and `n ≤ δ r`.
 * `Real.image_rpow_Ioo_zero_one`: a positive power maps the open unit interval onto itself.
 * `Real.le_one_of_forall_pow_le_mul_rpow`: `r ≤ 1` when `r ^ n ≤ C * (1 + n) ^ s` for all `n`.
+* `TauCeti.exp_neg_mul_abs_isLittleO_rpow_cocompact`: a positive-rate exponential beats every
+  real power at both ends of the real line.
 * `Function.HasFiniteSupport.hasFiniteMulSupport_fun_rpow`: real powers with finitely supported
   exponents have finite multiplicative support.
 * `Real.rpow_finsum_of_pos`: `a ^ (∑ᶠ i, f i) = ∏ᶠ i, a ^ f i` for `0 < a` and finitely supported
@@ -53,7 +59,7 @@ A positive real raised to a finitely supported sum of exponents is the product o
 
 public section
 
-open Filter Topology
+open Filter Topology Asymptotics
 
 namespace Real
 
@@ -121,3 +127,33 @@ theorem Real.rpow_finsum_of_pos {α : Type*} {a : ℝ} (ha : 0 < a) {f : α → 
     (hf : f.HasFiniteSupport) : a ^ (∑ᶠ i, f i) = ∏ᶠ i, a ^ f i := by
   rw [finsum_eq_sum f hf, finprod_eq_prod_of_mulSupport_subset _ (s := hf.toFinset)
     fun i hi ↦ hf.mem_toFinset.mpr fun h ↦ hi (by simp [h]), Real.rpow_sum_of_pos ha]
+
+/-! ### Two-sided exponential decay -/
+
+namespace TauCeti
+
+/-- **Rapid decay of the two-sided real exponential.** For any positive real rate `a`,
+`exp (-(a * |x|))` is little-o of `|x| ^ s` at `cocompact ℝ`, for every real exponent `s`.
+
+Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in the AIQ/DKPS
+formalization (Apache-2.0; copyright 2026 Kitware, Inc.; authors Jon Crall and
+GPT 5.6 High). -/
+theorem exp_neg_mul_abs_isLittleO_rpow_cocompact {a : ℝ} (ha : 0 < a) (s : ℝ) :
+    (fun x : ℝ => Real.exp (-(a * |x|))) =o[cocompact ℝ]
+      (fun x : ℝ => |x| ^ s) := by
+  rw [cocompact_eq_atBot_atTop, isLittleO_sup]
+  constructor
+  · have h := (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
+      tendsto_neg_atBot_atTop
+    refine h.congr' ?_ ?_
+    · filter_upwards [eventually_lt_atBot 0] with x hx
+      simp [abs_of_neg hx]
+    · filter_upwards [eventually_lt_atBot 0] with x hx
+      simp [abs_of_neg hx]
+  · refine (isLittleO_exp_neg_mul_rpow_atTop ha s).congr' ?_ ?_
+    · filter_upwards [eventually_gt_atTop 0] with x hx
+      simp [abs_of_pos hx]
+    · filter_upwards [eventually_gt_atTop 0] with x hx
+      simp [abs_of_pos hx]
+
+end TauCeti

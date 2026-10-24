@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Analysis.Fourier.FourierTransform
 public import TauCeti.MeasureTheory.Integral.ExpDecay
+public import TauCeti.Analysis.SpecialFunctions.Pow.Real
 
 /-!
 # Fourier transform and decay of the two-sided exponential
