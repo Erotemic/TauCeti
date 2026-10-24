@@ -18,10 +18,6 @@ bijective (`ContinuousLinearEquiv.adjoint_bijective`).
 For a finite-dimensional linear isometry, the adjoint returns its image vectors to their
 preimages (`LinearIsometry.adjoint_apply_apply`).
 
-If `F₁` is an isometry and `F₀F₀⋆ + F₁F₁⋆ = 1`, then the ranges of
-`F₀` and `F₁` are orthogonal
-(`LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id`).
-
 Two families of adjoints of linear maps between finite-dimensional inner product spaces:
 
 * the adjoint of an isometric isomorphism `e : E ≃ₗᵢ[𝕜] F`, viewed as a linear map, is its
@@ -40,12 +36,6 @@ endomorphism is the conjugate of its determinant (`LinearMap.det_adjoint`). For 
 linear map, the orthogonal complement of its kernel has the dimension of the codomain
 (`LinearMap.finrank_orthogonal_ker_of_surjective`).
 
-## Provenance
-
-The complementary-isometry orthogonality lemma is adapted from
-`ForTauCeti/Analysis/InnerProductSpace/DoubleAngle/Gram.lean` in the
-[AIQ-Kitware DKPS formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization),
-released under the Apache 2.0 license.
 -/
 
 public section
@@ -93,30 +83,6 @@ namespace LinearIsometry
 theorem adjoint_apply_apply (f : E →ₗᵢ[𝕜] F) (x : E) :
     LinearMap.adjoint f.toLinearMap (f x) = x :=
   LinearMap.congr_fun (adjoint_comp_self' f) x
-
-section ComplementaryBlocks
-
-variable {K₁ L : Type*}
-  [NormedAddCommGroup K₁] [InnerProductSpace 𝕜 K₁] [FiniteDimensional 𝕜 K₁]
-  [NormedAddCommGroup L] [InnerProductSpace 𝕜 L] [FiniteDimensional 𝕜 L]
-
-/-- If `F₁` is an isometry and `F₀F₀⋆ + F₁F₁⋆ = 1`, then `F₀⋆F₁ = 0`.
-No isometry or injectivity hypothesis is needed for `F₀`. -/
-theorem adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id
-    (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
-    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
-    LinearMap.adjoint F₀ ∘ₗ F₁.toLinearMap = 0 := by
-  ext y
-  have h0 : F₀ (LinearMap.adjoint F₀ (F₁ y)) = 0 := by
-    simpa [add_eq_right] using LinearMap.congr_fun hF (F₁ y)
-  have hker : F₁ y ∈ (F₀ ∘ₗ LinearMap.adjoint F₀).ker := by
-    simpa only [LinearMap.mem_ker, LinearMap.comp_apply] using h0
-  rw [F₀.ker_self_comp_adjoint] at hker
-  simpa only [LinearMap.mem_ker, LinearMap.comp_apply, LinearMap.zero_apply,
-    LinearIsometry.coe_toLinearMap] using hker
-
-end ComplementaryBlocks
 
 end LinearIsometry
 

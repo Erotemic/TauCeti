@@ -5,7 +5,7 @@ Authors: Jon Crall, Claude Opus 5
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.Adjoint
+public import TauCeti.Analysis.InnerProductSpace.PartialIsometry
 public import TauCeti.Analysis.SpecialFunctions.Trigonometric.Arcsin
 import Mathlib.Tactic.Module
 import Mathlib.Tactic.NormNum
@@ -20,8 +20,8 @@ For rectangular linear maps `T : K₁ → K₀` and `C : K₀ → L`, suppose
 `sin (2θ) = 2 sin θ cos θ`.
 
 The identities use no equality-of-dimensions assumption. They also apply to
-complementary isometric coordinate blocks and to a reflected cross block,
-as in the Davis--Kahan double-angle argument.
+complementary coordinate blocks (including partial isometries) and to a reflected
+cross block, as in the Davis--Kahan double-angle argument.
 
 The complementary-block Pythagorean identity
 `LinearIsometry.adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint`
@@ -110,7 +110,7 @@ end Rectangular
 
 end LinearMap
 
-/-! ### The Davis--Kahan isometry blocks -/
+/-! ### Complementary blocks and double-angle Gram transfer -/
 
 section IsometryBlocks
 
@@ -174,28 +174,29 @@ theorem adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint
   exact E₀.adjoint_apply_apply x
 
 /-- **Davis--Kahan reflected cross block for complementary blocks.** If
-`F₁` is an isometry, complementarity implies `F₀⋆F₁ = 0` even when `F₀`
-is an arbitrary linear map. For isometric `E₀`, the result specializes the
+`F₁` is a partial isometry, complementarity implies `F₀⋆F₁ = 0` even when
+`F₀` is an arbitrary linear map. For isometric `E₀`, this specializes the
 orthogonal linear-map identity to the reflection `2 E₀E₀⋆ - 1`. -/
 theorem adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_comp_adjoint_add_eq_id
-    (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
+    (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
+    (hF₁ : F₁.IsPartialIsometry)
     (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
+        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
     LinearMap.adjoint
         (((2 : 𝕜) • (E₀.toLinearMap ∘ₗ LinearMap.adjoint E₀.toLinearMap) -
-          LinearMap.id) ∘ₗ F₀) ∘ₗ F₁.toLinearMap =
+          LinearMap.id) ∘ₗ F₀) ∘ₗ F₁ =
       (2 : 𝕜) • ((LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) ∘ₗ
-        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap)) := by
+        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁)) := by
   exact LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_comp_eq_zero
-    E₀.toLinearMap F₀ F₁.toLinearMap
-    (LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF)
+    E₀.toLinearMap F₀ F₁
+    (LinearMap.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF₁ hF)
 
 /-- **Reflected cross-block Gram identity for linear blocks.** If `E₀` is an
 isometry and `F₀`, `F₁` are linear maps with complementary final operators
 and orthogonal cross block, the reflected cross block has Gram operator
 `4 (M - M²)` for `M = T⋆T` and `T = E₀⋆F₁`.
 For arbitrary `F₁`, complementarity alone does not imply orthogonality,
-so `F₀⋆F₁ = 0` is explicitly assumed; it follows if `F₁` is an isometry. -/
+so `F₀⋆F₁ = 0` is explicitly assumed; it follows if `F₁` is a partial isometry. -/
 theorem adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_adjoint_comp_eq_zero
     (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
     (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
@@ -219,29 +220,30 @@ theorem adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_adjo
     (LinearIsometry.adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint E₀ F₀ F₁ hF)
 
 /-- **Reflected cross-block Gram identity for complementary blocks.**
-When `E₀` and `F₁` are isometries but `F₀` is any linear map satisfying
-`F₀F₀⋆ + F₁F₁⋆ = 1`, the Gram operator of `(X F₀)⋆F₁`, with
-`X = 2 E₀E₀⋆ - 1`, equals `4 (M - M²)` for `M = T⋆T`, `T = E₀⋆F₁`.
+When `E₀` is an isometry and `F₁` is a partial isometry, with `F₀` any
+linear map satisfying `F₀F₀⋆ + F₁F₁⋆ = 1`, the Gram operator of `(X F₀)⋆F₁`,
+where `X = 2 E₀E₀⋆ - 1`, equals `4 (M - M²)` for `M = T⋆T`, `T = E₀⋆F₁`.
 No equality-of-dimensions hypothesis is required. -/
 theorem adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_comp_adjoint_add_eq_id
-    (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗᵢ[𝕜] E)
+    (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
+    (hF₁ : F₁.IsPartialIsometry)
     (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁.toLinearMap ∘ₗ LinearMap.adjoint F₁.toLinearMap = LinearMap.id) :
+        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
     LinearMap.adjoint (LinearMap.adjoint
           (((2 : 𝕜) • (E₀.toLinearMap ∘ₗ LinearMap.adjoint E₀.toLinearMap) -
-            LinearMap.id) ∘ₗ F₀) ∘ₗ F₁.toLinearMap) ∘ₗ
+            LinearMap.id) ∘ₗ F₀) ∘ₗ F₁) ∘ₗ
         (LinearMap.adjoint
           (((2 : 𝕜) • (E₀.toLinearMap ∘ₗ LinearMap.adjoint E₀.toLinearMap) -
-            LinearMap.id) ∘ₗ F₀) ∘ₗ F₁.toLinearMap) =
+            LinearMap.id) ∘ₗ F₀) ∘ₗ F₁) =
       (4 : 𝕜) • ((LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ
-            F₁.toLinearMap) ∘ₗ (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap)) -
-        (LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap) ∘ₗ
-            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap)) ∘ₗ
-          (LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap) ∘ₗ
-            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁.toLinearMap))) := by
+            F₁) ∘ₗ (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁)) -
+        (LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) ∘ₗ
+            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁)) ∘ₗ
+          (LinearMap.adjoint (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁) ∘ₗ
+            (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁))) := by
   exact adjoint_comp_self_adjoint_two_smul_comp_adjoint_sub_id_comp_comp_of_adjoint_comp_eq_zero
-    E₀ F₀ F₁.toLinearMap hF
-    (LinearIsometry.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF)
+    E₀ F₀ F₁ hF
+    (LinearMap.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF₁ hF)
 
 end LinearIsometry
 
