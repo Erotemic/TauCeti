@@ -5,23 +5,29 @@ Authors: Claude Opus 5, GPT-6
 -/
 module
 
-public import TauCeti.Analysis.OperatorIdeal.ApproximationNumber.Diagonal
+import TauCeti.Analysis.OperatorIdeal.ApproximationNumber.Diagonal
 import Mathlib.Analysis.InnerProductSpace.l2Space
 public import TauCeti.Analysis.OperatorIdeal.Family.SymmetricGauge
 
 /-!
 # Faithfulness of induced symmetric operator-ideal families
 
-Roadmap: OperatorIdeals, OI-B72.
+The family of operator-ideal gauges induced by a symmetric gauge determines its
+extension to every antitone `ℝ≥0∞`-valued sequence. In particular, equality
+of induced complex operator-ideal families implies equality of the extended
+gauges on all such sequences.
 
-The extension of a symmetric gauge to antitone sequences is determined by its
-induced operator-ideal family.  The proof reuses TauCeti's existing diagonal
-realization of every antitone sequence of nonnegative real numbers.  It does
-not introduce a second diagonal-operator construction or a second ideal family.
+When the initial entry is finite, every entry is finite by antitonicity, and
+a diagonal operator on complex `ℓ²` realizes the sequence of entries as its
+approximation numbers. When the initial entry is `⊤`, each extended gauge is
+`⊤` by its lower bound from the supremum of the sequence.
 
-An antitone `ENNReal`-valued sequence is either bounded by its finite initial
-value, and hence realized by a diagonal operator on complex `ℓ²`, or its
-initial value is `⊤`, forcing both extended gauges to equal `⊤`.
+## Main result
+
+* `TauCeti.SymmetricGauge.extend_eq_of_operatorIdealFamily_eq`: equality of induced
+  complex operator-ideal families determines the extended gauges on antitone sequences.
+
+## Provenance
 
 Adapted from `ForTauCeti/Analysis/OperatorIdeal/Family/SymmetricGauge.lean`
 in the Kitware Davis--Kahan formalization (Apache-2.0).
@@ -34,8 +40,8 @@ open scoped ENNReal NNReal lp
 namespace TauCeti
 namespace SymmetricGauge
 
-/-- **OI-B72.** Two symmetric gauges that induce the same complex operator-ideal
-family have the same extensions on every antitone `ENNReal`-valued sequence. -/
+/-- Two symmetric gauges that induce the same complex operator-ideal family
+have equal extensions on every antitone `ℝ≥0∞`-valued sequence. -/
 theorem extend_eq_of_operatorIdealFamily_eq
     {Φ Ψ : SymmetricGauge}
     (h : Φ.operatorIdealFamily.{0, 0, 0} ℂ = Ψ.operatorIdealFamily.{0, 0, 0} ℂ)
@@ -64,7 +70,7 @@ theorem extend_eq_of_operatorIdealFamily_eq
     let T : ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) := lp.diagonalCLM d
     have hs : (fun n => (T.singularValue n : ℝ≥0∞)) = a := by
       funext n
-      change ((lp.diagonalCLM (p := 2) d).singularValue n : ℝ≥0∞) = a n
+      dsimp only [T]
       rw [congrFun hd n]
       exact hc n
     have heq := congrArg
