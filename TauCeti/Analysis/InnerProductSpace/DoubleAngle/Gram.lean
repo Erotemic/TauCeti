@@ -147,6 +147,25 @@ theorem LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_c
   simp only [LinearMap.comp_apply, LinearMap.smul_apply, LinearMap.sub_apply,
     LinearMap.id_apply, map_sub, map_smul, hy, sub_zero]
 
+/-- **Cross-block identity for complementary partial-isometry blocks.**
+For arbitrary linear maps `E₀` and `F₀`, complementarity and the partial-isometry
+property of `F₁` imply `F₀⋆F₁ = 0`. Substituting into the general orthogonal
+cross-block identity gives the formula for `2 E₀E₀⋆ - 1`.
+No isometry hypothesis on `E₀` is needed. -/
+theorem LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_comp_adjoint_add_eq_id
+    (E₀ : K₀ →ₗ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
+    (hF₁ : F₁.IsPartialIsometry)
+    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
+        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
+    LinearMap.adjoint
+        (((2 : 𝕜) • (E₀ ∘ₗ LinearMap.adjoint E₀) -
+          LinearMap.id) ∘ₗ F₀) ∘ₗ F₁ =
+      (2 : 𝕜) • ((LinearMap.adjoint F₀ ∘ₗ E₀) ∘ₗ
+        (LinearMap.adjoint E₀ ∘ₗ F₁)) := by
+  exact LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_comp_eq_zero
+    E₀ F₀ F₁
+    (LinearMap.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF₁ hF)
+
 namespace LinearIsometry
 
 /-- **Pythagorean Gram identity for complementary linear blocks.** If the ranges
@@ -172,24 +191,6 @@ theorem adjoint_comp_self_adjoint_comp_eq_id_sub_comp_adjoint
   simp only [LinearMap.comp_apply, LinearMap.sub_apply, LinearMap.id_apply]
   rw [eq_sub_iff_add_eq, ← map_add, hx]
   exact E₀.adjoint_apply_apply x
-
-/-- **Davis--Kahan reflected cross block for complementary blocks.** If
-`F₁` is a partial isometry, complementarity implies `F₀⋆F₁ = 0` even when
-`F₀` is an arbitrary linear map. For isometric `E₀`, this specializes the
-orthogonal linear-map identity to the reflection `2 E₀E₀⋆ - 1`. -/
-theorem adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_comp_adjoint_add_eq_id
-    (E₀ : K₀ →ₗᵢ[𝕜] E) (F₀ : L →ₗ[𝕜] E) (F₁ : K₁ →ₗ[𝕜] E)
-    (hF₁ : F₁.IsPartialIsometry)
-    (hF : F₀ ∘ₗ LinearMap.adjoint F₀ +
-        F₁ ∘ₗ LinearMap.adjoint F₁ = LinearMap.id) :
-    LinearMap.adjoint
-        (((2 : 𝕜) • (E₀.toLinearMap ∘ₗ LinearMap.adjoint E₀.toLinearMap) -
-          LinearMap.id) ∘ₗ F₀) ∘ₗ F₁ =
-      (2 : 𝕜) • ((LinearMap.adjoint F₀ ∘ₗ E₀.toLinearMap) ∘ₗ
-        (LinearMap.adjoint E₀.toLinearMap ∘ₗ F₁)) := by
-  exact LinearMap.adjoint_two_smul_comp_adjoint_sub_id_comp_comp_eq_of_adjoint_comp_eq_zero
-    E₀.toLinearMap F₀ F₁
-    (LinearMap.adjoint_comp_eq_zero_of_comp_adjoint_add_eq_id F₀ F₁ hF₁ hF)
 
 /-- **Reflected cross-block Gram identity for linear blocks.** If `E₀` is an
 isometry and `F₀`, `F₁` are linear maps with complementary final operators
