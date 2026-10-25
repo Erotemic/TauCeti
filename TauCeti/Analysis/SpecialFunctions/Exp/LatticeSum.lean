@@ -32,31 +32,25 @@ namespace TauCeti
 
 noncomputable section
 
-/-- A positive-rate exponential is a geometric sequence on natural arguments. -/
-private theorem exp_neg_mul_nat_eq_pow (a : ℝ) (n : ℕ) :
-    Real.exp (-(a * (n : ℝ))) = Real.exp (-a) ^ n := by
-  rw [← Real.exp_nat_mul]
-  congr 1
-  ring
-
-/-- The ratio of the positive-rate exponential series has norm below one. -/
-private theorem norm_exp_neg_lt_one {a : ℝ} (ha : 0 < a) :
-    ‖Real.exp (-a)‖ < 1 := by
-  rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-  exact Real.exp_lt_one_iff.mpr (neg_neg_of_pos ha)
-
 /-- The positive tail of a geometric exponential series. -/
 theorem tsum_nat_exp_neg_mul_add_one {a : ℝ} (ha : 0 < a) :
     (∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ)))) =
       Real.exp (-a) / (1 - Real.exp (-a)) := by
   let q := Real.exp (-a)
-  have hqnorm : ‖q‖ < 1 := norm_exp_neg_lt_one ha
+  have hqnorm : ‖q‖ < 1 := by
+    dsimp only [q]
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+    exact Real.exp_lt_one_iff.mpr (neg_neg_of_pos ha)
   calc
     (∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ)))) =
         ∑' n : ℕ, q ^ (n + 1) := by
       apply tsum_congr
       intro n
-      exact exp_neg_mul_nat_eq_pow a (n + 1)
+      -- The summand is the geometric power given by `Real.exp_nat_mul`.
+      dsimp only [q]
+      rw [← Real.exp_nat_mul]
+      congr 1
+      ring
     _ = ∑' n : ℕ, q ^ n * q := by simp_rw [pow_succ]
     _ = (∑' n : ℕ, q ^ n) * q := tsum_mul_right
     _ = (1 - q)⁻¹ * q := by rw [tsum_geometric_of_norm_lt_one hqnorm]
@@ -67,13 +61,15 @@ theorem tsum_nat_exp_neg_mul_add_one {a : ℝ} (ha : 0 < a) :
 /-- The two-sided exponential with positive rate is summable on the integer lattice. -/
 theorem summable_exp_neg_mul_abs_int {a : ℝ} (ha : 0 < a) :
     Summable (fun n : ℤ => Real.exp (-(a * |(n : ℝ)|))) := by
-  have hgeo : Summable (fun n : ℕ => Real.exp (-a) ^ n) :=
-    (hasSum_geometric_of_norm_lt_one (norm_exp_neg_lt_one ha)).summable
+  -- Mathlib already characterizes summability of natural-index exponentials.
+  have hnat : Summable (fun n : ℕ => Real.exp (-(a * (n : ℝ)))) := by
+    refine (Real.summable_exp_nat_mul_iff.mpr (neg_neg_of_pos ha)).congr
+      (fun n => ?_)
+    congr 1
+    ring
   apply Summable.of_nat_of_neg
-  · refine hgeo.congr fun n => ?_
-    simpa using (exp_neg_mul_nat_eq_pow a n).symm
-  · refine hgeo.congr fun n => ?_
-    simpa using (exp_neg_mul_nat_eq_pow a n).symm
+  · simpa using hnat
+  · simpa using hnat
 
 /-- The two-sided geometric lattice sum of a decaying exponential. -/
 theorem tsum_int_exp_neg_mul_abs {a : ℝ} (ha : 0 < a) :
