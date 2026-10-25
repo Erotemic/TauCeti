@@ -1,16 +1,17 @@
 /-
-Copyright (c) 2026 Kitware, Inc. All rights reserved.
+Copyright (c) 2026 The Tau Ceti contributors and Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Jon Crall, GPT-6
+Authors: The Tau Ceti contributors, Jon Crall, GPT-6
 -/
 module
 
 public import Mathlib.Analysis.CStarAlgebra.CompletelyPositiveMap
-public import Mathlib.Analysis.InnerProductSpace.StarOrder
 public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
 public import Mathlib.MeasureTheory.Integral.RieszMarkovKakutani.Real
 public import Mathlib.Topology.ContinuousMap.ContinuousSqrt
+public import TauCeti.Analysis.InnerProductSpace.StarAlgHom
 public import TauCeti.MeasureTheory.Integral.ContinuousMap
+public import TauCeti.Topology.ContinuousMap.CompactlySupported
 
 /-!
 # Diagonal Riesz measures for continuous-function representations
@@ -32,8 +33,10 @@ specializes this construction: `ContinuousLinearMap.diagMeasure` is the
 * `StarAlgHom.eq_representationDiagMeasure_iff`: characterization among regular measures.
 * `StarAlgHom.representationDiagMeasure_real_univ` and
   `StarAlgHom.representationDiagMeasure_univ`: total mass `‖ξ‖²`.
-* `StarAlgHom.norm_sq_apply_eq_re_inner_star_mul`: the representation's quadratic identity.
 * `StarAlgHom.integral_norm_sq_representationDiagMeasure`: the squared `L²` identity.
+
+The final identity uses `StarAlgHom.norm_sq_apply_eq_re_inner_star_mul`, a
+quadratic identity for arbitrary star-algebra representations.
 -/
 
 public section
@@ -49,32 +52,8 @@ variable {K : Type*} [TopologicalSpace K]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 variable (π : C(K, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H))
 
-/-- The squared norm `‖π(f) ξ‖²` is the real part of the diagonal matrix element
-`⟪ξ, π (f⋆ * f) ξ⟫`. This identity makes the quadratic dependence on `ξ` explicit. -/
-theorem norm_sq_apply_eq_re_inner_star_mul (ξ : H) (f : C(K, ℂ)) :
-    ‖π f ξ‖ ^ 2 = RCLike.re ⟪ξ, π (star f * f) ξ⟫_ℂ := by
-  -- Express the squared norm as ⟪ξ, (π f)† (π f) ξ⟫, then transport
-  -- the adjoint and product back through the star homomorphism.
-  rw [ContinuousLinearMap.apply_norm_sq_eq_inner_adjoint_right,
-    ← ContinuousLinearMap.star_eq_adjoint, ← ContinuousLinearMap.mul_def,
-    ← map_star, ← map_mul]
-
 -- The remaining diagonal-measure construction needs compactness and Borel measurability.
 variable [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K]
-
--- Forgetting compact support preserves addition of continuous functions.
-omit [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K] in
-private theorem representationDiag_toContinuousMap_add (g h : C_c(K, ℝ)) :
-    (g + h).toContinuousMap = g.toContinuousMap + h.toContinuousMap := by
-  ext x
-  simp
-
--- Forgetting compact support preserves real scalar multiplication.
-omit [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K] in
-private theorem representationDiag_toContinuousMap_smul (c : ℝ) (g : C_c(K, ℝ)) :
-    (c • g).toContinuousMap = c • g.toContinuousMap := by
-  ext x
-  simp
 
 /-- The positive real functional associated with a vector in a unital representation. -/
 private def representationDiagFunctional (ξ : H) : C_c(K, ℝ) →ₚ[ℝ] ℝ :=
@@ -84,13 +63,13 @@ private def representationDiagFunctional (ξ : H) : C_c(K, ℝ) →ₚ[ℝ] ℝ 
         -- The compact-support forgetful map, real-to-complex embedding, and π are additive.
         -- The inner product is additive in its right argument, and real part preserves sums.
         simp only [← realToRCLikeStarAlgHom_apply]
-        rw [representationDiag_toContinuousMap_add, map_add, map_add,
+        rw [CompactlySupportedContinuousMap.toContinuousMap_add, map_add, map_add,
           _root_.add_apply, inner_add_right, map_add]
       map_smul' c g := by
         -- Real scalar multiplication passes through the embedding and π; the
         -- complex inner product is linear in the right argument.
         simp only [← realToRCLikeStarAlgHom_apply]
-        rw [representationDiag_toContinuousMap_smul, map_smul,
+        rw [CompactlySupportedContinuousMap.toContinuousMap_smul, map_smul,
           ← algebraMap_smul ℂ c (M := C(K, ℂ)), map_smul,
           _root_.smul_apply, inner_smul_right]
         simp }
