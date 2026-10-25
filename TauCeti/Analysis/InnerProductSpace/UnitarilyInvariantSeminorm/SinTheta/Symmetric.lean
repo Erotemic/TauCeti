@@ -8,6 +8,7 @@ module
 public import TauCeti.Analysis.InnerProductSpace.BlockSum
 public import TauCeti.Analysis.InnerProductSpace.Projection.AngleOperator
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.KyFan
+import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Projection
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.SinTheta.Basic
 
 /-!
@@ -19,9 +20,9 @@ unitarily invariant seminorm. A single interval/exterior gap only controls the
 one-sided sine block in general.
 
 The two cross-block Ky Fan bounds follow from the existing restricted Sylvester
-bound. The block-sum majorization theorem combines them without losing the
-constant. A pair of subspace reflections then bounds the checkerboard part of
-the perturbation by the perturbation itself.
+bound and the generic Ky Fan compression identity. The block-sum majorization
+theorem combines them without losing the constant. The reusable checkerboard
+contraction for two orthogonal projections gives the final bound.
 
 ## Main results
 
@@ -57,40 +58,6 @@ namespace TauCeti
 variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
   [InnerProductSpace K E] [FiniteDimensional K E]
 
-/-- The adjoint of a subspace inclusion is its orthogonal projection. -/
-private theorem adjoint_subtype_eq_orthogonalProjectionOnto
-    (U : Submodule K E) [U.HasOrthogonalProjection] :
-    LinearMap.adjoint U.subtype = U.orthogonalProjectionOnto.toLinearMap := by
-  rw [eq_comm]
-  apply (LinearMap.eq_adjoint_iff
-    U.orthogonalProjectionOnto.toLinearMap U.subtype).2
-  intro x y
-  change ⟪U.starProjection x, (y : E)⟫_K = ⟪x, (y : E)⟫_K
-  rw [U.inner_starProjection_left_eq_right,
-    U.starProjection_eq_self_iff.mpr y.2]
-
-/-- Ky Fan sums do not change when a rectangular map is extended by zero off
-its source subspace and included into the ambient target. -/
-private theorem kyFanSum_submodule_compression
-    (U W : Submodule K E) [U.HasOrthogonalProjection]
-    (T : U →ₗ[K] W) (k : Nat) :
-    (W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap).kyFanSum k =
-      T.kyFanSum k := by
-  have hU : LinearMap.adjoint U.subtypeₗᵢ.toLinearMap =
-      U.orthogonalProjectionOnto.toLinearMap :=
-    adjoint_subtype_eq_orthogonalProjectionOnto U
-  have hcomp :
-      W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap =
-        (W.subtypeₗᵢ.toLinearMap ∘ₗ T) ∘ₗ
-          LinearMap.adjoint U.subtypeₗᵢ.toLinearMap := by
-    rw [hU]
-    ext x
-    rfl
-  rw [hcomp]
-  simp only [LinearMap.kyFanSum_def,
-    LinearMap.singularValues_comp_adjoint_linearIsometry,
-    LinearMap.singularValues_linearIsometry_comp]
-
 /-- The restricted Sylvester estimate gives Ky Fan domination of each
 rectangular cross-projection by the corresponding residual block. -/
 private theorem kyFanSum_cross_block_le
@@ -115,6 +82,8 @@ private theorem kyFanSum_cross_block_le
   have hcommB : forall x, W.starProjection (B x) = B (W.starProjection x) :=
     hB.starProjection_apply_comm (fun x hx => hW x hx)
   have hsyl : B.sylvester A X = C := by
+    -- Expand only the local abbreviations `X` and `C` to expose the
+    -- continuous-linear-map composition required by `sylvester_apply`.
     change B.sylvester A (W.starProjection ∘L U.starProjection) =
       W.starProjection ∘L (B - A) ∘L U.starProjection
     ext x
@@ -144,38 +113,9 @@ private theorem kyFanSum_cross_block_le
         U.orthogonalProjectionOnto.toLinearMap := by
     ext x
     rfl
-  rw [hx, hc, kyFanSum_submodule_compression,
-    kyFanSum_submodule_compression] at hky
+  rw [hx, hc, LinearMap.kyFanSum_submodule_compression,
+    LinearMap.kyFanSum_submodule_compression] at hky
   exact hky
-
-/-- Taking adjoints transposes the cross projection between two subspaces. -/
-private theorem adjoint_cross_projection
-    (W V : Submodule K E) [W.HasOrthogonalProjection]
-    [V.HasOrthogonalProjection] :
-    LinearMap.adjoint
-        (W.orthogonalProjectionOnto.toLinearMap ∘ₗ V.subtype) =
-      V.orthogonalProjectionOnto.toLinearMap ∘ₗ W.subtype := by
-  exact ((LinearMap.eq_adjoint_iff _ _).2 fun w v => by simp).symm
-
-/-- Transposition of a compressed symmetric perturbation. -/
-private theorem adjoint_cross_perturbation
-    (W V : Submodule K E) [W.HasOrthogonalProjection]
-    [V.HasOrthogonalProjection]
-    {H : E →ₗ[K] E} (hH : LinearMap.adjoint H = H) :
-    LinearMap.adjoint
-        (W.orthogonalProjectionOnto.toLinearMap ∘ₗ
-          (H ∘ₗ V.subtype)) =
-      (V.orthogonalProjectionOnto.toLinearMap ∘ₗ H) ∘ₗ W.subtype := by
-  have hW : LinearMap.adjoint W.subtype =
-      W.orthogonalProjectionOnto.toLinearMap :=
-    adjoint_subtype_eq_orthogonalProjectionOnto W
-  have hV : LinearMap.adjoint V.subtype =
-      V.orthogonalProjectionOnto.toLinearMap :=
-    adjoint_subtype_eq_orthogonalProjectionOnto V
-  have hW' : LinearMap.adjoint W.orthogonalProjectionOnto.toLinearMap =
-      W.subtype := by
-    rw [← hW, LinearMap.adjoint_adjoint]
-  simp only [LinearMap.adjoint_comp, hH, hV, hW', LinearMap.comp_assoc]
 
 namespace UnitarilyInvariantSeminorm
 
@@ -265,11 +205,11 @@ theorem mul_map_sub_starProjection_le_map_sub
     simp only [NB, liftBlock, UnitarilyInvariantSeminorm.arrowCongr_apply]
   have hXVUadj : XVU.adjoint =
       V.orthogonalProjectionOnto.toLinearMap ∘ₗ Uᗮ.subtype :=
-    adjoint_cross_projection Uᗮ V
+    Submodule.adjoint_cross_projection Uᗮ V
   have hCVUadj : CVU.adjoint =
       (V.orthogonalProjectionOnto.toLinearMap ∘ₗ
         (((A - B : E →L[K] E) : E →ₗ[K] E))) ∘ₗ Uᗮ.subtype :=
-    adjoint_cross_perturbation Uᗮ V
+    Submodule.adjoint_cross_compression_of_adjoint_eq Uᗮ V
       (by simp only [ContinuousLinearMap.toLinearMap_sub, map_sub,
           hA.adjoint_eq, hB.adjoint_eq])
   have hXlift : liftBlock Xblock =
@@ -296,54 +236,9 @@ theorem mul_map_sub_starProjection_le_map_sub
             ((B - A : E →L[K] E) : E →ₗ[K] E))) := by
     simpa only [hNB_apply, hXlift, hClift,
       ContinuousLinearMap.toLinearMap_sub] using hblock
-  let H : E →ₗ[K] E := ((B - A : E →L[K] E) : E →ₗ[K] E)
-  let JU : E ≃ₗᵢ[K] E := U.reflection
-  let JV : E ≃ₗᵢ[K] E := V.reflection
-  -- Twice the checkerboard is the difference of two isometric conjugates.
-  -- Working with the factor 2 avoids inverse-scalar elaboration entirely.
-  have hdouble :
-      (2 : K) • (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-          (V.starProjection : E →ₗ[K] E) ∘ₗ H) =
-        H ∘ₗ JU.toLinearMap - JV.toLinearMap ∘ₗ H := by
-    ext x
-    simp [H, JU, JV, Submodule.reflection_apply, LinearMap.comp_apply]
-    module
-  have hnorm :
-      N (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-          (V.starProjection : E →ₗ[K] E) ∘ₗ H) ≤ N H := by
-    have htwonorm :
-        N ((2 : K) • (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-            (V.starProjection : E →ₗ[K] E) ∘ₗ H)) =
-          2 * N (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-            (V.starProjection : E →ₗ[K] E) ∘ₗ H) := by
-      simp only [map_smul_eq_mul, RCLike.norm_ofNat]
-    have hscaled :
-        2 * N (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-            (V.starProjection : E →ₗ[K] E) ∘ₗ H) ≤ 2 * N H := by
-      calc
-        _ = N ((2 : K) • (H ∘ₗ (U.starProjection : E →ₗ[K] E) -
-            (V.starProjection : E →ₗ[K] E) ∘ₗ H)) := htwonorm.symm
-        _ = N (H ∘ₗ JU.toLinearMap - JV.toLinearMap ∘ₗ H) := by rw [hdouble]
-        _ ≤ N (H ∘ₗ JU.toLinearMap) + N (-(JV.toLinearMap ∘ₗ H)) := by
-          simpa [sub_eq_add_neg] using
-            map_add_le_add N (H ∘ₗ JU.toLinearMap) (-(JV.toLinearMap ∘ₗ H))
-        _ = N H + N H := by
-          have hJU : JU.toLinearMap = (JU : E →ₗ[K] E) := by
-            ext x
-            simp
-          have hJV : JV.toLinearMap = (JV : E →ₗ[K] E) := by
-            ext x
-            simp
-          have hright : N (H ∘ₗ JU.toLinearMap) = N H := by
-            rw [hJU]
-            exact N.map_comp_linearIsometryEquiv JU H
-          have hleft : N (JV.toLinearMap ∘ₗ H) = N H := by
-            rw [hJV]
-            exact N.map_linearIsometryEquiv_comp JV H
-          rw [map_neg_eq_map N, hright, hleft]
-        _ = 2 * N H := by ring
-    exact le_of_mul_le_mul_left hscaled (by norm_num : (0 : ℝ) < 2)
-  exact hchecker.trans hnorm
+  exact hchecker.trans
+    (N.map_comp_starProjection_sub_starProjection_comp_le U V
+      ((B - A : E →L[K] E) : E →ₗ[K] E))
 
 /-- The same constant-one theorem expressed in the canonical symmetric sine
 angle operator `|P_U-P_V|`. -/
@@ -369,6 +264,8 @@ theorem mul_map_sinAngleOperator_le_map_sub
     apply N.map_eq_of_singularValues_eq
     apply LinearMap.singularValues_eq_of_norm_apply_eq
     intro x
+    -- The norm goal uses algebraic coercions of the two continuous operators;
+    -- unfold their applications to use the ambient-space norm identity.
     change ‖U.sinAngleOperator V x‖ =
       ‖(U.starProjection - V.starProjection) x‖
     simpa only [sub_apply] using

@@ -1,11 +1,12 @@
 /-
-Copyright (c) 2026 The Tau Ceti contributors. All rights reserved.
+Copyright (c) 2026 The Tau Ceti contributors and Kitware, Inc. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Tau Ceti contributors
+Authors: The Tau Ceti contributors, Jon Crall, GPT-6
 -/
 module
 
 public import TauCeti.Analysis.InnerProductSpace.KyFan
+public import TauCeti.Analysis.InnerProductSpace.Projection.Basic
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Basic
 
 /-!
@@ -30,6 +31,14 @@ domination in every Ky Fan seminorm.
 * `TauCeti.UnitarilyInvariantSeminorm.nuclear_apply`: `N₁(A) = ∑ᵢ σᵢ(A)`.
 * `LinearMap.kyFanSum_eq_nuclear`: the Ky Fan sums stabilize at the nuclear seminorm from the
   rank on.
+* `LinearMap.kyFanSum_submodule_compression`: extending a rectangular map by zero from a
+  subspace to the ambient space preserves every Ky Fan sum.
+
+## Provenance
+
+The submodule-compression identity is adapted from
+`ForTauCeti/Analysis/InnerProductSpace/SinTheta/Perturbation.lean` in the
+AIQ-Kitware DKPS formalization (Apache-2.0; Jon Crall and GPT-6).
 
 ## References
 
@@ -91,5 +100,27 @@ theorem kyFanSum_eq_nuclear (A : E →ₗ[𝕜] F) {k : ℕ} (hk : finrank 𝕜 
     A.kyFanSum k = TauCeti.UnitarilyInvariantSeminorm.nuclear 𝕜 E F A := by
   rw [TauCeti.UnitarilyInvariantSeminorm.nuclear_apply, Finsupp.sum, support_singularValues,
     ← kyFanSum_def, ← A.kyFanSum_min_finrank_range k, min_eq_right hk]
+
+/-- Extending a map `T : U → W` by zero on `Uᗮ`, then including the image
+in the ambient space, does not change its Ky Fan singular-value sums. -/
+theorem kyFanSum_submodule_compression
+    (U W : Submodule 𝕜 E) [U.HasOrthogonalProjection]
+    (T : U →ₗ[𝕜] W) (k : ℕ) :
+    (W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap).kyFanSum k =
+      T.kyFanSum k := by
+  have hU : LinearMap.adjoint U.subtypeₗᵢ.toLinearMap =
+      U.orthogonalProjectionOnto.toLinearMap :=
+    U.adjoint_subtype_eq_orthogonalProjectionOnto
+  have hcomp :
+      W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap =
+        (W.subtypeₗᵢ.toLinearMap ∘ₗ T) ∘ₗ
+          LinearMap.adjoint U.subtypeₗᵢ.toLinearMap := by
+    rw [hU]
+    ext x
+    rfl
+  rw [hcomp]
+  simp only [LinearMap.kyFanSum_def,
+    LinearMap.singularValues_comp_adjoint_linearIsometry,
+    LinearMap.singularValues_linearIsometry_comp]
 
 end LinearMap
