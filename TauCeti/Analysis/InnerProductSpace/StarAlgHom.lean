@@ -5,7 +5,6 @@ Authors: The Tau Ceti contributors, Jon Crall, GPT-6
 -/
 module
 
-public import Mathlib.Analysis.CStarAlgebra.CompletelyPositiveMap
 public import Mathlib.Analysis.InnerProductSpace.StarOrder
 
 /-!
