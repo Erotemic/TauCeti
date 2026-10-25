@@ -40,7 +40,7 @@ open scoped InnerProductSpace
 namespace TauCeti.UnitarilyInvariantSeminorm
 
 variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
-  [InnerProductSpace K E] [FiniteDimensional K E]
+  [InnerProductSpace K E]
 
 /-- **Checkerboard contraction.** For any `H`, the off-diagonal difference
 `H P_U - P_V H` has no larger unitarily invariant seminorm than `H`.
