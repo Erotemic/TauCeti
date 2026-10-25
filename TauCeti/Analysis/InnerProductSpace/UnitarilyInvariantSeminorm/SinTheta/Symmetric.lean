@@ -105,14 +105,31 @@ private theorem kyFanSum_cross_block_le
         (W.orthogonalProjectionOnto.toLinearMap ∘ₗ U.subtype) ∘ₗ
         U.orthogonalProjectionOnto.toLinearMap := by
     ext x
-    rfl
+    -- Only the linear-map/continuous-map application wrappers reduce definitionally;
+    -- the ambient-to-submodule projection conversion uses Mathlib's named identity.
+    calc
+      (X : E →ₗ[K] E) x = W.starProjection (U.starProjection x) := rfl
+      _ = (W.orthogonalProjectionOnto (U.orthogonalProjectionOnto x) : E) := by
+        rw [U.starProjection_apply, W.starProjection_apply]
+      _ = (W.subtype ∘ₗ
+          (W.orthogonalProjectionOnto.toLinearMap ∘ₗ U.subtype) ∘ₗ
+          U.orthogonalProjectionOnto.toLinearMap) x := rfl
   have hc : (C : E →ₗ[K] E) =
       W.subtype ∘ₗ
         (W.orthogonalProjectionOnto.toLinearMap ∘ₗ
           (((B - A : E →L[K] E) : E →ₗ[K] E) ∘ₗ U.subtype)) ∘ₗ
         U.orthogonalProjectionOnto.toLinearMap := by
     ext x
-    rfl
+    -- Project into U before applying the residual, and back into W afterward.
+    -- Both projection conversions use Mathlib's explicit ambient/subtype identity.
+    calc
+      (C : E →ₗ[K] E) x = W.starProjection ((B - A) (U.starProjection x)) := rfl
+      _ = (W.orthogonalProjectionOnto ((B - A) (U.orthogonalProjectionOnto x)) : E) := by
+        rw [U.starProjection_apply, W.starProjection_apply]
+      _ = (W.subtype ∘ₗ
+          (W.orthogonalProjectionOnto.toLinearMap ∘ₗ
+            (((B - A : E →L[K] E) : E →ₗ[K] E) ∘ₗ U.subtype)) ∘ₗ
+          U.orthogonalProjectionOnto.toLinearMap) x := rfl
   rw [hx, hc, LinearMap.kyFanSum_submodule_compression,
     LinearMap.kyFanSum_submodule_compression] at hky
   exact hky

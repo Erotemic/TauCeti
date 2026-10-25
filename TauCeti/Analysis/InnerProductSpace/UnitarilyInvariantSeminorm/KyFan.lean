@@ -103,6 +103,7 @@ theorem kyFanSum_eq_nuclear (A : E →ₗ[𝕜] F) {k : ℕ} (hk : finrank 𝕜 
 
 /-- Extending a map `T : U → W` by zero on `Uᗮ`, then including the image
 in the ambient space, does not change its Ky Fan singular-value sums. -/
+@[simp]
 theorem kyFanSum_submodule_compression
     (U W : Submodule 𝕜 E) [U.HasOrthogonalProjection]
     (T : U →ₗ[𝕜] W) (k : ℕ) :
