@@ -19,14 +19,21 @@ Let `π : C(K, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H)` be a unital star representat
 Hilbert space, with `K` compact Hausdorff. For each `ξ : H`, the positive functional
 `f ↦ ⟪ξ, π(f) ξ⟫` determines a finite regular Borel measure on `K`.
 
-This supplies the diagonal-measure input to the representation PVM construction.
-It does not construct `ProjValMeasure.ofRepresentation`: that additionally requires
-polarized matrix elements and multiplicative, strongly additive indicator operators.
+The measure is determined by the identity
+`∫ f dμ_ξ = ⟪ξ, π f ξ⟫` for each continuous `f`. Its total mass is `‖ξ‖²`, and
+`∫ ‖f‖² dμ_ξ = ‖π f ξ‖²`. The continuous functional calculus of a normal operator
+specializes this construction: `ContinuousLinearMap.diagMeasure` is the
+`StarAlgHom.representationDiagMeasure` of `cfcHom`.
 
-The construction is shared with the normal-operator diagonal measure:
-`ContinuousLinearMap.diagMeasure` specializes `StarAlgHom.representationDiagMeasure` to
-the continuous functional calculus `cfcHom`. The proof uses Mathlib's
-Riesz-Markov-Kakutani measure; no parallel Borel calculus is introduced.
+## Main results
+
+* `StarAlgHom.representationDiagMeasure`: the finite regular Riesz measure at a vector.
+* `StarAlgHom.integral_representationDiagMeasure`: the continuous scalar integral identity.
+* `StarAlgHom.eq_representationDiagMeasure_iff`: characterization among regular measures.
+* `StarAlgHom.representationDiagMeasure_real_univ` and
+  `StarAlgHom.representationDiagMeasure_univ`: total mass `‖ξ‖²`.
+* `StarAlgHom.norm_sq_apply_eq_re_inner_star_mul`: the representation's quadratic identity.
+* `StarAlgHom.integral_norm_sq_representationDiagMeasure`: the squared `L²` identity.
 -/
 
 public section
@@ -38,10 +45,22 @@ open scoped InnerProductSpace ComplexOrder CompactlySupported
 
 namespace StarAlgHom
 
-variable {K : Type*} [TopologicalSpace K] [CompactSpace K] [T2Space K]
-  [MeasurableSpace K] [BorelSpace K]
+variable {K : Type*} [TopologicalSpace K]
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
 variable (π : C(K, ℂ) →⋆ₐ[ℂ] (H →L[ℂ] H))
+
+/-- The squared norm `‖π(f) ξ‖²` is the real part of the diagonal matrix element
+`⟪ξ, π (f⋆ * f) ξ⟫`. This identity makes the quadratic dependence on `ξ` explicit. -/
+theorem norm_sq_apply_eq_re_inner_star_mul (ξ : H) (f : C(K, ℂ)) :
+    ‖π f ξ‖ ^ 2 = RCLike.re ⟪ξ, π (star f * f) ξ⟫_ℂ := by
+  -- Express the squared norm as ⟪ξ, (π f)† (π f) ξ⟫, then transport
+  -- the adjoint and product back through the star homomorphism.
+  rw [ContinuousLinearMap.apply_norm_sq_eq_inner_adjoint_right,
+    ← ContinuousLinearMap.star_eq_adjoint, ← ContinuousLinearMap.mul_def,
+    ← map_star, ← map_mul]
+
+-- The remaining diagonal-measure construction needs compactness and Borel measurability.
+variable [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K]
 
 -- Forgetting compact support preserves addition of continuous functions.
 omit [CompactSpace K] [T2Space K] [MeasurableSpace K] [BorelSpace K] in
@@ -62,10 +81,14 @@ private def representationDiagFunctional (ξ : H) : C_c(K, ℝ) →ₚ[ℝ] ℝ 
   PositiveLinearMap.mk₀
     { toFun g := RCLike.re ⟪ξ, π (g.toContinuousMap.realToRCLike ℂ) ξ⟫_ℂ
       map_add' g h := by
+        -- The compact-support forgetful map, real-to-complex embedding, and π are additive.
+        -- The inner product is additive in its right argument, and real part preserves sums.
         simp only [← realToRCLikeStarAlgHom_apply]
         rw [representationDiag_toContinuousMap_add, map_add, map_add,
           _root_.add_apply, inner_add_right, map_add]
       map_smul' c g := by
+        -- Real scalar multiplication passes through the embedding and π; the
+        -- complex inner product is linear in the right argument.
         simp only [← realToRCLikeStarAlgHom_apply]
         rw [representationDiag_toContinuousMap_smul, map_smul,
           ← algebraMap_smul ℂ c (M := C(K, ℂ)), map_smul,
@@ -84,16 +107,18 @@ private theorem representationDiagFunctional_apply (ξ : H) (g : C_c(K, ℝ)) :
       RCLike.re ⟪ξ, π (g.toContinuousMap.realToRCLike ℂ) ξ⟫_ℂ :=
   rfl
 
-/-- The finite regular diagonal measure on `K` associated with `ξ` and `π`. -/
+/-- The finite regular Riesz measure of the positive functional
+`f ↦ ⟪ξ, π f ξ⟫`. For continuous `f`, it satisfies
+`∫ f dμ_ξ = ⟪ξ, π f ξ⟫` and is unique among regular Borel measures. -/
 def representationDiagMeasure (ξ : H) : Measure K :=
   RealRMK.rieszMeasure (representationDiagFunctional π ξ)
 
-instance representationDiagMeasure_finite (ξ : H) :
+instance isFiniteMeasure_representationDiagMeasure (ξ : H) :
     IsFiniteMeasure (representationDiagMeasure π ξ) := by
   unfold representationDiagMeasure
   infer_instance
 
-instance representationDiagMeasure_regular (ξ : H) :
+instance regular_representationDiagMeasure (ξ : H) :
     (representationDiagMeasure π ξ).Regular := by
   unfold representationDiagMeasure
   infer_instance
@@ -120,7 +145,8 @@ theorem integral_representationDiagMeasure (ξ : H) (f : C(K, ℂ)) :
   exact (φ.apply_eq_integral_of_forall_realToRCLike
     (fun g => (ofReal_integral_representationDiagMeasure π ξ g).symm) f).symm
 
-/-- A regular measure is the diagonal measure exactly when its continuous matrix elements agree. -/
+/-- A regular measure `μ` equals the diagonal measure `μ_ξ` iff
+`∫ f dμ = ⟪ξ, π f ξ⟫` for every continuous complex-valued `f`. -/
 theorem eq_representationDiagMeasure_iff (ξ : H) (μ : Measure K)
     [μ.Regular] :
     μ = representationDiagMeasure π ξ ↔
@@ -145,12 +171,12 @@ theorem representationDiagMeasure_univ (ξ : H) :
   rw [← ofReal_measureReal, representationDiagMeasure_real_univ,
     ENNReal.ofReal_pow (norm_nonneg ξ), ofReal_norm]
 
-/-- The representation preserves the continuous-symbol `L²` diagonal identity. -/
+/-- For every continuous symbol `f`, the squared `L²(μ_ξ)` norm equals
+`‖π(f) ξ‖²`: explicitly, `∫ ‖f‖² dμ_ξ = ‖π(f) ξ‖²`. -/
 theorem integral_norm_sq_representationDiagMeasure (ξ : H) (f : C(K, ℂ)) :
     ∫ x, ‖f x‖ ^ 2 ∂(representationDiagMeasure π ξ) = ‖π f ξ‖ ^ 2 := by
-  rw [ContinuousLinearMap.apply_norm_sq_eq_inner_adjoint_right,
-    ← ContinuousLinearMap.star_eq_adjoint, ← ContinuousLinearMap.mul_def,
-    ← map_star, ← map_mul, ← integral_representationDiagMeasure]
+  rw [norm_sq_apply_eq_re_inner_star_mul π ξ f,
+    ← integral_representationDiagMeasure]
   simp [Complex.conj_mul', ← Complex.ofReal_pow, integral_complex_ofReal]
 
 end StarAlgHom

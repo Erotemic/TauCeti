@@ -24,9 +24,8 @@ computes `‖f(a) ξ‖²` as the squared `L²(μ_ξ)` norm of `f`. Polarizing t
 gives the matrix elements of the bounded Borel functional calculus, which extends the continuous
 calculus from continuous to bounded Borel symbols.
 
-The measure and its core theorems are specializations of the shared
-`StarAlgHom.representationDiagMeasure` construction to the continuous functional calculus
-`cfcHom`. No second positive functional or Riesz proof is maintained here.
+The diagonal measure and its integration identities specialize
+`StarAlgHom.representationDiagMeasure` to the continuous functional calculus `cfcHom`.
 
 `LinearMap.exists_isFiniteMeasure_integral_characterSpace_eq` gives the analogous representation
 on the character space of a commutative C⋆-algebra, as an existence statement. Here the measure
