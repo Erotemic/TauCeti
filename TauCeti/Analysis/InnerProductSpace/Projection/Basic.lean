@@ -262,8 +262,15 @@ theorem adjoint_subtype_eq_orthogonalProjectionOnto [FiniteDimensional 𝕜 E] :
   rw [U.inner_starProjection_left_eq_right,
     U.starProjection_eq_self_iff.mpr y.2]
 
-/-- Taking adjoints transposes a cross-projection from `V` into `U`. -/
+/-- The algebraic adjoint of the orthogonal projection `E → U` is the inclusion `U → E`.
+This is the elementary simplification rule for the adjoints of cross-projections and
+self-adjoint compressions, together with `LinearMap.adjoint_comp`. -/
 @[simp]
+theorem adjoint_orthogonalProjectionOnto_toLinearMap [FiniteDimensional 𝕜 E] :
+    LinearMap.adjoint U.orthogonalProjectionOnto.toLinearMap = U.subtype := by
+  rw [← U.adjoint_subtype_eq_orthogonalProjectionOnto, LinearMap.adjoint_adjoint]
+
+/-- Taking adjoints transposes a cross-projection from `V` into `U`. -/
 theorem adjoint_cross_projection [FiniteDimensional 𝕜 E] :
     LinearMap.adjoint
         (U.orthogonalProjectionOnto.toLinearMap ∘ₗ V.subtype) =
@@ -272,7 +279,6 @@ theorem adjoint_cross_projection [FiniteDimensional 𝕜 E] :
 
 /-- The adjoint of a compression of a self-adjoint linear operator exchanges
 its source and target subspaces. -/
-@[simp]
 theorem adjoint_cross_compression_of_adjoint_eq [FiniteDimensional 𝕜 E]
     {H : E →ₗ[𝕜] E} (hH : LinearMap.adjoint H = H) :
     LinearMap.adjoint
