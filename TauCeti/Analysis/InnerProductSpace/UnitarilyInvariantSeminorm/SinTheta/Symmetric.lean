@@ -221,14 +221,19 @@ theorem mul_map_sub_starProjection_le_map_sub
       WithLp 2 (Vᗮ × V)) : NB T = N (liftBlock T) := by
     simp only [NB, liftBlock, UnitarilyInvariantSeminorm.arrowCongr_apply]
   have hXVUadj : XVU.adjoint =
-      V.orthogonalProjectionOnto.toLinearMap ∘ₗ Uᗮ.subtype :=
-    Submodule.adjoint_cross_projection Uᗮ V
+      V.orthogonalProjectionOnto.toLinearMap ∘ₗ Uᗮ.subtype := by
+    simp only [XVU, LinearMap.adjoint_comp, Submodule.adjoint_subtype,
+      Submodule.adjoint_orthogonalProjectionOnto_toLinearMap]
+  have hAB : LinearMap.adjoint (((A - B : E →L[K] E) : E →ₗ[K] E)) =
+      ((A - B : E →L[K] E) : E →ₗ[K] E) := by
+    simp only [ContinuousLinearMap.toLinearMap_sub, map_sub,
+      hA.adjoint_eq, hB.adjoint_eq]
   have hCVUadj : CVU.adjoint =
       (V.orthogonalProjectionOnto.toLinearMap ∘ₗ
-        (((A - B : E →L[K] E) : E →ₗ[K] E))) ∘ₗ Uᗮ.subtype :=
-    Submodule.adjoint_cross_compression_of_adjoint_eq Uᗮ V
-      (by simp only [ContinuousLinearMap.toLinearMap_sub, map_sub,
-          hA.adjoint_eq, hB.adjoint_eq])
+        (((A - B : E →L[K] E) : E →ₗ[K] E))) ∘ₗ Uᗮ.subtype := by
+    simp only [CVU, LinearMap.adjoint_comp, Submodule.adjoint_subtype,
+      Submodule.adjoint_orthogonalProjectionOnto_toLinearMap, hAB,
+      LinearMap.comp_assoc]
   have hXlift : liftBlock Xblock =
       (U.starProjection : E →ₗ[K] E) - (V.starProjection : E →ₗ[K] E) := by
     ext x
@@ -275,19 +280,7 @@ theorem mul_map_sinAngleOperator_le_map_sub
       (B : E →ₗ[K] E) V (A : E →ₗ[K] E) Uᗮ c d delta) :
     delta * N ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E) ≤
       N ((B - A : E →L[K] E) : E →ₗ[K] E) := by
-  have hmod :
-      N ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E) =
-        N (((U.starProjection - V.starProjection : E →L[K] E) : E →ₗ[K] E)) := by
-    apply N.map_eq_of_singularValues_eq
-    apply LinearMap.singularValues_eq_of_norm_apply_eq
-    intro x
-    -- The norm goal uses algebraic coercions of the two continuous operators;
-    -- unfold their applications to use the ambient-space norm identity.
-    change ‖U.sinAngleOperator V x‖ =
-      ‖(U.starProjection - V.starProjection) x‖
-    simpa only [sub_apply] using
-      (U.norm_sinAngleOperator_apply V x)
-  rw [hmod]
+  rw [N.map_sinAngleOperator_eq_map_sub_starProjection U V]
   exact N.mul_map_sub_starProjection_le_map_sub hA hB hU hV hdelta hgapUV hgapVU
 
 end UnitarilyInvariantSeminorm

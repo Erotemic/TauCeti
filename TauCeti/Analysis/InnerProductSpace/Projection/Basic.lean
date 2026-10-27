@@ -39,17 +39,16 @@ complement of its kernel whenever the kernel admits an orthogonal projection.
 
 ## Provenance
 
-The submodule inclusion-adjoint and cross-compression identities are adapted from
+The submodule inclusion-adjoint identity is adapted from
 `ForTauCeti/Analysis/InnerProductSpace/SinTheta/Perturbation.lean` in the
 AIQ-Kitware DKPS formalization (Apache-2.0; Jon Crall and GPT-6).
 
 ## Main results
 
-* `Submodule.adjoint_subtype_eq_orthogonalProjectionOnto`: the adjoint of subspace inclusion
-  is orthogonal projection onto that subspace.
-* `Submodule.adjoint_cross_projection`,
-  `Submodule.adjoint_cross_compression_of_adjoint_eq`: transpose compressed projections
-  and self-adjoint operators by taking adjoints.
+* `Submodule.adjoint_subtype`: the adjoint of subspace inclusion is orthogonal projection
+  onto that subspace.
+* `Submodule.adjoint_orthogonalProjectionOnto_toLinearMap`: the adjoint of restricted
+  orthogonal projection is subspace inclusion.
 * `Submodule.norm_starProjection_comp_starProjection_comm`: `‖P_U P_V‖ = ‖P_V P_U‖`.
 * `Submodule.finrank_range_comp_starProjection_le`: `rank (T P_U) ≤ dim U`.
 * `Submodule.finrank_inf_orthogonal_comm`: `dim (U ⊓ Vᗮ) = dim (V ⊓ Uᗮ)` when `dim U = dim V`.
@@ -250,7 +249,7 @@ theorem starProjection_mul_starProjection_sub_starProjection_sq :
 /-- The adjoint of the inclusion `U → E` is the orthogonal projection `E → U`.
 Both maps are regarded as finite-dimensional algebraic linear maps. -/
 @[simp]
-theorem adjoint_subtype_eq_orthogonalProjectionOnto [FiniteDimensional 𝕜 E] :
+theorem adjoint_subtype [FiniteDimensional 𝕜 E] :
     LinearMap.adjoint U.subtype = U.orthogonalProjectionOnto.toLinearMap := by
   rw [eq_comm]
   apply (LinearMap.eq_adjoint_iff
@@ -268,33 +267,7 @@ self-adjoint compressions, together with `LinearMap.adjoint_comp`. -/
 @[simp]
 theorem adjoint_orthogonalProjectionOnto_toLinearMap [FiniteDimensional 𝕜 E] :
     LinearMap.adjoint U.orthogonalProjectionOnto.toLinearMap = U.subtype := by
-  rw [← U.adjoint_subtype_eq_orthogonalProjectionOnto, LinearMap.adjoint_adjoint]
-
-/-- Taking adjoints transposes a cross-projection from `V` into `U`. -/
-theorem adjoint_cross_projection [FiniteDimensional 𝕜 E] :
-    LinearMap.adjoint
-        (U.orthogonalProjectionOnto.toLinearMap ∘ₗ V.subtype) =
-      V.orthogonalProjectionOnto.toLinearMap ∘ₗ U.subtype := by
-  exact ((LinearMap.eq_adjoint_iff _ _).2 fun w v => by simp).symm
-
-/-- The adjoint of a compression of a self-adjoint linear operator exchanges
-its source and target subspaces. -/
-theorem adjoint_cross_compression_of_adjoint_eq [FiniteDimensional 𝕜 E]
-    {H : E →ₗ[𝕜] E} (hH : LinearMap.adjoint H = H) :
-    LinearMap.adjoint
-        (U.orthogonalProjectionOnto.toLinearMap ∘ₗ
-          (H ∘ₗ V.subtype)) =
-      (V.orthogonalProjectionOnto.toLinearMap ∘ₗ H) ∘ₗ U.subtype := by
-  have hU : LinearMap.adjoint U.subtype =
-      U.orthogonalProjectionOnto.toLinearMap :=
-    U.adjoint_subtype_eq_orthogonalProjectionOnto
-  have hV : LinearMap.adjoint V.subtype =
-      V.orthogonalProjectionOnto.toLinearMap :=
-    V.adjoint_subtype_eq_orthogonalProjectionOnto
-  have hU' : LinearMap.adjoint U.orthogonalProjectionOnto.toLinearMap =
-      U.subtype := by
-    rw [← hU, LinearMap.adjoint_adjoint]
-  simp only [LinearMap.adjoint_comp, hH, hV, hU', LinearMap.comp_assoc]
+  rw [← U.adjoint_subtype, LinearMap.adjoint_adjoint]
 
 end Submodule
 

@@ -111,7 +111,7 @@ theorem kyFanSum_submodule_compression
       T.kyFanSum k := by
   have hU : LinearMap.adjoint U.subtypeₗᵢ.toLinearMap =
       U.orthogonalProjectionOnto.toLinearMap :=
-    U.adjoint_subtype_eq_orthogonalProjectionOnto
+    U.adjoint_subtype
   have hcomp :
       W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap =
         (W.subtypeₗᵢ.toLinearMap ∘ₗ T) ∘ₗ

@@ -6,6 +6,7 @@ Authors: Jon Crall, GPT-6
 module
 
 public import TauCeti.Analysis.InnerProductSpace.Projection.Basic
+public import TauCeti.Analysis.InnerProductSpace.Projection.AngleOperator
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Basic
 import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
 import Mathlib.Tactic.Module
@@ -20,8 +21,15 @@ the checkerboard operator `H P_U - P_V H` has seminorm at most that of `H`.
 The bound holds for every unitarily invariant seminorm, without spectral-gap
 assumptions. Two subspace reflections yield the sharp constant one.
 
-## Main result
+The sine-angle operator `|P_U - P_V|` and the projector difference have the
+same singular values and hence the same unitarily invariant seminorm.
 
+## Main results
+
+* `Submodule.singularValues_sinAngleOperator_eq_sub_starProjection`: the sine-angle
+  operator and the projector difference have identical singular values.
+* `TauCeti.UnitarilyInvariantSeminorm.map_sinAngleOperator_eq_map_sub_starProjection`:
+  their unitarily invariant seminorms agree.
 * `TauCeti.UnitarilyInvariantSeminorm.map_comp_starProjection_sub_starProjection_comp_le`:
   `N (H P_U - P_V H) ≤ N H`.
 
@@ -37,10 +45,40 @@ public section
 open Module
 open scoped InnerProductSpace
 
+namespace Submodule
+
+variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
+  [InnerProductSpace K E] [FiniteDimensional K E] [CompleteSpace E]
+
+/-- The symmetric sine-angle operator and the difference of the two
+orthogonal projections have identical singular values. -/
+theorem singularValues_sinAngleOperator_eq_sub_starProjection
+    (U V : Submodule K E) [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
+    ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E).singularValues =
+      (((U.starProjection - V.starProjection : E →L[K] E) : E →ₗ[K] E)).singularValues := by
+  apply LinearMap.singularValues_eq_of_norm_apply_eq
+  intro x
+  -- Translate algebraic coercions back to continuous-map applications.
+  change ‖U.sinAngleOperator V x‖ = ‖(U.starProjection - V.starProjection) x‖
+  simpa only [sub_apply] using U.norm_sinAngleOperator_apply V x
+
+end Submodule
+
 namespace TauCeti.UnitarilyInvariantSeminorm
 
 variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
   [InnerProductSpace K E]
+
+/-- The sine-angle operator and the projector difference have the same value
+in every unitarily invariant seminorm, without spectral-gap assumptions. -/
+theorem map_sinAngleOperator_eq_map_sub_starProjection
+    [FiniteDimensional K E] [CompleteSpace E]
+    (N : UnitarilyInvariantSeminorm K E E)
+    (U V : Submodule K E) [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
+    N ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E) =
+      N (((U.starProjection - V.starProjection : E →L[K] E) : E →ₗ[K] E)) :=
+  N.map_eq_of_singularValues_eq
+    (Submodule.singularValues_sinAngleOperator_eq_sub_starProjection U V)
 
 /-- **Checkerboard contraction.** For any `H`, the off-diagonal difference
 `H P_U - P_V H` has no larger unitarily invariant seminorm than `H`.
