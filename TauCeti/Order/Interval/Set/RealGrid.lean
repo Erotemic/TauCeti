@@ -8,6 +8,7 @@ module
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.Algebra.Order.Interval.Set.Group
 public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Order.ToIntervalMod
 
 /-!
 # Uniform interval grids on the real line
@@ -18,7 +19,7 @@ A point belongs to the cell indexed by `⌊s / ε⌋`, and the distance
 from a point to the cell's left endpoint is bounded by the width.
 
 Pairwise disjointness follows from Mathlib's `Set.pairwise_disjoint_Ico_zsmul`.
-Coverage follows by placing each real number in its floor-indexed cell.
+Coverage follows from Mathlib's `iUnion_Ico_zsmul`.
 The named grid-cell results provide a partition API for constructions that
 operate on this family. Borel measurability is developed in
 `TauCeti.MeasureTheory.Constructions.BorelSpace.Real`.
@@ -73,12 +74,10 @@ theorem mem_gridCell_floor {ε : ℝ} (hε : 0 < ε) (s : ℝ) :
   rw [mem_gridCell_iff_floor hε]
 
 /-- Positive-width grid cells cover the entire real line.
-Each point belongs to the cell indexed by the floor of its scaled value. -/
+This is Mathlib's integer-translate covering identity for the corresponding half-open intervals. -/
 theorem iUnion_gridCell {ε : ℝ} (hε : 0 < ε) :
     (⋃ k : ℤ, gridCell ε k) = univ := by
-  ext s
-  simp only [mem_iUnion, mem_univ, iff_true]
-  exact ⟨⌊s / ε⌋, mem_gridCell_floor hε s⟩
+  simpa only [gridCell] using (iUnion_Ico_zsmul hε)
 
 /-- A cell containing a point must have strictly positive width. -/
 theorem pos_of_mem_gridCell {ε : ℝ} {k : ℤ} {s : ℝ}
