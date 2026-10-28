@@ -636,6 +636,12 @@ def sinThetaEmbedding : Z →L[𝕜] E :=
   Uᗮ.starProjection ∘L Z.subtypeL
 
 omit [Z.HasOrthogonalProjection] [FiniteDimensional 𝕜 E] in
+/-- The directed sine embedding is orthogonal projection onto `Uᗮ`
+composed with the inclusion of `Z` into `E`. -/
+theorem sinThetaEmbedding_def :
+    Z.sinThetaEmbedding U = Uᗮ.starProjection ∘L Z.subtypeL := (rfl)
+
+omit [Z.HasOrthogonalProjection] [FiniteDimensional 𝕜 E] in
 /-- The directed sine embedding acts by projection onto `Uᗮ`. -/
 @[simp]
 theorem sinThetaEmbedding_apply (x : Z) :

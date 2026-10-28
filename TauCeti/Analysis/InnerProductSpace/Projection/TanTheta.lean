@@ -63,6 +63,19 @@ def tanThetaMap : Z →ₗ[𝕜] E :=
         (Real.tan (Real.arcsin (S.singularValues i)) : 𝕜))
 
 omit [Z.HasOrthogonalProjection] in
+/-- The tangent representative is inclusion after a diagonal operator in the right
+singular basis of the directed sine embedding. -/
+theorem tanThetaMap_def :
+    Z.tanThetaMap U =
+      Z.subtypeₗᵢ.toLinearMap ∘ₗ
+        Matrix.toLin
+          ((Z.sinThetaEmbedding U : Z →ₗ[𝕜] E).rightSingularBasis).toBasis
+          ((Z.sinThetaEmbedding U : Z →ₗ[𝕜] E).rightSingularBasis).toBasis
+          (Matrix.diagonal fun i ↦
+            (Real.tan (Real.arcsin
+              ((Z.sinThetaEmbedding U : Z →ₗ[𝕜] E).singularValues i)) : 𝕜)) := (rfl)
+
+omit [Z.HasOrthogonalProjection] in
 /-- The tangent representative scales each right singular vector of the directed sine
 embedding by the tangent of its corresponding principal angle. -/
 theorem tanThetaMap_apply_rightSingularBasis (i : Fin (finrank 𝕜 Z)) :
