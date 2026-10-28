@@ -49,7 +49,7 @@ A positive real raised to a finitely supported sum of exponents is the product o
 * `Real.pow_le_rpow_pow_of_le_mul`: `b ^ n ≤ (b ^ δ) ^ r` when `1 ≤ b` and `n ≤ δ r`.
 * `Real.image_rpow_Ioo_zero_one`: a positive power maps the open unit interval onto itself.
 * `Real.le_one_of_forall_pow_le_mul_rpow`: `r ≤ 1` when `r ^ n ≤ C * (1 + n) ^ s` for all `n`.
-* `TauCeti.exp_neg_mul_abs_isLittleO_rpow_cocompact`: a positive-rate exponential beats every
+* `TauCeti.exp_neg_mul_abs_isLittleO_abs_rpow_cocompact`: a positive-rate exponential beats every
   real power at both ends of the real line.
 * `Function.HasFiniteSupport.hasFiniteMulSupport_fun_rpow`: real powers with finitely supported
   exponents have finite multiplicative support.
@@ -138,7 +138,7 @@ namespace TauCeti
 Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in the AIQ/DKPS
 formalization (Apache-2.0; copyright 2026 Kitware, Inc.; authors Jon Crall and
 GPT 5.6 High). -/
-theorem exp_neg_mul_abs_isLittleO_rpow_cocompact {a : ℝ} (ha : 0 < a) (s : ℝ) :
+theorem exp_neg_mul_abs_isLittleO_abs_rpow_cocompact {a : ℝ} (ha : 0 < a) (s : ℝ) :
     (fun x : ℝ => Real.exp (-(a * |x|))) =o[cocompact ℝ]
       (fun x : ℝ => |x| ^ s) := by
   rw [cocompact_eq_atBot_atTop, isLittleO_sup]

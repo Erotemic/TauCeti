@@ -29,10 +29,8 @@ the line. Its real- and complex-valued forms supply decay estimates for Fourier 
 
 * `TauCeti.integral_exp_mul_I_mul_exp_neg_mul_abs`: the Lorentzian pairing;
 * `TauCeti.fourier_exp_neg_mul_abs`: the Fourier transform itself;
-* `TauCeti.cexp_neg_mul_abs_isLittleO_rpow_cocompact`: decay with a complex rate of
-  positive real part;
-* `TauCeti.ofReal_exp_neg_mul_abs_isLittleO_rpow_cocompact`: the complex-valued form of
-  the real exponential used by the Fourier transform.
+* `TauCeti.cexp_neg_mul_abs_isLittleO_abs_rpow_cocompact`: decay with a complex rate of
+  positive real part.
 -/
 
 public section
@@ -126,25 +124,13 @@ theorem fourier_exp_neg_mul_abs (ha : 0 < a) (ξ : ℝ) :
 has positive real part, then `exp (-(a * |x|))` is little-o of `|x| ^ s` as
 `|x|` tends to infinity, for every real `s`.
 
-The real-valued estimate is `exp_neg_mul_abs_isLittleO_rpow_cocompact`. -/
-theorem cexp_neg_mul_abs_isLittleO_rpow_cocompact
+The real-valued estimate is `exp_neg_mul_abs_isLittleO_abs_rpow_cocompact`. -/
+theorem cexp_neg_mul_abs_isLittleO_abs_rpow_cocompact
     {a : ℂ} (ha : 0 < a.re) (s : ℝ) :
     (fun x : ℝ => Complex.exp (-(a * |x|)))
       =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
   apply IsLittleO.of_norm_left
   simpa only [Complex.norm_exp, Complex.neg_re, Complex.re_mul_ofReal] using
-    (exp_neg_mul_abs_isLittleO_rpow_cocompact ha s)
-
-/-- **Fourier-compatible complex-valued exponential decay.** For a positive real rate,
-the complex embedding of `Real.exp (-(a * |x|))` is little-o of any real power of `|x|`.
-This is the symbol used by `fourier_exp_neg_mul_abs`. -/
-theorem ofReal_exp_neg_mul_abs_isLittleO_rpow_cocompact
-    {a : ℝ} (ha : 0 < a) (s : ℝ) :
-    (fun x : ℝ => (Real.exp (-(a * |x|)) : ℂ))
-      =o[cocompact ℝ] (fun x : ℝ => |x| ^ s) := by
-  apply IsLittleO.of_norm_left
-  simpa only [Complex.norm_real, Real.norm_eq_abs,
-    abs_of_pos (Real.exp_pos _)] using
-    (exp_neg_mul_abs_isLittleO_rpow_cocompact ha s)
+    (exp_neg_mul_abs_isLittleO_abs_rpow_cocompact ha s)
 
 end TauCeti
