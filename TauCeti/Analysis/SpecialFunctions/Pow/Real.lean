@@ -7,7 +7,6 @@ module
 
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Topology.Order.Compact
 
 /-!
 # Real powers
@@ -141,19 +140,8 @@ GPT 5.6 High). -/
 theorem exp_neg_mul_abs_isLittleO_abs_rpow_cocompact {a : ℝ} (ha : 0 < a) (s : ℝ) :
     (fun x : ℝ => Real.exp (-(a * |x|))) =o[cocompact ℝ]
       (fun x : ℝ => |x| ^ s) := by
-  rw [cocompact_eq_atBot_atTop, isLittleO_sup]
-  constructor
-  · have h := (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
-      tendsto_neg_atBot_atTop
-    refine h.congr' ?_ ?_
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-    · filter_upwards [eventually_lt_atBot 0] with x hx
-      simp [abs_of_neg hx]
-  · refine (isLittleO_exp_neg_mul_rpow_atTop ha s).congr' ?_ ?_
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      simp [abs_of_pos hx]
+  simpa only [Function.comp_def, Real.norm_eq_abs, neg_mul] using
+    (isLittleO_exp_neg_mul_rpow_atTop ha s).comp_tendsto
+      (tendsto_norm_cocompact_atTop (E := ℝ))
 
 end TauCeti
