@@ -52,6 +52,7 @@ variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
 
 /-- The symmetric sine-angle operator and the difference of the two
 orthogonal projections have identical singular values. -/
+@[simp]
 theorem singularValues_sinAngleOperator_eq_sub_starProjection
     (U V : Submodule K E) [U.HasOrthogonalProjection] [V.HasOrthogonalProjection] :
     ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E).singularValues =
@@ -71,6 +72,7 @@ variable {K E : Type*} [RCLike K] [NormedAddCommGroup E]
 
 /-- The sine-angle operator and the projector difference have the same value
 in every unitarily invariant seminorm, without spectral-gap assumptions. -/
+@[simp]
 theorem map_sinAngleOperator_eq_map_sub_starProjection
     [FiniteDimensional K E] [CompleteSpace E]
     (N : UnitarilyInvariantSeminorm K E E)
