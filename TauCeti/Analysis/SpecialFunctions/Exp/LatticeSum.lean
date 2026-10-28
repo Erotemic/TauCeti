@@ -83,17 +83,8 @@ theorem tsum_int_exp_neg_mul_abs {a : ℝ} (ha : 0 < a) :
   have hpnat :
       (∑' n : ℕ+, f (n : ℤ)) =
         ∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ))) := by
-    calc
-      (∑' n : ℕ+, f (n : ℤ)) = ∑' n : ℕ, f (Nat.succPNat n : ℤ) :=
-        (Equiv.pnatEquivNat.symm.tsum_eq (fun n : ℕ+ => f (n : ℤ))).symm
-      _ = ∑' n : ℕ, Real.exp (-(a * (n + 1 : ℕ))) := by
-        apply tsum_congr
-        intro n
-        have hcast : (((Nat.succPNat n : ℤ) : ℝ)) = (n : ℝ) + 1 := by
-          simp [Nat.succPNat_coe]
-        simp only [f]
-        rw [hcast, abs_of_nonneg (by positivity)]
-        all_goals simp
+    simpa [f] using
+      (tsum_pnat_eq_tsum_succ (f := fun n : ℕ => Real.exp (-(a * (n : ℝ)))))
   calc
     (∑' n : ℤ, Real.exp (-(a * |(n : ℝ)|))) =
         f 0 + 2 • ∑' n : ℕ+, f (n : ℤ) :=
