@@ -109,94 +109,7 @@ theorem norm_starProjection_orthogonal_spanIndices_sq [DecidableEq ι]
   rw [(b.orthonormal.comp _ Subtype.val_injective).norm_starProjection_sq_eq_sum hc]
   exact Finset.sum_coe_sort sᶜ fun k ↦ ‖⟪b k, x⟫_𝕜‖ ^ 2
 
-/-- For an arbitrary target subspace `U`, the squared Frobenius sine from a
-coordinate block of an orthonormal basis `b` to `U` is the total squared
-orthogonal projection of the selected vectors onto `Uᗮ`. -/
-private theorem sq_sinThetaFrobenius_spanIndices_eq_sum_projection (b : OrthonormalBasis ι 𝕜 E)
-    (s : Finset ι) (U : Submodule 𝕜 E) [U.HasOrthogonalProjection] :
-    letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
-    (b.spanIndices (↑s : Set ι)).sinThetaFrobenius U ^ 2 =
-      ∑ j ∈ s, ‖Uᗮ.starProjection (b j)‖ ^ 2 := by
-  classical
-  have : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
-  set V := b.spanIndices (↑s : Set ι) with hV
-  have hb (j : ι) :
-      (V.sinThetaMap U) (b j) =
-        if j ∈ s then Uᗮ.starProjection (b j) else 0 := by
-    by_cases hj : j ∈ s
-    · simp [hj, Submodule.sinThetaMap_apply,
-        V.starProjection_eq_self_iff.mpr (b.mem_spanIndices_of_mem hj)]
-    · have horth : b j ∈ Vᗮ := by
-        rw [b.orthogonal_spanIndices]
-        exact b.mem_spanIndices_of_mem (by simpa using hj)
-      simp [hj, Submodule.sinThetaMap_apply,
-        V.starProjection_apply_eq_zero_iff.mpr horth]
-  calc
-    V.sinThetaFrobenius U ^ 2 =
-        ∑ j, ‖(V.sinThetaMap U) (b j)‖ ^ 2 := by
-          rw [Submodule.sinThetaFrobenius_def]
-          exact TauCeti.UnitarilyInvariantSeminorm.sq_frobenius_apply b _
-    _ = ∑ j ∈ s, ‖(V.sinThetaMap U) (b j)‖ ^ 2 := by
-          exact (Finset.sum_subset (Finset.subset_univ s)
-            (by
-              intro j _ hj
-              rw [hb j]
-              simp [hj])).symm
-    _ = ∑ j ∈ s, ‖Uᗮ.starProjection (b j)‖ ^ 2 := by
-          exact Finset.sum_congr rfl fun j hj ↦ by
-            rw [hb j]
-            simp [hj]
-
 end OrthonormalBasis
-
-namespace Submodule
-
-variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductSpace 𝕜 E]
-  [FiniteDimensional 𝕜 E]
-
-/-- For any finite orthonormal family spanning `V`, the squared Frobenius sine
-from `V` to `U` is the sum of the squared orthogonal projections of its vectors
-onto `Uᗮ`. In particular, the value does not depend on the chosen family. -/
-theorem sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal
-    (V U : Submodule 𝕜 E) [V.HasOrthogonalProjection] [U.HasOrthogonalProjection]
-    {κ : Type*} [Fintype κ] {v : κ → E} (hv : Orthonormal 𝕜 v)
-    (hV : Submodule.span 𝕜 (Set.range v) = V) :
-    V.sinThetaFrobenius U ^ 2 = ∑ j, ‖Uᗮ.starProjection (v j)‖ ^ 2 := by
-  classical
-  have hvinj : Function.Injective v := hv.linearIndependent.injective
-  have hvRange : Orthonormal 𝕜 ((↑) : Set.range v → E) :=
-    (orthonormal_subtype_range hvinj).mpr hv
-  obtain ⟨t, b, hsubset, hb⟩ := hvRange.exists_orthonormalBasis_extension
-  let e : κ ↪ t :=
-    ⟨fun j => ⟨v j, hsubset (Set.mem_range_self j)⟩,
-      fun i j hij => hvinj (congrArg Subtype.val hij)⟩
-  set s : Finset t := Finset.univ.image e with hs
-  have hbe (j : κ) : b (e j) = v j := by
-    calc
-      b (e j) = (e j : E) := congrFun hb (e j)
-      _ = v j := rfl
-  have hset : b '' (↑s : Set t) = Set.range v := by
-    ext x
-    constructor
-    · rintro ⟨i, hi, rfl⟩
-      obtain ⟨j, _, rfl⟩ := Finset.mem_image.mp (Finset.mem_coe.mp hi)
-      exact ⟨j, (hbe j).symm⟩
-    · rintro ⟨j, rfl⟩
-      refine ⟨e j, ?_, hbe j⟩
-      exact Finset.mem_coe.mpr (Finset.mem_image.mpr
-        ⟨j, Finset.mem_univ _, rfl⟩)
-  have hsV : b.spanIndices (↑s : Set t) = V := by
-    rw [b.spanIndices_eq_span, hset, hV]
-  have hproj := b.sq_sinThetaFrobenius_spanIndices_eq_sum_projection s U
-  rw [hsV] at hproj
-  calc
-    V.sinThetaFrobenius U ^ 2 =
-        ∑ i ∈ s, ‖Uᗮ.starProjection (b i)‖ ^ 2 := hproj
-    _ = ∑ j : κ, ‖Uᗮ.starProjection (v j)‖ ^ 2 := by
-      rw [hs, Finset.sum_image (fun i _ j _ hij => e.injective hij)]
-      exact Finset.sum_congr rfl fun j _ => by rw [hbe j]
-
-end Submodule
 
 namespace TauCeti
 
@@ -445,8 +358,18 @@ theorem sq_sinThetaFrobenius_spanIndices (a : OrthonormalBasis ι 𝕜 E)
     (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
         (a.spanIndices (↑s : Set ι)) ^ 2 =
       ∑ j ∈ t, ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 := by
-        exact b.sq_sinThetaFrobenius_spanIndices_eq_sum_projection t
-          (a.spanIndices (↑s : Set ι))
+        calc
+          (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
+              (a.spanIndices (↑s : Set ι)) ^ 2 =
+              ∑ j : (↑t : Set κ),
+                ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 :=
+            (b.spanIndices (↑t : Set κ)).sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal
+              (a.spanIndices (↑s : Set ι))
+              (b.orthonormal.comp _ Subtype.val_injective)
+              (b.span_range_comp_subtypeVal_eq_spanIndices (↑t : Set κ))
+          _ = ∑ j ∈ t, ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 :=
+            Finset.sum_coe_sort t
+              (fun j : κ => ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2)
     _ = ∑ j ∈ t, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
       exact Finset.sum_congr rfl fun j _ =>
         a.norm_starProjection_orthogonal_spanIndices_sq s (b j)
