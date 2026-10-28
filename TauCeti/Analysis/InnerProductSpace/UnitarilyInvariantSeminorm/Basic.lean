@@ -62,6 +62,8 @@ values:
 * `TauCeti.UnitarilyInvariantSeminorm.arrowCongr`: transport along isometric isomorphisms of the
   source and the target.
 * `TauCeti.UnitarilyInvariantSeminorm.compAdjoint`: the seminorm `B ↦ N B†` on the adjoint maps.
+* `TauCeti.UnitarilyInvariantSeminorm.compress`: a unitarily invariant seminorm on maps
+  between subspaces, evaluated via isometric zero extension.
 * `TauCeti.UnitarilyInvariantSeminorm.map_operatorAbs`: on endomorphisms, `N |A| = N A` for the
   operator modulus `|A| = √(A† A)`.
 
@@ -404,6 +406,108 @@ theorem compAdjoint_compAdjoint : N.compAdjoint.compAdjoint = N := by
   simp
 
 end Adjoint
+
+/-! ### Compression to finite-dimensional subspace blocks -/
+
+section Compression
+
+variable [FiniteDimensional 𝕜 E] [FiniteDimensional 𝕜 F]
+  (S : Submodule 𝕜 F) (T : Submodule 𝕜 E)
+  [S.HasOrthogonalProjection] [T.HasOrthogonalProjection]
+
+/-- Zero extension of `X : T → S` to an operator `E → F`, by projecting onto
+`T`, applying `X`, and including the result in `F`. -/
+noncomputable def blockExtend : (T →ₗ[𝕜] S) →ₗ[𝕜] (E →ₗ[𝕜] F) :=
+  { toFun := fun X => S.subtype ∘ₗ X ∘ₗ T.orthogonalProjectionOnto.toLinearMap
+    map_add' := by
+      intro X Y
+      ext x
+      simp only [LinearMap.comp_apply, LinearMap.add_apply, map_add]
+    map_smul' := by
+      intro c X
+      ext x
+      simp only [LinearMap.comp_apply, LinearMap.smul_apply, map_smul, RingHom.id_apply] }
+
+omit [FiniteDimensional 𝕜 E] [FiniteDimensional 𝕜 F] [S.HasOrthogonalProjection] in
+@[simp]
+theorem blockExtend_apply (X : T →ₗ[𝕜] S) (x : E) :
+    blockExtend S T X x = (X (T.orthogonalProjectionOnto x) : F) := by
+  simp [blockExtend]
+
+omit [S.HasOrthogonalProjection] in
+/-- Zero extension by isometric inclusion and orthogonal projection preserves
+all singular values, including multiplicities and trailing zeros. -/
+@[simp]
+theorem blockExtend_singularValues (X : T →ₗ[𝕜] S) :
+    (blockExtend S T X).singularValues = X.singularValues := by
+  let : CompleteSpace E := FiniteDimensional.complete 𝕜 E
+  let : CompleteSpace T := FiniteDimensional.complete 𝕜 T
+  have hadj : LinearMap.adjoint T.subtypeₗᵢ.toLinearMap =
+      T.orthogonalProjectionOnto.toLinearMap := by
+    have hsubtype : T.subtypeₗᵢ.toLinearMap.toContinuousLinearMap = T.subtypeL := by
+      ext x
+      rfl
+    rw [LinearMap.adjoint_eq_toCLM_adjoint, hsubtype, T.adjoint_subtypeL]
+  -- The isometric inclusion and the adjoint inclusion preserve singular values.
+  change (S.subtypeₗᵢ.toLinearMap ∘ₗ X ∘ₗ
+    T.orthogonalProjectionOnto.toLinearMap).singularValues = X.singularValues
+  rw [← hadj]
+  -- Express the inclusion as the underlying map of the isometric embedding;
+  -- then both singular-value invariance lemmas match explicitly.
+  change (S.subtypeₗᵢ.toLinearMap ∘ₗ X ∘ₗ
+    LinearMap.adjoint T.subtypeₗᵢ.toLinearMap).singularValues = X.singularValues
+  simp only [LinearMap.singularValues_linearIsometry_comp,
+    LinearMap.singularValues_comp_adjoint_linearIsometry]
+
+omit [FiniteDimensional 𝕜 E] [FiniteDimensional 𝕜 F] in
+/-- An operator with range in `S` and vanishing on `Tᗮ` is the zero
+extension of its compression to `T → S`. -/
+theorem blockExtend_orthogonalProjection_comp_eq_of_mem (X : E →ₗ[𝕜] F)
+    (hXS : ∀ x, X x ∈ S) (hXT : ∀ x ∈ Tᗮ, X x = 0) :
+    blockExtend S T
+      (S.orthogonalProjectionOnto.toLinearMap ∘ₗ X ∘ₗ T.subtypeL.toLinearMap) = X := by
+  ext x
+  -- Expand the named extension and identify the inclusion of the projected vector.
+  change S.starProjection (X (T.starProjection x)) = X x
+  rw [S.starProjection_eq_self_iff.mpr (hXS _)]
+  have hz : X (x - T.starProjection x) = 0 :=
+    hXT _ (T.sub_starProjection_mem_orthogonal x)
+  have hx : X x - X (T.starProjection x) = 0 := by
+    simpa only [map_sub] using hz
+  exact (sub_eq_zero.mp hx).symm
+
+/-- Restrict an ambient unitarily invariant seminorm to rectangular maps
+between subspaces, measuring a map by its zero extension. -/
+noncomputable def compress (N : UnitarilyInvariantSeminorm 𝕜 E F)
+    (S : Submodule 𝕜 F) (T : Submodule 𝕜 E)
+    [S.HasOrthogonalProjection] [T.HasOrthogonalProjection] :
+    UnitarilyInvariantSeminorm 𝕜 T S where
+  toSeminorm := N.toSeminorm.comp (blockExtend S T)
+  map_linearIsometryEquiv_comp_comp' L R X := by
+    -- Compression is unitarily invariant because zero extension preserves singular values.
+    change N (blockExtend S T ((L : S →ₗ[𝕜] S) ∘ₗ X ∘ₗ (R : T →ₗ[𝕜] T))) =
+      N (blockExtend S T X)
+    apply N.map_eq_of_singularValues_eq
+    calc
+      (blockExtend S T ((L : S →ₗ[𝕜] S) ∘ₗ X ∘ₗ (R : T →ₗ[𝕜] T))).singularValues =
+          ((L : S →ₗ[𝕜] S) ∘ₗ X ∘ₗ (R : T →ₗ[𝕜] T)).singularValues :=
+        blockExtend_singularValues S T _
+      _ = X.singularValues := by simp
+      _ = (blockExtend S T X).singularValues := (blockExtend_singularValues S T X).symm
+
+@[simp]
+theorem compress_apply (N : UnitarilyInvariantSeminorm 𝕜 E F)
+    (S : Submodule 𝕜 F) (T : Submodule 𝕜 E)
+    [S.HasOrthogonalProjection] [T.HasOrthogonalProjection] (X : T →ₗ[𝕜] S) :
+    N.compress S T X = N (blockExtend S T X) := by
+  calc
+    N.compress S T X = (N.compress S T).toSeminorm X :=
+      (congrFun (coe_toSeminorm (N.compress S T)) X).symm
+    _ = N (blockExtend S T X) := by
+      change (N.toSeminorm.comp (blockExtend S T)) X = N (blockExtend S T X)
+      rw [Seminorm.comp_apply, coe_toSeminorm]
+
+end Compression
 
 /-! ### The operator modulus -/
 

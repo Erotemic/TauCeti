@@ -73,7 +73,7 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
 
 omit [FiniteDimensional 𝕜 E] in
 /-- The orthogonal complement of a subspace invariant under a symmetric operator is invariant. -/
-private theorem apply_mem_orthogonal_of_isSymmetric {A : E →L[𝕜] E}
+theorem apply_mem_orthogonal_of_isSymmetric {A : E →L[𝕜] E}
     (hA : (A : E →ₗ[𝕜] E).IsSymmetric) {U : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U) :
     ∀ x ∈ Uᗮ, A x ∈ Uᗮ := fun _ hx ↦
   hA.orthogonalComplement_mem_invtSubmodule (p := U) (fun y hy ↦ hU y hy) hx
@@ -106,7 +106,7 @@ theorem mul_map_starProjection_comp_le_map_sylvester_apply (N : UnitarilyInvaria
 /-- On the directed sine map `P_{Vᗮ} P_U` from an `A`-invariant subspace `U` towards a
 `B`-invariant subspace `V`, the Sylvester operator `Y ↦ B Y - Y A` is `P_{Vᗮ} (B - A) P_U`, so
 its unitarily invariant seminorm is at most `N(B - A)`. -/
-private theorem map_sylvester_starProjection_comp_starProjection_le
+theorem map_sylvester_starProjection_comp_starProjection_le
     (N : UnitarilyInvariantSeminorm 𝕜 E E) {A B : E →L[𝕜] E} (hA : (A : E →ₗ[𝕜] E).IsSymmetric)
     (hB : (B : E →ₗ[𝕜] E).IsSymmetric) {U V : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U)
     (hV : ∀ x ∈ V, B x ∈ V) :
