@@ -14,18 +14,19 @@ public import TauCeti.Analysis.OperatorIdeal.Family.SymmetricGauge
 
 The family of operator-ideal gauges induced by a symmetric gauge determines its
 extension to every antitone `ℝ≥0∞`-valued sequence. In particular, equality
-of induced complex operator-ideal families implies equality of the extended
-gauges on all such sequences.
+of induced operator-ideal families over any `RCLike` scalar field implies equality
+of the extended gauges on all such sequences.
 
 When the initial entry is finite, every entry is finite by antitonicity, and
-a diagonal operator on complex `ℓ²` realizes the sequence of entries as its
+a diagonal operator on `ℓ²` realizes the sequence of entries as its
 approximation numbers. When the initial entry is `⊤`, each extended gauge is
 `⊤` by its lower bound from the supremum of the sequence.
 
 ## Main result
 
 * `TauCeti.SymmetricGauge.extend_eq_of_operatorIdealFamily_eq`: equality of induced
-  complex operator-ideal families determines the extended gauges on antitone sequences.
+  operator-ideal families over any `RCLike` field determines the extended gauges on
+  antitone sequences.
 
 ## Provenance
 
@@ -40,11 +41,12 @@ open scoped ENNReal NNReal lp
 namespace TauCeti
 namespace SymmetricGauge
 
-/-- Two symmetric gauges that induce the same complex operator-ideal family
-have equal extensions on every antitone `ℝ≥0∞`-valued sequence. -/
+/-- Two symmetric gauges that induce the same operator-ideal family over a
+`RCLike` scalar field have equal extensions on every antitone `ℝ≥0∞`-valued sequence. -/
 theorem extend_eq_of_operatorIdealFamily_eq
+    {𝕜 : Type} [RCLike 𝕜]
     {Φ Ψ : SymmetricGauge}
-    (h : Φ.operatorIdealFamily.{0, 0, 0} ℂ = Ψ.operatorIdealFamily.{0, 0, 0} ℂ)
+    (h : Φ.operatorIdealFamily.{0, 0, 0} 𝕜 = Ψ.operatorIdealFamily.{0, 0, 0} 𝕜)
     {a : ℕ → ℝ≥0∞} (ha : Antitone a) :
     Φ.extend a = Ψ.extend a := by
   classical
@@ -66,15 +68,15 @@ theorem extend_eq_of_operatorIdealFamily_eq
       apply ENNReal.coe_le_coe.mp
       simpa only [hc] using ha hij
     obtain ⟨d, hd⟩ :=
-      lp.exists_singularValue_diagonalCLM_eq (p := 2) (𝕜 := ℂ) hcanti
-    let T : ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) := lp.diagonalCLM d
+      lp.exists_singularValue_diagonalCLM_eq (p := 2) (𝕜 := 𝕜) hcanti
+    let T : ℓ²(ℕ, 𝕜) →L[𝕜] ℓ²(ℕ, 𝕜) := lp.diagonalCLM d
     have hs : (fun n => (T.singularValue n : ℝ≥0∞)) = a := by
       funext n
       dsimp only [T]
       rw [congrFun hd n]
       exact hc n
     have heq := congrArg
-      (fun F : OperatorIdealFamily.{0, 0, 0} ℂ => F.gauge T) h
+      (fun F : OperatorIdealFamily.{0, 0, 0} 𝕜 => F.gauge T) h
     simp only [operatorIdealFamily_gauge] at heq
     simpa only [opGauge_def, hs] using heq
 
