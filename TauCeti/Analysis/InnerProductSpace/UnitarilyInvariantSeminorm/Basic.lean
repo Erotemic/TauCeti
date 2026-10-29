@@ -480,7 +480,7 @@ theorem blockExtend_orthogonalProjection_comp_eq_of_mem (X : E →ₗ[𝕜] F)
 between subspaces, measuring a map by its zero extension. -/
 noncomputable def compress (N : UnitarilyInvariantSeminorm 𝕜 E F)
     (S : Submodule 𝕜 F) (T : Submodule 𝕜 E)
-    [S.HasOrthogonalProjection] [T.HasOrthogonalProjection] :
+    [T.HasOrthogonalProjection] :
     UnitarilyInvariantSeminorm 𝕜 T S where
   toSeminorm := N.toSeminorm.comp (blockExtend S T)
   map_linearIsometryEquiv_comp_comp' L R X := by
@@ -498,7 +498,7 @@ noncomputable def compress (N : UnitarilyInvariantSeminorm 𝕜 E F)
 @[simp]
 theorem compress_apply (N : UnitarilyInvariantSeminorm 𝕜 E F)
     (S : Submodule 𝕜 F) (T : Submodule 𝕜 E)
-    [S.HasOrthogonalProjection] [T.HasOrthogonalProjection] (X : T →ₗ[𝕜] S) :
+    [T.HasOrthogonalProjection] (X : T →ₗ[𝕜] S) :
     N.compress S T X = N (blockExtend S T X) := by
   calc
     N.compress S T X = (N.compress S T).toSeminorm X :=
