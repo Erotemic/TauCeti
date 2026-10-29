@@ -134,9 +134,9 @@ namespace TauCeti
 /-- **Rapid decay of the two-sided real exponential.** For any positive real rate `a`,
 `exp (-(a * |x|))` is little-o of `|x| ^ s` at `cocompact ℝ`, for every real exponent `s`.
 
-Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in the AIQ/DKPS
-formalization (Apache-2.0; copyright 2026 Kitware, Inc.; authors Jon Crall and
-GPT 5.6 High). -/
+Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in
+[AIQ-Kitware/aiq-dkps-formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+(Apache-2.0; copyright 2026 Kitware, Inc.; authors Jon Crall and GPT 5.6 High). -/
 theorem exp_neg_mul_abs_isLittleO_abs_rpow_cocompact {a : ℝ} (ha : 0 < a) (s : ℝ) :
     (fun x : ℝ => Real.exp (-(a * |x|))) =o[cocompact ℝ]
       (fun x : ℝ => |x| ^ s) := by

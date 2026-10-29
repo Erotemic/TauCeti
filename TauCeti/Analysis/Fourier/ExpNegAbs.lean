@@ -124,7 +124,11 @@ theorem fourier_exp_neg_mul_abs (ha : 0 < a) (ξ : ℝ) :
 has positive real part, then `exp (-(a * |x|))` is little-o of `|x| ^ s` as
 `|x|` tends to infinity, for every real `s`.
 
-The real-valued estimate is `exp_neg_mul_abs_isLittleO_abs_rpow_cocompact`. -/
+The real-valued estimate is `exp_neg_mul_abs_isLittleO_abs_rpow_cocompact`.
+
+Adapted from `ForTauCeti/Analysis/Fourier/ExponentialAbs.lean` in
+[AIQ-Kitware/aiq-dkps-formalization](https://github.com/AIQ-Kitware/aiq-dkps-formalization)
+(Apache-2.0; copyright 2026 Kitware, Inc.; authors Jon Crall and GPT 5.6 High). -/
 theorem cexp_neg_mul_abs_isLittleO_abs_rpow_cocompact
     {a : ℂ} (ha : 0 < a.re) (s : ℝ) :
     (fun x : ℝ => Complex.exp (-(a * |x|)))
