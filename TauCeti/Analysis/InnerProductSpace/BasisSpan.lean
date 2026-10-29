@@ -27,6 +27,9 @@ subspace spanned by the corresponding basis vectors.
 * `OrthonormalBasis.finrank_spanIndices`: the dimension of a selected finite span.
 * `OrthonormalBasis.finrank_spanIndices_set`: dimension as set cardinality.
 * `OrthonormalBasis.orthogonal_spanIndices`: orthogonal complement by index complement.
+* `OrthonormalBasis.norm_starProjection_orthogonal_spanIndices_sq`: the squared norm of
+  the projection onto the complementary coordinate block is the sum of squared inner products
+  with the complementary basis vectors.
 
 ## Source
 
@@ -164,6 +167,48 @@ theorem orthogonal_spanIndices (b : OrthonormalBasis ι 𝕜 E) (s : Set ι) :
       omega
     simp only [Set.ncard_eq_toFinset_card'] at h2 h3
     omega
+
+/-- The squared norm of the projection onto the complement of a coordinate block
+is the sum of squared inner products with the complementary basis vectors. -/
+theorem norm_starProjection_orthogonal_spanIndices_sq [DecidableEq ι]
+    (b : OrthonormalBasis ι 𝕜 E) (s : Finset ι) (x : E) :
+    letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
+    ‖(b.spanIndices (↑s : Set ι))ᗮ.starProjection x‖ ^ 2 =
+      ∑ k ∈ sᶜ, ‖⟪b k, x⟫_𝕜‖ ^ 2 := by
+  have : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
+  let U : Submodule 𝕜 E := b.spanIndices (↑s : Set ι)
+  let V : Submodule 𝕜 E := Uᗮ
+  have hV : V = b.spanIndices (↑(sᶜ) : Set ι) := by
+    simpa only [V, U, Finset.coe_compl] using
+      b.orthogonal_spanIndices (↑s : Set ι)
+  have hmem : V.starProjection x ∈ b.spanIndices (↑(sᶜ) : Set ι) := by
+    rw [← hV]
+    exact V.starProjection_apply_mem x
+  have hzero (i : ι) (hi : i ∈ s) :
+      ⟪b i, V.starProjection x⟫_𝕜 = 0 := by
+    have hi' : i ∉ (↑(sᶜ) : Set ι) := by simpa using hi
+    simpa only [b.repr_apply_apply] using
+      b.repr_eq_zero_of_mem_spanIndices hmem hi'
+  have hkeep (i : ι) (hi : i ∈ sᶜ) :
+      ⟪b i, V.starProjection x⟫_𝕜 = ⟪b i, x⟫_𝕜 := by
+    have hiV : b i ∈ V := by
+      rw [hV]
+      exact b.mem_spanIndices_of_mem (by simpa using hi)
+    calc
+      ⟪b i, V.starProjection x⟫_𝕜 = ⟪V.starProjection (b i), x⟫_𝕜 :=
+        (V.inner_starProjection_left_eq_right (b i) x).symm
+      _ = ⟪b i, x⟫_𝕜 := by rw [V.starProjection_eq_self_iff.mpr hiV]
+  calc
+    ‖V.starProjection x‖ ^ 2 = ∑ i, ‖⟪b i, V.starProjection x⟫_𝕜‖ ^ 2 :=
+      (b.sum_sq_norm_inner_right _).symm
+    _ = ∑ i, if i ∈ sᶜ then ‖⟪b i, x⟫_𝕜‖ ^ 2 else 0 := by
+      refine Finset.sum_congr rfl fun i _ ↦ ?_
+      by_cases hi : i ∈ sᶜ
+      · simp [hi, hkeep i hi]
+      · have hs : i ∈ s := by simpa using hi
+        simp [hi, hzero i hs]
+    _ = ∑ i ∈ sᶜ, ‖⟪b i, x⟫_𝕜‖ ^ 2 := by
+      simp only [Finset.sum_ite_mem, Finset.univ_inter]
 
 /-- A vector orthogonal to the first `n` basis vectors lies in the remaining span. -/
 theorem mem_spanIndices_le_of_mem_orthogonal {m : ℕ} (b : OrthonormalBasis (Fin m) 𝕜 E)
