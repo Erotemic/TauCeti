@@ -33,7 +33,8 @@ contraction for two orthogonal projections gives the final bound.
 
 Both results assume invariance of the selected subspaces and interval/exterior
 spectral separation in each direction. No common diagonalization or equality
-of the selected subspace dimensions is assumed.
+of the selected subspace dimensions is assumed. The inequalities also hold for
+nonpositive gap parameters.
 
 ## Source
 
@@ -130,8 +131,8 @@ private theorem kyFanSum_cross_block_le
           (W.orthogonalProjectionOnto.toLinearMap ∘ₗ
             (((B - A : E →L[K] E) : E →ₗ[K] E) ∘ₗ U.subtype)) ∘ₗ
           U.orthogonalProjectionOnto.toLinearMap) x := rfl
-  rw [hx, hc, LinearMap.kyFanSum_submodule_compression,
-    LinearMap.kyFanSum_submodule_compression] at hky
+  rw [hx, hc, LinearMap.kyFanSum_subtype_comp_comp_orthogonalProjectionOnto,
+    LinearMap.kyFanSum_subtype_comp_comp_orthogonalProjectionOnto] at hky
   exact hky
 
 namespace UnitarilyInvariantSeminorm
@@ -153,7 +154,7 @@ theorem mul_map_sub_starProjection_le_map_sub
     [V.HasOrthogonalProjection]
     (hU : forall x, x ∈ U -> A x ∈ U)
     (hV : forall x, x ∈ V -> B x ∈ V)
-    {a b c d delta : ℝ} (hdelta : 0 < delta)
+    {a b c d delta : ℝ}
     (hgapUV : Module.End.PointIntervalExteriorGap
       (A : E →ₗ[K] E) U (B : E →ₗ[K] E) Vᗮ a b delta)
     (hgapVU : Module.End.PointIntervalExteriorGap
@@ -161,12 +162,18 @@ theorem mul_map_sub_starProjection_le_map_sub
     delta * N (((U.starProjection - V.starProjection : E →L[K] E) : E →ₗ[K] E)) ≤
       N ((B - A : E →L[K] E) : E →ₗ[K] E) := by
   classical
+  -- For nonpositive gaps the estimate follows from nonnegativity of the seminorm.
+  rcases le_or_gt delta 0 with hdelta | hdelta
+  · exact (mul_nonpos_of_nonpos_of_nonneg hdelta (apply_nonneg N _)).trans
+      (apply_nonneg N _)
+  -- Symmetry preserves the orthogonal complements of the selected subspaces.
   have hUperp : forall x, x ∈ Uᗮ -> A x ∈ Uᗮ :=
     fun _ hx => hA.orthogonalComplement_mem_invtSubmodule
       (p := U) (fun y hy => hU y hy) hx
   have hVperp : forall x, x ∈ Vᗮ -> B x ∈ Vᗮ :=
     fun _ hx => hB.orthogonalComplement_mem_invtSubmodule
       (p := V) (fun y hy => hV y hy) hx
+  -- Assemble the two directed cross-projection and residual blocks.
   let XUV : U →ₗ[K] Vᗮ :=
     Vᗮ.orthogonalProjectionOnto.toLinearMap ∘ₗ U.subtype
   let CUV : U →ₗ[K] Vᗮ :=
@@ -177,6 +184,7 @@ theorem mul_map_sub_starProjection_le_map_sub
   let CVU : V →ₗ[K] Uᗮ :=
     Uᗮ.orthogonalProjectionOnto.toLinearMap ∘ₗ
       (((A - B : E →L[K] E) : E →ₗ[K] E) ∘ₗ V.subtype)
+  -- The two spectral-gap hypotheses bound each directed block in every Ky Fan sum.
   have hkyUV (k : Nat) :
       (((delta : ℝ) : K) • XUV).kyFanSum k ≤ CUV.kyFanSum k := by
     rw [LinearMap.kyFanSum_smul, RCLike.norm_ofReal,
@@ -189,6 +197,8 @@ theorem mul_map_sub_starProjection_le_map_sub
       abs_of_nonneg hdelta.le, LinearMap.kyFanSum_neg,
       LinearMap.kyFanSum_adjoint, LinearMap.kyFanSum_adjoint]
     exact kyFanSum_cross_block_le hB hA hV hUperp hgapVU k
+  -- Orthogonal decompositions put both directed bounds on the diagonal of
+  -- a block operator; block-sum majorization preserves constant one.
   let EU : E ≃ₗᵢ[K] WithLp 2 (U × Uᗮ) := U.orthogonalDecomposition
   let EV : E ≃ₗᵢ[K] WithLp 2 (Vᗮ × V) :=
     V.orthogonalDecomposition.trans
@@ -212,6 +222,7 @@ theorem mul_map_sub_starProjection_le_map_sub
     rw [← hsmul, map_smul_eq_mul, RCLike.norm_ofReal,
       abs_of_nonneg hdelta.le] at h
     exact h
+  -- Lift the block estimate back to the ambient space through the isometries.
   let liftBlock :
       (WithLp 2 (U × Uᗮ) →ₗ[K] WithLp 2 (Vᗮ × V)) ->
         (E →ₗ[K] E) := fun T =>
@@ -220,6 +231,7 @@ theorem mul_map_sub_starProjection_le_map_sub
   have hNB_apply (T : WithLp 2 (U × Uᗮ) →ₗ[K]
       WithLp 2 (Vᗮ × V)) : NB T = N (liftBlock T) := by
     simp only [NB, liftBlock, UnitarilyInvariantSeminorm.arrowCongr_apply]
+  -- Adjoint identities turn the reversed blocks into cross-projections.
   have hXVUadj : XVU.adjoint =
       V.orthogonalProjectionOnto.toLinearMap ∘ₗ Uᗮ.subtype := by
     simp only [XVU, LinearMap.adjoint_comp, Submodule.adjoint_subtype,
@@ -234,6 +246,8 @@ theorem mul_map_sub_starProjection_le_map_sub
     simp only [CVU, LinearMap.adjoint_comp, Submodule.adjoint_subtype,
       Submodule.adjoint_orthogonalProjectionOnto_toLinearMap, hAB,
       LinearMap.comp_assoc]
+  -- These two identities identify the lifted block operators with the full
+  -- projector difference and its checkerboard residual.
   have hXlift : liftBlock Xblock =
       (U.starProjection : E →ₗ[K] E) - (V.starProjection : E →ₗ[K] E) := by
     ext x
@@ -250,6 +264,7 @@ theorem mul_map_sub_starProjection_le_map_sub
       WithLp.map, LinearMap.prodMap_apply, LinearMap.comp_apply,
       Submodule.orthogonalDecomposition_apply]
     module
+  -- The generic checkerboard contraction finishes the perturbation bound.
   have hchecker :
       delta * N (((U.starProjection - V.starProjection : E →L[K] E) : E →ₗ[K] E)) ≤
         N ((((B - A : E →L[K] E) : E →ₗ[K] E) ∘ₗ
@@ -273,7 +288,7 @@ theorem mul_map_sinAngleOperator_le_map_sub
     [V.HasOrthogonalProjection]
     (hU : forall x, x ∈ U -> A x ∈ U)
     (hV : forall x, x ∈ V -> B x ∈ V)
-    {a b c d delta : ℝ} (hdelta : 0 < delta)
+    {a b c d delta : ℝ}
     (hgapUV : Module.End.PointIntervalExteriorGap
       (A : E →ₗ[K] E) U (B : E →ₗ[K] E) Vᗮ a b delta)
     (hgapVU : Module.End.PointIntervalExteriorGap
@@ -281,7 +296,7 @@ theorem mul_map_sinAngleOperator_le_map_sub
     delta * N ((U.sinAngleOperator V : E →L[K] E) : E →ₗ[K] E) ≤
       N ((B - A : E →L[K] E) : E →ₗ[K] E) := by
   rw [N.map_sinAngleOperator_eq_map_sub_starProjection U V]
-  exact N.mul_map_sub_starProjection_le_map_sub hA hB hU hV hdelta hgapUV hgapVU
+  exact N.mul_map_sub_starProjection_le_map_sub hA hB hU hV hgapUV hgapVU
 
 end UnitarilyInvariantSeminorm
 
