@@ -401,7 +401,7 @@ theorem kyFanSum_subtype_comp_comp_orthogonalProjectionOnto
       W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap =
         (W.subtypeₗᵢ.toLinearMap ∘ₗ T) ∘ₗ
           LinearMap.adjoint U.subtypeₗᵢ.toLinearMap := by
-    simp only [hU, Submodule.subtypeₗᵢ_toLinearMap, LinearMap.comp_assoc]
+    simp only [← hU, Submodule.subtypeₗᵢ_toLinearMap, LinearMap.comp_assoc]
   rw [hcomp]
   simp only [LinearMap.kyFanSum_def,
     LinearMap.singularValues_comp_adjoint_linearIsometry,
