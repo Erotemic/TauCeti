@@ -58,7 +58,7 @@ theorem mul_map_starProjection_comp_starProjection_le_pi_div_two_mul_map_sub
       (Real.pi / 2) * N (B - A) := by
   let : CompleteSpace E := FiniteDimensional.complete 𝕜 E
   have hVorth : ∀ x ∈ Vᗮ, B x ∈ Vᗮ :=
-    apply_mem_orthogonal_of_isSymmetric hB hV
+    fun _ hx => hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx
   have hpair : δ * N (Vᗮ.starProjection ∘L U.starProjection) ≤
       Real.pi / 2 * N (B.sylvester A (Vᗮ.starProjection ∘L U.starProjection)) :=
     N.mul_map_le_pi_div_two_mul_map_sylvester_apply_of_mem hB hA hVorth hU

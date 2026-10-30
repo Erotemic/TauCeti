@@ -71,13 +71,6 @@ variable {𝕜 E F : Type*} [RCLike 𝕜]
   [NormedAddCommGroup F] [InnerProductSpace 𝕜 F] [FiniteDimensional 𝕜 F]
   {a b δ : ℝ}
 
-omit [FiniteDimensional 𝕜 E] in
-/-- The orthogonal complement of a subspace invariant under a symmetric operator is invariant. -/
-theorem apply_mem_orthogonal_of_isSymmetric {A : E →L[𝕜] E}
-    (hA : (A : E →ₗ[𝕜] E).IsSymmetric) {U : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U) :
-    ∀ x ∈ Uᗮ, A x ∈ Uᗮ := fun _ hx ↦
-  hA.orthogonalComplement_mem_invtSubmodule (p := U) (fun y hy ↦ hU y hy) hx
-
 /-- **The residual Davis–Kahan `sin Θ` theorem.** Let `A` and `M` be symmetric operators on
 finite-dimensional inner product spaces `E` and `F`, let `U` be invariant under `A`, and let
 `X : F → E` be linear. If the eigenvalues of `M` lie in `[a, b]` and those of `A` on `Uᗮ` lie
@@ -89,7 +82,8 @@ theorem mul_map_starProjection_comp_le_map_sylvester_apply (N : UnitarilyInvaria
     (h : End.PointIntervalExteriorGap (M : F →ₗ[𝕜] F) ⊤ (A : E →ₗ[𝕜] E) Uᗮ a b δ)
     (X : F →L[𝕜] E) :
     δ * N (Uᗮ.starProjection ∘L X) ≤ N (A.sylvester M X) := by
-  have hU' := apply_mem_orthogonal_of_isSymmetric hA hU
+  have hU' : ∀ x ∈ Uᗮ, A x ∈ Uᗮ :=
+    fun _ hx => hA.orthogonalComplement_mem_invtSubmodule (p := U) hU hx
   -- `Y = P_{Uᗮ} X` solves `A Y - Y M = P_{Uᗮ} (A X - X M)`.
   have hsyl : A.sylvester M (Uᗮ.starProjection ∘L X) = Uᗮ.starProjection ∘L A.sylvester M X := by
     have hcomm : ∀ y, Uᗮ.starProjection (A y) = A (Uᗮ.starProjection y) :=
@@ -114,7 +108,7 @@ theorem map_sylvester_starProjection_comp_starProjection_le
   have hcommA : ∀ y, U.starProjection (A y) = A (U.starProjection y) :=
     hA.starProjection_apply_comm fun y hy ↦ hU y hy
   have hcommB : ∀ y, Vᗮ.starProjection (B y) = B (Vᗮ.starProjection y) :=
-    hB.starProjection_apply_comm fun y hy ↦ apply_mem_orthogonal_of_isSymmetric hB hV y hy
+    hB.starProjection_apply_comm fun y hy ↦ hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hy
   have hsyl : B.sylvester A (Vᗮ.starProjection ∘L U.starProjection) =
       Vᗮ.starProjection ∘L (B - A) ∘L U.starProjection := by
     ext x
@@ -138,7 +132,10 @@ theorem mul_map_starProjection_comp_starProjection_le_map_sub
   calc δ * N (Vᗮ.starProjection ∘L U.starProjection)
       ≤ N (B.sylvester A (Vᗮ.starProjection ∘L U.starProjection)) :=
         N.mul_map_le_map_sylvester_apply_of_pointIntervalExteriorGap_swap_of_mem hB hA
-          (apply_mem_orthogonal_of_isSymmetric hB hV) hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
+          (show ∀ x ∈ Vᗮ, B x ∈ Vᗮ from
+            fun _ hx =>
+              hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx)
+          hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
           fun x hx ↦ by simp [U.starProjection_apply_eq_zero_iff.mpr hx]
     _ ≤ N (B - A) := N.map_sylvester_starProjection_comp_starProjection_le hA hB hU hV
 
@@ -156,7 +153,10 @@ theorem mul_map_starProjection_comp_starProjection_le_map_sub_swap
   calc δ * N (Vᗮ.starProjection ∘L U.starProjection)
       ≤ N (B.sylvester A (Vᗮ.starProjection ∘L U.starProjection)) :=
         N.mul_map_le_map_sylvester_apply_of_pointIntervalExteriorGap_of_mem hB hA
-          (apply_mem_orthogonal_of_isSymmetric hB hV) hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
+          (show ∀ x ∈ Vᗮ, B x ∈ Vᗮ from
+            fun _ hx =>
+              hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx)
+          hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
           fun x hx ↦ by simp [U.starProjection_apply_eq_zero_iff.mpr hx]
     _ ≤ N (B - A) := N.map_sylvester_starProjection_comp_starProjection_le hA hB hU hV
 
