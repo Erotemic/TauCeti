@@ -55,7 +55,7 @@ of singular values give at most the sum of its first `k` terms
   `LinearMap.kyFanSum_linearIsometryEquiv_comp`, `LinearMap.kyFanSum_comp_linearIsometryEquiv`:
   homogeneity, and invariance under adjoints and isometric changes of coordinates.
 * `LinearMap.kyFanSum_subtype_comp_comp_orthogonalProjectionOnto`: extending a map by zero
-  from a subspace to the ambient space preserves its Ky Fan sums.
+  between source and target ambient spaces preserves its Ky Fan sums.
 * `LinearMap.IsSymmetric.sum_re_inner_apply_self_le_sum_eigenvalues`: Ky Fan's trace inequality.
 
 ## Provenance
@@ -387,10 +387,10 @@ theorem kyFanSum_comp_linearIsometryEquiv (A : E →ₗ[𝕜] F) (V : E' ≃ₗ�
     simpa using h.trans (kyFanSum_mono _ hm)
 
 /-- Extending a map `T : U → W` by zero on `Uᗮ`, then including the image
-in the ambient space, does not change its Ky Fan singular-value sums. -/
+in the target ambient space, does not change its Ky Fan singular-value sums. -/
 @[simp]
 theorem kyFanSum_subtype_comp_comp_orthogonalProjectionOnto
-    (U W : Submodule 𝕜 E) [U.HasOrthogonalProjection]
+    (U : Submodule 𝕜 E) (W : Submodule 𝕜 F) [U.HasOrthogonalProjection]
     (T : U →ₗ[𝕜] W) (k : ℕ) :
     (W.subtype ∘ₗ T ∘ₗ U.orthogonalProjectionOnto.toLinearMap).kyFanSum k =
       T.kyFanSum k := by

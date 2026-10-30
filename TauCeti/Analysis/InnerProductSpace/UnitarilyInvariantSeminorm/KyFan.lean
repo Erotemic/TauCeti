@@ -92,5 +92,4 @@ theorem kyFanSum_eq_nuclear (A : E →ₗ[𝕜] F) {k : ℕ} (hk : finrank 𝕜 
   rw [TauCeti.UnitarilyInvariantSeminorm.nuclear_apply, Finsupp.sum, support_singularValues,
     ← kyFanSum_def, ← A.kyFanSum_min_finrank_range k, min_eq_right hk]
 
-
 end LinearMap
