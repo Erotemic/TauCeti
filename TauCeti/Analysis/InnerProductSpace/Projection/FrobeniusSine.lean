@@ -26,8 +26,10 @@ the Frobenius quantity accounts for all of them.
 For a finite orthonormal family spanning `U`, the squared Frobenius sine from
 `U` to `V` equals the sum of squared norms of projections onto `Vᗮ`.
 
-## Main result
+## Main results
 
+* `OrthonormalBasis.sq_sinThetaFrobenius_spanIndices_eq_sum_projection`: the
+  squared Frobenius sine from a selected basis block to an arbitrary subspace.
 * `Submodule.sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal`: the squared
   Frobenius sine expressed through any orthonormal spanning family.
 
@@ -139,7 +141,7 @@ variable {𝕜 E ι : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [InnerProductS
 /-- For an arbitrary target subspace `U`, the squared Frobenius sine from a
 coordinate block of an orthonormal basis `b` to `U` is the total squared
 orthogonal projection of the selected vectors onto `Uᗮ`. -/
-private theorem sq_sinThetaFrobenius_spanIndices_eq_sum_projection (b : OrthonormalBasis ι 𝕜 E)
+theorem sq_sinThetaFrobenius_spanIndices_eq_sum_projection (b : OrthonormalBasis ι 𝕜 E)
     (s : Finset ι) (U : Submodule 𝕜 E) [U.HasOrthogonalProjection] :
     letI : FiniteDimensional 𝕜 E := Module.Finite.of_basis b.toBasis
     (b.spanIndices (↑s : Set ι)).sinThetaFrobenius U ^ 2 =

@@ -5,8 +5,7 @@ Authors: The Tau Ceti contributors, Jon Crall, GPT-6
 -/
 module
 
-public import TauCeti.Analysis.InnerProductSpace.BasisSpan
-public import TauCeti.Analysis.InnerProductSpace.Orthonormal.Family
+public import TauCeti.Analysis.InnerProductSpace.Orthonormal.SpanProjection
 public import TauCeti.Analysis.InnerProductSpace.Projection.PrincipalAngle
 public import TauCeti.Analysis.InnerProductSpace.Projection.FrobeniusSine
 public import TauCeti.Analysis.InnerProductSpace.UnitarilyInvariantSeminorm.Frobenius
@@ -334,19 +333,9 @@ theorem sq_sinThetaFrobenius_spanIndices (a : OrthonormalBasis ι 𝕜 E)
   calc
     (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
         (a.spanIndices (↑s : Set ι)) ^ 2 =
-      ∑ j ∈ t, ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 := by
-        calc
-          (b.spanIndices (↑t : Set κ)).sinThetaFrobenius
-              (a.spanIndices (↑s : Set ι)) ^ 2 =
-              ∑ j : (↑t : Set κ),
-                ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 :=
-            (b.spanIndices (↑t : Set κ)).sq_sinThetaFrobenius_eq_sum_projection_of_orthonormal
-              (a.spanIndices (↑s : Set ι))
-              (b.orthonormal.comp _ Subtype.val_injective)
-              (b.span_range_comp_subtypeVal_eq_spanIndices (↑t : Set κ))
-          _ = ∑ j ∈ t, ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 :=
-            Finset.sum_coe_sort t
-              (fun j : κ => ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2)
+      ∑ j ∈ t, ‖(a.spanIndices (↑s : Set ι))ᗮ.starProjection (b j)‖ ^ 2 :=
+      b.sq_sinThetaFrobenius_spanIndices_eq_sum_projection t
+        (a.spanIndices (↑s : Set ι))
     _ = ∑ j ∈ t, ∑ k ∈ sᶜ, ‖⟪a k, b j⟫_𝕜‖ ^ 2 := by
       exact Finset.sum_congr rfl fun j _ =>
         a.norm_starProjection_orthogonal_spanIndices_sq s (b j)
