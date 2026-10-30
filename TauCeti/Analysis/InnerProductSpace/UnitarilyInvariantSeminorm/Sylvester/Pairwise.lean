@@ -306,7 +306,7 @@ theorem mul_map_le_pi_div_two_mul_map_sylvester_apply_of_mem
       (End.restrictedPointSpectrum_restrict_top_subset (B : F →ₗ[𝕜] F) hT hν)
   have hY : Nblock Y = N X := by
     simpa only [Nblock, compress_apply, Y, ContinuousLinearMap.toLinearMap_comp] using
-      congrArg N (blockExtend_orthogonalProjection_comp_eq_of_mem S T
+      congrArg N (LinearMap.blockExtend_orthogonalProjection_comp_eq_of_mem S T
         (X : F →ₗ[𝕜] E) hXS hXT)
   -- The restricted Sylvester residual is the compression of the ambient residual.
   have hSY : AS.sylvester BT Y =
@@ -333,7 +333,7 @@ theorem mul_map_le_pi_div_two_mul_map_sylvester_apply_of_mem
   have hR : Nblock (AS.sylvester BT Y) = N (A.sylvester B X) := by
     rw [hSY]
     simpa only [Nblock, compress_apply, ContinuousLinearMap.toLinearMap_comp] using
-      congrArg N (blockExtend_orthogonalProjection_comp_eq_of_mem S T
+      congrArg N (LinearMap.blockExtend_orthogonalProjection_comp_eq_of_mem S T
         ((A.sylvester B X : F →L[𝕜] E) : F →ₗ[𝕜] E) hRS hRT)
   have hbound := Nblock.mul_map_le_pi_div_two_mul_map_sylvester_apply hAS hBT hgap' Y
   calc

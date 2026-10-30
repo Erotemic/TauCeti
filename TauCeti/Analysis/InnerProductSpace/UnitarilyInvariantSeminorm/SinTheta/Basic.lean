@@ -128,13 +128,13 @@ theorem mul_map_starProjection_comp_starProjection_le_map_sub
     (hB : (B : E →ₗ[𝕜] E).IsSymmetric) {U V : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U)
     (hV : ∀ x ∈ V, B x ∈ V)
     (h : End.PointIntervalExteriorGap (A : E →ₗ[𝕜] E) U (B : E →ₗ[𝕜] E) Vᗮ a b δ) :
-    δ * N (Vᗮ.starProjection ∘L U.starProjection) ≤ N (B - A) :=
+    δ * N (Vᗮ.starProjection ∘L U.starProjection) ≤ N (B - A) := by
+  have hVorth : ∀ x ∈ Vᗮ, B x ∈ Vᗮ :=
+    fun _ hx => hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx
   calc δ * N (Vᗮ.starProjection ∘L U.starProjection)
       ≤ N (B.sylvester A (Vᗮ.starProjection ∘L U.starProjection)) :=
         N.mul_map_le_map_sylvester_apply_of_pointIntervalExteriorGap_swap_of_mem hB hA
-          (show ∀ x ∈ Vᗮ, B x ∈ Vᗮ from
-            fun _ hx =>
-              hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx)
+          hVorth
           hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
           fun x hx ↦ by simp [U.starProjection_apply_eq_zero_iff.mpr hx]
     _ ≤ N (B - A) := N.map_sylvester_starProjection_comp_starProjection_le hA hB hU hV
@@ -149,13 +149,13 @@ theorem mul_map_starProjection_comp_starProjection_le_map_sub_swap
     (hB : (B : E →ₗ[𝕜] E).IsSymmetric) {U V : Submodule 𝕜 E} (hU : ∀ x ∈ U, A x ∈ U)
     (hV : ∀ x ∈ V, B x ∈ V)
     (h : End.PointIntervalExteriorGap (B : E →ₗ[𝕜] E) Vᗮ (A : E →ₗ[𝕜] E) U a b δ) :
-    δ * N (Vᗮ.starProjection ∘L U.starProjection) ≤ N (B - A) :=
+    δ * N (Vᗮ.starProjection ∘L U.starProjection) ≤ N (B - A) := by
+  have hVorth : ∀ x ∈ Vᗮ, B x ∈ Vᗮ :=
+    fun _ hx => hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx
   calc δ * N (Vᗮ.starProjection ∘L U.starProjection)
       ≤ N (B.sylvester A (Vᗮ.starProjection ∘L U.starProjection)) :=
         N.mul_map_le_map_sylvester_apply_of_pointIntervalExteriorGap_of_mem hB hA
-          (show ∀ x ∈ Vᗮ, B x ∈ Vᗮ from
-            fun _ hx =>
-              hB.orthogonalComplement_mem_invtSubmodule (p := V) hV hx)
+          hVorth
           hU h (fun x ↦ Vᗮ.starProjection_apply_mem _)
           fun x hx ↦ by simp [U.starProjection_apply_eq_zero_iff.mpr hx]
     _ ≤ N (B - A) := N.map_sylvester_starProjection_comp_starProjection_le hA hB hU hV
