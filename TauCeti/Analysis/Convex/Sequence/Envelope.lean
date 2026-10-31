@@ -38,6 +38,8 @@ input: geometric conclusions about `lowerConvexEnvelope a` assume `IsAdmissible 
   when it lies below `a`.
 * `lowerConvexEnvelope_mono` and `lowerConvexEnvelope_idem`: the envelope is monotone
   on admissible inputs and idempotent.
+* `lowerConvexEnvelope_inf_lowerConvexEnvelope`: the envelope of the pointwise minimum of two
+  admissible sequences depends only on their envelopes.
 * `lowerConvexEnvelope_ne_top_iff`: the finite domain of an admissible envelope is the
   integer convex hull of the finite indices of the sequence.
 * `lowerConvexEnvelope_eq_of_forall_lt` and `lowerConvexEnvelope_eq_of_forall_gt`: the
@@ -47,6 +49,8 @@ input: geometric conclusions about `lowerConvexEnvelope a` assume `IsAdmissible 
   `lowerConvexEnvelope_add_nsmul` states the shear by a finite slope.
 * `lowerConvexEnvelope_shift`: shifting the sequence to the right, with infinite heights
   at the vacated indices, shifts the envelope in the same way.
+* `lowerConvexEnvelope_reflect`: reflecting points that are infinite beyond `N` in the index
+  `N` reflects their envelope in the same way.
 
 ## References
 
@@ -242,6 +246,21 @@ theorem lowerConvexEnvelope_mono (hb : IsAdmissible b) (hba : b ≤ a) :
     lowerConvexEnvelope b ≤ lowerConvexEnvelope a :=
   le_lowerConvexEnvelope (isConvexSeq_lowerConvexEnvelope b)
     ((lowerConvexEnvelope_le hb).trans hba)
+
+/-- For admissible `a` and `b`, the envelope of the pointwise minimum of their envelopes is the
+envelope of `a ⊓ b`. So the greatest convex minorant of `a ⊓ b` depends only on the envelopes of
+`a` and `b`, and by `le_lowerConvexEnvelope` it lies above every common convex minorant of the
+two envelopes. The pointwise minimum of two envelopes need not itself be convex. -/
+theorem lowerConvexEnvelope_inf_lowerConvexEnvelope (ha : IsAdmissible a) (hb : IsAdmissible b) :
+    lowerConvexEnvelope (lowerConvexEnvelope a ⊓ lowerConvexEnvelope b) =
+      lowerConvexEnvelope (a ⊓ b) :=
+  le_antisymm
+    (lowerConvexEnvelope_mono ((isConvexSeq_lowerConvexEnvelope a).isAdmissible.inf
+        (isConvexSeq_lowerConvexEnvelope b).isAdmissible)
+      (inf_le_inf (lowerConvexEnvelope_le ha) (lowerConvexEnvelope_le hb)))
+    (le_lowerConvexEnvelope (isConvexSeq_lowerConvexEnvelope _)
+      (le_inf (lowerConvexEnvelope_mono (ha.inf hb) inf_le_left)
+        (lowerConvexEnvelope_mono (ha.inf hb) inf_le_right)))
 
 /-! ### Finite domain and endpoints -/
 
@@ -447,5 +466,38 @@ theorem lowerConvexEnvelope_shift (a : ℕ → WithTop ℝ) (k : ℕ) :
       (by rwa [isAdmissible_shift_iff])]
     funext n
     simp
+
+
+/-! ### Reflection of indices -/
+
+/-- Reflecting points in `N`, when they are infinite beyond `N`, reflects their lower convex
+envelope in the same way. The hypothesis is needed, since reflection discards the points beyond
+`N`, which may affect the envelope on `[0, N]`. -/
+theorem IsLowerConvexEnvelope.reflect (hh : IsLowerConvexEnvelope a h) {N : ℕ}
+    (ha : ∀ n, N < n → a n = ⊤) :
+    IsLowerConvexEnvelope (fun n => if n ≤ N then a (N - n) else ⊤)
+      (fun n => if n ≤ N then h (N - n) else ⊤) := by
+  refine ⟨hh.isConvexSeq.reflect N, fun n => ?_, fun g hg hga n => ?_⟩
+  · dsimp only
+    split_ifs
+    exacts [hh.le _, le_rfl]
+  · -- Reflecting `g` back gives a convex minorant of `a`.
+    have hle := hh.greatest (hg.reflect N) fun m => by
+      dsimp only
+      split_ifs with hm
+      · simpa [Nat.sub_sub_self hm] using hga (N - m)
+      · simp [ha m (by omega)]
+    dsimp only
+    split_ifs with hn
+    · simpa [Nat.sub_sub_self hn] using hle (N - n)
+    · exact le_top
+
+/-- Reflecting points in `N`, when they are infinite beyond `N`, reflects their lower convex
+envelope in the same way. -/
+theorem lowerConvexEnvelope_reflect {N : ℕ} (ha : ∀ n, N < n → a n = ⊤) :
+    lowerConvexEnvelope (fun n => if n ≤ N then a (N - n) else ⊤) =
+      fun n => if n ≤ N then lowerConvexEnvelope a (N - n) else ⊤ :=
+  ((isLowerConvexEnvelope_lowerConvexEnvelope (isAdmissible_of_forall_gt ha)).reflect ha
+    |>.eq_lowerConvexEnvelope).symm
 
 end TauCeti

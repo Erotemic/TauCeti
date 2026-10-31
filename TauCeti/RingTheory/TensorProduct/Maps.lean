@@ -5,6 +5,7 @@ Authors: The Tau Ceti contributors
 -/
 module
 
+public import Mathlib.RingTheory.Ideal.Quotient.Operations
 public import Mathlib.RingTheory.TensorProduct.Maps
 
 /-!
@@ -32,19 +33,35 @@ on `T` involved. This is the form needed when `T` already carries an `R`-algebra
 `x` and `y` do not respect, for instance when `T` is itself a tensor product over `R` and `x`
 twists the first factor by a ring automorphism.
 
+Mathlib's `LinearMap.tensorProduct` and `LinearMap.tensorProductEnd` send `a ⊗ f` to `a` times the
+base change of `f`, but their generated computation lemmas unfold to `TensorProduct.liftAux`; this
+file records their values on pure tensors as `simp` lemmas of higher priority than the generated
+ones, so the public `LinearMap.baseChange` API applies.
+
 ## Main declarations
 
 * `AlgHom.lTensor_toLinearMap_apply`: `f.toLinearMap.lTensor S` is
   `Algebra.TensorProduct.map (AlgHom.id R S) f`.
 * `AlgHom.rTensor_toLinearMap_apply`: `f.toLinearMap.rTensor S` is
   `Algebra.TensorProduct.map f (AlgHom.id R S)`.
+* `LinearMap.tensorProduct_tmul`, `LinearMap.tensorProductEnd_tmul`: the extension of linear maps
+  and of endomorphisms sends `a ⊗ f` to `a • f.baseChange A`.
 * `Algebra.TensorProduct.mulLeft`, `Algebra.TensorProduct.mulRight`: the
   multiplication maps `s ⊗ b ↦ s • b` and `b ⊗ t ↦ b * t`.
 * `Algebra.TensorProduct.liftRingHom x y h`: the ring homomorphism `a ⊗ b ↦ x a * y b`.
+* `Algebra.TensorProduct.map_productMap_eq_zero_of_comp_eq`: if `p : T → U` equalizes
+  `f, g : S → T`, then `p` kills `productMap f g e` (`s ⊗ t ↦ f s * g t`) for every `e` in the
+  kernel of multiplication `S ⊗[R] S → S`.
+* `Algebra.TensorProduct.productMap_mem_of_comp_eq`: if `f, g` agree modulo an ideal `J` of `T`,
+  then `productMap f g e ∈ J` for every such `e`.
 * `Algebra.TensorProduct.mulLeft_map`, `Algebra.TensorProduct.mulLeft_map_includeRight`:
   naturality of tensor multiplication and cancellation of an inserted middle factor `1`.
 * `Algebra.TensorProduct.map_assoc_tmul_one`: applying `f : B ⊗[R] C → D` after
   reassociating `y ⊗ 1` is the base change of `b ↦ f (b ⊗ 1)`.
+* `Algebra.TensorProduct.assoc_comp_includeLeft_comp_includeLeft`,
+  `Algebra.TensorProduct.assoc_comp_includeLeft_comp_includeRight`,
+  `Algebra.TensorProduct.assoc_comp_includeRight`: the associator restricted to each of the three
+  tensor factors.
 * `AlgHom.sectionBaseChange`: the base change `T ⊗[A] B →ₐ[T] T` of an `A`-algebra map
   `s : B →ₐ[A] A`, that is, the pullback to `Spec T` of the section of `Spec B → Spec A` given by
   `s`, with its value `AlgHom.sectionBaseChange_sum_tmul` on sums of pure tensors, its
@@ -75,6 +92,24 @@ theorem AlgHom.rTensor_toLinearMap_apply {R B C : Type*} (S : Type*) [CommSemiri
   induction x using TensorProduct.inductionOn with
   | tmul b s => simp
   | add x y hx hy => simp [hx, hy]
+
+/-- The natural map `A ⊗[R] (M →ₗ[R] N) → (A ⊗[R] M →ₗ[A] A ⊗[R] N)` sends `a ⊗ f` to
+`a • f.baseChange A`, so that `LinearMap.baseChange_tmul` computes its values on pure tensors. -/
+@[simp high]
+theorem LinearMap.tensorProduct_tmul {R A M N : Type*} [CommSemiring R] [CommSemiring A]
+    [Algebra R A] [AddCommMonoid M] [Module R M] [AddCommMonoid N] [Module R N] (a : A)
+    (f : M →ₗ[R] N) : LinearMap.tensorProduct R A M N (a ⊗ₜ f) = a • f.baseChange A := by
+  simp only [LinearMap.tensorProduct_apply, TensorProduct.liftAux_tmul,
+    LinearMap.coe_restrictScalars, LinearMap.coe_mk, AddHom.coe_mk, LinearMap.smul_apply,
+    LinearMap.baseChangeHom_apply]
+
+/-- The natural algebra map `A ⊗[R] Module.End R M → Module.End A (A ⊗[R] M)` sends `a ⊗ f` to
+`a • f.baseChange A`. -/
+@[simp high]
+theorem LinearMap.tensorProductEnd_tmul {R A M : Type*} [CommSemiring R] [CommSemiring A]
+    [Algebra R A] [AddCommMonoid M] [Module R M] (a : A) (f : Module.End R M) :
+    LinearMap.tensorProductEnd R A M (a ⊗ₜ f) = a • f.baseChange A :=
+  LinearMap.tensorProduct_tmul a f
 
 namespace Algebra.TensorProduct
 
@@ -124,6 +159,33 @@ theorem map_assoc_tmul_one {C D : Type*} [Semiring C] [Algebra R C] [Semiring D]
   induction y using TensorProduct.inductionOn with
   | tmul a b => simp
   | add x y hx hy => simp only [TensorProduct.add_tmul, map_add, hx, hy]
+
+section AssocInclude
+
+variable {C : Type*} [Semiring C] [Algebra R C]
+
+/-- Restricting the associator `(A ⊗[R] B) ⊗[R] C ≃ A ⊗[R] (B ⊗[R] C)` to the left factor `A`
+gives the inclusion of the left factor. -/
+theorem assoc_comp_includeLeft_comp_includeLeft :
+    (((Algebra.TensorProduct.assoc R R R A B C).toAlgHom.comp includeLeft).comp includeLeft :
+      A →ₐ[R] A ⊗[R] (B ⊗[R] C)) = includeLeft :=
+  AlgHom.ext fun _ ↦ rfl
+
+/-- Restricting the associator `(A ⊗[R] B) ⊗[R] C ≃ A ⊗[R] (B ⊗[R] C)` to the middle factor `B`
+gives the inclusion of `B` into the left factor of `B ⊗[R] C`. -/
+theorem assoc_comp_includeLeft_comp_includeRight :
+    (((Algebra.TensorProduct.assoc R R R A B C).toAlgHom.comp includeLeft).comp includeRight :
+      B →ₐ[R] A ⊗[R] (B ⊗[R] C)) = includeRight.comp includeLeft :=
+  AlgHom.ext fun _ ↦ rfl
+
+/-- Restricting the associator `(A ⊗[R] B) ⊗[R] C ≃ A ⊗[R] (B ⊗[R] C)` to the right factor `C`
+gives the inclusion of `C` into the right factor of `B ⊗[R] C`. -/
+theorem assoc_comp_includeRight :
+    ((Algebra.TensorProduct.assoc R R R A B C).toAlgHom.comp includeRight :
+      C →ₐ[R] A ⊗[R] (B ⊗[R] C)) = includeRight.comp includeRight :=
+  AlgHom.ext fun _ ↦ rfl
+
+end AssocInclude
 
 variable [Algebra S B]
 
@@ -175,6 +237,37 @@ noncomputable def mulRight : B ⊗[R] S →ₐ[S] B :=
 theorem mulRight_tmul (b : B) (t : S) :
     (mulRight (b ⊗ₜ[R] t) : B) = b * algebraMap S B t := by
   simp [mulRight]
+
+section Product
+
+/-- If two algebra maps `f, g : S → T` agree after composing with `p : T → U`, then `p` kills
+`productMap f g e` (the map `s ⊗ t ↦ f s * g t` applied to `e`) for every element `e` of the
+kernel of multiplication `S ⊗[R] S → S`. -/
+theorem map_productMap_eq_zero_of_comp_eq {R S T U : Type*} [CommSemiring R] [CommSemiring S]
+    [CommSemiring T] [Semiring U] [Algebra R S] [Algebra R T] [Algebra R U]
+    {e : S ⊗[R] S} (he : lmul' R e = 0)
+    {f g : S →ₐ[R] T} (p : T →ₐ[R] U) (hfg : p.comp f = p.comp g) :
+    p (productMap f g e) = 0 := by
+  have hp : p.comp (productMap f g) =
+      (p.comp f).comp (lmul' R) := by
+    ext s
+    · simp
+    · simpa using DFunLike.congr_fun hfg.symm s
+  simpa only [AlgHom.comp_apply, he, map_zero] using DFunLike.congr_fun hp e
+
+/-- If two algebra maps `f, g : S → T` agree modulo an ideal `J` of `T`, then `productMap f g`
+(the map `s ⊗ t ↦ f s * g t`) sends every element of the kernel of multiplication
+`S ⊗[R] S → S` into `J`. -/
+theorem productMap_mem_of_comp_eq {R S T : Type*} [CommSemiring R] [CommSemiring S] [CommRing T]
+    [Algebra R S] [Algebra R T]
+    {e : S ⊗[R] S} (he : lmul' R e = 0) (J : Ideal T)
+    {f g : S →ₐ[R] T}
+    (hfg : (Ideal.Quotient.mkₐ R J).comp f = (Ideal.Quotient.mkₐ R J).comp g) :
+    productMap f g e ∈ J :=
+  Ideal.Quotient.eq_zero_iff_mem.mp
+    (map_productMap_eq_zero_of_comp_eq he (Ideal.Quotient.mkₐ R J) hfg)
+
+end Product
 
 end Algebra.TensorProduct
 
