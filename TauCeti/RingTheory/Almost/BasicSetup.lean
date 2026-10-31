@@ -8,6 +8,7 @@ module
 public import Mathlib.Algebra.Category.ModuleCat.Basic
 public import Mathlib.Algebra.Module.Torsion.Basic
 public import Mathlib.CategoryTheory.ObjectProperty.ClosedUnderIsomorphisms
+public import Mathlib.LinearAlgebra.LinearDisjoint
 public import Mathlib.LinearAlgebra.TensorProduct.Submodule
 public import Mathlib.RingTheory.Flat.Basic
 public import Mathlib.RingTheory.Localization.Away.Basic
@@ -57,6 +58,8 @@ pseudouniformiser.
 * `TauCeti.Almost.BasicSetup.isAlmostZero_classical_iff` and
   `TauCeti.Almost.BasicSetup.isAlmostIso_classical_iff`: in the classical setup, almost zero means
   zero and an almost isomorphism is a bijective linear map.
+* `TauCeti.Almost.BasicSetup.tildeToIdeal_bijective_of_flat`: if `m` is flat, the multiplication
+  map `m~ → m` is bijective.
 * `TauCeti.Almost.BasicSetup.isAlmostIso_subtype`: the inclusion `m → V` is an almost
   isomorphism.
 * `TauCeti.Almost.BasicSetup.flat_tilde_map`: `mW ⊗[W] mW ≅ W ⊗[V] m~` is flat, so basic setups
@@ -148,6 +151,15 @@ theorem tildeToIdeal_tmul (x y : S.ideal) :
 theorem tildeToIdeal_surjective : Function.Surjective S.tildeToIdeal := by
   rw [tildeToIdeal, LinearMap.coe_comp]
   exact (LinearEquiv.surjective _).comp (Submodule.mulMap'_surjective S.ideal S.ideal)
+
+/-- If `m` is a flat `V`-module, the multiplication map `m~ → m` is bijective (Gabber–Ramero
+(2.1.3)): an ideal contained in `V = 1` is linearly disjoint from every flat submodule. -/
+theorem tildeToIdeal_bijective_of_flat [Module.Flat V S.ideal] :
+    Function.Bijective S.tildeToIdeal := by
+  have H : S.ideal.LinearDisjoint S.ideal :=
+    .of_left_le_one_of_flat S.ideal S.ideal (le_top.trans Ideal.one_eq_top.ge)
+  refine ⟨fun s t hst ↦ H.injective ?_, S.tildeToIdeal_surjective⟩
+  simpa only [coe_tildeToIdeal, tildeMul] using congrArg Subtype.val hst
 
 /-! ### Almost zero modules -/
 
